@@ -18,64 +18,78 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="26dp"
             android:text="@string/login_titulo"
             android:textColor="#1E90FF"
-            android:textSize="26sp"
+            android:textSize="32sp"
             android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSair"
-            android:layout_width="60dp"
-            android:layout_height="32dp"
+            android:layout_width="76dp"
+            android:layout_height="40dp"
             android:layout_alignTop="@id/tvTituloCaronas"
             android:layout_alignParentEnd="true"
             android:text="@string/sair"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/botao_azul_neon"
             android:padding="4dp" />
 
-        <ImageView
-            android:id="@+id/ivLogoCaronas"
-            android:layout_width="wrap_content"
-            android:layout_height="70dp"
+        <!-- Logo + Meu Perfil/Editar Perfil na mesma linha: logo do lado
+             direito, os dois links à esquerda, ambos centralizados
+             verticalmente nessa faixa (logo centralizada colidia com o
+             texto — não sobra largura suficiente pros dois). -->
+        <RelativeLayout
+            android:id="@+id/rowLogoPerfil"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_below="@id/tvTituloCaronas"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="8dp"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:src="@drawable/logo_caronas"
-            android:contentDescription="@string/login_titulo" />
+            android:layout_marginTop="8dp">
 
-        <TextView
-            android:id="@+id/tvMeuPerfil"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/ivLogoCaronas"
-            android:layout_alignParentStart="true"
-            android:layout_marginTop="8dp"
-            android:text="@string/tela_botao_meu_perfil"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="#1E90FF"
-            android:clickable="true"
-            android:focusable="true" />
+            <ImageView
+                android:id="@+id/ivLogoCaronas"
+                android:layout_width="53dp"
+                android:layout_height="35dp"
+                android:layout_alignParentEnd="true"
+                android:scaleType="fitCenter"
+                android:src="@drawable/logo_caronas"
+                android:contentDescription="@string/login_titulo" />
 
-        <TextView
-            android:id="@+id/tvEditarPerfil"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/tvMeuPerfil"
-            android:layout_alignParentStart="true"
-            android:layout_marginTop="2dp"
-            android:text="@string/tela_botao_editar_perfil"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="#1E90FF"
-            android:clickable="true"
-            android:focusable="true" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvMeuPerfil"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tela_botao_meu_perfil"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E90FF"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/tvEditarPerfil"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/tela_botao_editar_perfil"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E90FF"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
+        </RelativeLayout>
 
     </RelativeLayout>
 
