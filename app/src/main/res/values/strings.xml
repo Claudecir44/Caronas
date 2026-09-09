@@ -18,6 +18,7 @@
     <string name="login_criar_conta">Ainda não tem conta? Cadastre-se</string>
     <string name="login_erro_campos_obrigatorios">Preencha e-mail e senha.</string>
     <string name="login_email_redefinicao_enviado">E-mail de redefinição de senha enviado.</string>
+    <string name="login_entrar_como">Entrar como:</string>
 
     <!-- Cadastro -->
     <string name="cadastro_titulo">Criar Conta</string>

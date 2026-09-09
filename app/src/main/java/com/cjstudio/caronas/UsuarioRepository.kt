@@ -78,6 +78,15 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
+    override suspend fun atualizarPapelMotorista(uid: String, motorista: Boolean): Result<Unit> {
+        return try {
+            colecaoUsuarios().document(uid).update("motorista", motorista).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun uploadFotoPerfil(uid: String, uri: Uri): Result<String> {
         return try {
             val ref = storage.reference.child("fotos_perfil/$uid/perfil_${UUID.randomUUID()}.jpg")

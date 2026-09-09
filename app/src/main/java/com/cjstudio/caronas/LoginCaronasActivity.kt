@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -23,6 +24,8 @@ class LoginCaronasActivity : AppCompatActivity() {
 
     private lateinit var etEmail: EditText
     private lateinit var etSenha: EditText
+    private lateinit var cbLoginMotorista: CheckBox
+    private lateinit var cbLoginPassageiro: CheckBox
     private lateinit var btnEntrar: Button
     private lateinit var tvEsqueciSenha: TextView
     private lateinit var tvCriarConta: TextView
@@ -36,10 +39,22 @@ class LoginCaronasActivity : AppCompatActivity() {
         etEmail = findViewById(R.id.etEmail)
         etSenha = findViewById(R.id.etSenha)
         etSenha.habilitarToggleSenha()
+        cbLoginMotorista = findViewById(R.id.cbLoginMotorista)
+        cbLoginPassageiro = findViewById(R.id.cbLoginPassageiro)
         btnEntrar = findViewById(R.id.btnEntrar)
         tvEsqueciSenha = findViewById(R.id.tvEsqueciSenha)
         tvCriarConta = findViewById(R.id.tvCriarConta)
         progressBar = findViewById(R.id.progressBar)
+
+        // Mutuamente exclusivas — marcar uma desmarca a outra (não é papel
+        // de conta separado, é só a escolha de como entrar desta vez;
+        // atualiza o campo "motorista" do usuário se ele marcar alguma).
+        cbLoginMotorista.setOnCheckedChangeListener { _, marcado ->
+            if (marcado) cbLoginPassageiro.isChecked = false
+        }
+        cbLoginPassageiro.setOnCheckedChangeListener { _, marcado ->
+            if (marcado) cbLoginMotorista.isChecked = false
+        }
 
         btnEntrar.setOnClickListener { fazerLogin() }
         tvCriarConta.setOnClickListener {
@@ -57,14 +72,23 @@ class LoginCaronasActivity : AppCompatActivity() {
             return
         }
 
-        progressBar.visibility = android.view.View.VISIBLE
+        progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             val resultado = usuarioRepository.login(email, senha)
-            progressBar.visibility = android.view.View.GONE
-            resultado.onSuccess {
+            resultado.onSuccess { usuario ->
+                // Se marcou alguma opção, aplica a escolha desta sessão ao
+                // cadastro; se não marcou nenhuma, mantém o papel que já
+                // estava salvo (login sem trocar nada).
+                if (cbLoginMotorista.isChecked) {
+                    usuarioRepository.atualizarPapelMotorista(usuario.id!!, true)
+                } else if (cbLoginPassageiro.isChecked) {
+                    usuarioRepository.atualizarPapelMotorista(usuario.id!!, false)
+                }
+                progressBar.visibility = View.GONE
                 startActivity(Intent(this@LoginCaronasActivity, TelaCaronasActivity::class.java))
                 finish()
             }.onFailure { e ->
+                progressBar.visibility = View.GONE
                 Toast.makeText(this@LoginCaronasActivity, getString(R.string.erro_generico, e.message), Toast.LENGTH_LONG).show()
             }
         }

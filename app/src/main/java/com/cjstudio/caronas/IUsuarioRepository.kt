@@ -16,6 +16,10 @@ interface IUsuarioRepository {
 
     suspend fun uploadFotoPerfil(uid: String, uri: Uri): Result<String>
 
+    // Atualização parcial (só o campo "motorista") usada pela escolha de
+    // papel na tela de login — não precisa do Usuario inteiro carregado.
+    suspend fun atualizarPapelMotorista(uid: String, motorista: Boolean): Result<Unit>
+
     // Reautentica com a senha atual antes de apagar foto + doc + conta.
     suspend fun excluirContaPropria(senhaAtual: String): Result<Unit>
 

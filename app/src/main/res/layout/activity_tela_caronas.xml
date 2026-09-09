@@ -37,10 +37,9 @@
             android:background="@drawable/botao_azul_neon"
             android:padding="4dp" />
 
-        <!-- Logo + Meu Perfil/Editar Perfil na mesma linha: logo do lado
-             direito, os dois links à esquerda, ambos centralizados
-             verticalmente nessa faixa (logo centralizada colidia com o
-             texto — não sobra largura suficiente pros dois). -->
+        <!-- Logo centralizada; Meu Perfil/Editar Perfil empilhados à
+             esquerda, na mesma faixa (largura de um item por vez, não
+             colide com a logo centralizada). -->
         <RelativeLayout
             android:id="@+id/rowLogoPerfil"
             android:layout_width="match_parent"
@@ -52,7 +51,7 @@
                 android:id="@+id/ivLogoCaronas"
                 android:layout_width="53dp"
                 android:layout_height="35dp"
-                android:layout_alignParentEnd="true"
+                android:layout_centerHorizontal="true"
                 android:scaleType="fitCenter"
                 android:src="@drawable/logo_caronas"
                 android:contentDescription="@string/login_titulo" />
@@ -62,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/tvMeuPerfil"
@@ -79,7 +78,7 @@
                     android:id="@+id/tvEditarPerfil"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginTop="2dp"
                     android:text="@string/tela_botao_editar_perfil"
                     android:textSize="13sp"
                     android:textStyle="bold"
