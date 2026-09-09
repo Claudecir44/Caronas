@@ -17,4 +17,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCaronaRepository(impl: CaronaRepository): ICaronaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSolicitacaoRepository(impl: SolicitacaoRepository): ISolicitacaoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatCaronaRepository(impl: ChatCaronaRepository): IChatCaronaRepository
 }

@@ -21,18 +21,27 @@ import androidx.core.view.WindowInsetsCompat
 // junto com o padding, rola até o campo focado ficar visível acima do
 // teclado.
 //
-// Chamar depois do setContentView, na raiz rolável da tela (ScrollView).
+// Com o teclado FECHADO, o modo edge-to-edge ainda desenha o conteúdo por
+// baixo da barra de navegação do sistema — sem um piso mínimo, uma tela com
+// conteúdo fixo embaixo (ex.: a caixa de digitar + botão enviar do chat,
+// presa ao fim de um LinearLayout com peso, não dentro de um ScrollView)
+// fica parcial ou totalmente atrás da barra, impossível de tocar. Por isso
+// o padding nunca é menor que a barra de sistema, mesmo sem teclado — só
+// cresce mais que isso quando o teclado (maior que a barra) está aberto.
+//
+// Chamar depois do setContentView, na raiz rolável ou na raiz da tela.
 fun View.ajustarPaddingParaTeclado() {
     val paddingInferiorOriginal = paddingBottom
     ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsets ->
         val teclado = windowInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom
         val barrasSistema = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+        val paddingInferior = maxOf(teclado, barrasSistema)
         val paddingTeclado = maxOf(teclado - barrasSistema, 0)
         view.setPadding(
             view.paddingLeft,
             view.paddingTop,
             view.paddingRight,
-            paddingInferiorOriginal + paddingTeclado
+            paddingInferiorOriginal + paddingInferior
         )
 
         if (paddingTeclado > 0 && view is ScrollView) {

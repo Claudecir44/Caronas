@@ -46,6 +46,16 @@
             android:name=".OferecerCaronaActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".MinhasOfertasActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ConversasCaronaActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChatCaronaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- ===== Flavor admin (Admin Caronas) ===== -->
         <activity

@@ -19,5 +19,61 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.motoristaId == request.auth.uid;
     }
+
+    // Pedido de vaga de um passageiro numa carona ("Solicitar vaga" na
+    // busca, listado em "Minhas Viagens" e em "Solicitações Recebidas" do
+    // motorista, dentro de "Minhas Ofertas"). Leitura/atualização
+    // (cancelar, confirmar) tanto pelo passageiro quanto pelo motorista da
+    // carona; criação só pelo próprio passageiro.
+    match /solicitacoes/{solicitacaoId} {
+      allow read, update, delete: if request.auth != null &&
+        (resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid;
+    }
+
+    // Conversa entre motorista e passageiro de uma solicitação (só passa a
+    // existir quando a primeira mensagem é enviada — ver
+    // ChatCaronaRepository.buscarOuCriarConversa). Leitura/atualização
+    // (contador de não lidas, resumo da última mensagem) só pelos dois
+    // participantes; criação por qualquer um dos dois, quem mandar a
+    // primeira mensagem.
+    match /conversas/{conversaId} {
+      // "get" (documento específico, pelo id da solicitação) precisa da
+      // guarda "resource == null": antes da primeira mensagem, o documento
+      // ainda não existe, e sem essa guarda o Firestore erra ao tentar ler
+      // resource.data num resource nulo, negando o get() que só queria
+      // checar se a conversa já existe.
+      allow get: if request.auth != null &&
+        (resource == null || resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+      // "list" (a busca das conversas do usuário pro botão Chat) já filtra
+      // por motoristaId/passageiroId, então nunca cai no caso "não existe".
+      allow list: if request.auth != null &&
+        (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+      allow update: if request.auth != null &&
+        (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+      allow create: if request.auth != null &&
+        (request.resource.data.motoristaId == request.auth.uid || request.resource.data.passageiroId == request.auth.uid);
+
+      // Mensagens moram como subcoleção da própria conversa (em vez de uma
+      // coleção "mensagens" solta, filtrada por conversaId) — de propósito:
+      // numa consulta em lista, o Firestore só consegue confirmar que TODO
+      // documento retornado bate com a regra quando a condição usa algo que
+      // vem do próprio caminho da consulta. Filtrando por um campo
+      // (whereEqualTo("conversaId", ...)) enquanto a regra checa outros
+      // campos (remetenteId/destinatarioId), o Firestore não consegue
+      // provar isso e nega a lista inteira com PERMISSION_DENIED, mesmo os
+      // documentos sendo do dono certo — foi exatamente esse o bug do chat.
+      // Com a subcoleção, conversaId vem do caminho (wildcard acima), então
+      // dá pra confirmar quem participa com um get() no documento pai.
+      match /mensagens/{mensagemId} {
+        allow read, update: if request.auth != null &&
+          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
+           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
+        allow create: if request.auth != null &&
+          request.resource.data.remetenteId == request.auth.uid &&
+          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
+           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
+      }
+    }
   }
 }

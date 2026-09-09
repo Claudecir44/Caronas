@@ -114,6 +114,12 @@
                 android:textStyle="bold"
                 android:textColor="#222222" />
 
+            <TextView
+                android:id="@+id/btnMinhasOfertasOuViagens"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:layout_marginTop="8dp"
+                android:text="@string/tela_botao_minhas_ofertas" />
+
         </LinearLayout>
 
         <LinearLayout
@@ -132,18 +138,79 @@
                 style="@style/BotaoAcaoCaronasVertical"
                 android:text="@string/tela_botao_oferecer" />
 
-            <TextView
-                android:id="@+id/btnSuasViagens"
-                style="@style/BotaoAcaoCaronasVertical"
-                android:text="@string/tela_botao_viagens" />
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/btnChat"
-                style="@style/BotaoAcaoCaronasVertical"
-                android:text="@string/tela_botao_chat" />
+                <TextView
+                    android:id="@+id/btnChat"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:text="@string/tela_botao_chat" />
+
+                <TextView
+                    android:id="@+id/badgeChatNaoLidas"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:minWidth="18dp"
+                    android:minHeight="18dp"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#D32F2F"
+                    android:paddingHorizontal="3dp"
+                    android:visibility="gone"
+                    android:elevation="4dp" />
+
+            </FrameLayout>
 
         </LinearLayout>
 
     </LinearLayout>
+
+    <!-- ========== RESULTADOS DA BUSCA (Procurar) ========== -->
+    <!-- Some até a primeira busca ser feita; depois disso, mostra o resumo
+         + a lista (ou o aviso de vazio). -->
+    <ProgressBar
+        android:id="@+id/progressBarBusca"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvResumoBusca"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="6dp"
+        android:textColor="#1E90FF"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvSemResultadosBusca"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/procurar_sem_resultados"
+        android:textColor="#8899AA"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:padding="24dp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvResultadosBusca"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -51,11 +51,11 @@
     <string name="tela_papel_passageiro">Passageiro</string>
     <string name="tela_botao_procurar">Procurar</string>
     <string name="tela_botao_oferecer">Oferecer</string>
-    <string name="tela_botao_viagens">Suas Viagens</string>
     <string name="tela_botao_chat">Chat</string>
+    <string name="tela_botao_minhas_ofertas">Minhas Ofertas</string>
+    <string name="tela_botao_minhas_viagens">Minhas Viagens</string>
     <string name="tela_botao_meu_perfil">Meu Perfil</string>
     <string name="tela_botao_editar_perfil">Editar Perfil</string>
-    <string name="tela_em_breve">Em breve!</string>
     <string name="tela_oferecer_precisa_ser_motorista">Para oferecer uma carona você precisa estar cadastrado como motorista, com veículo. Complete seu cadastro em Meu Perfil.</string>
 
     <!-- Oferecer carona -->
@@ -81,6 +81,87 @@
     <string name="oferecer_botao_publicar">Publicar Carona</string>
     <string name="oferecer_sucesso">Carona publicada com sucesso!</string>
     <string name="oferecer_erro_generico">Erro ao publicar carona: %1$s</string>
+
+    <!-- Procurar carona -->
+    <string name="procurar_titulo">🔍 Pra onde vamos?</string>
+    <string name="procurar_subtitulo">Encontre motoristas fazendo o mesmo trajeto</string>
+    <string name="procurar_hint_origem">Cidade de partida</string>
+    <string name="procurar_hint_destino">Cidade de chegada</string>
+    <string name="procurar_escolher_data">Escolher data</string>
+    <string name="procurar_botao_buscar">Buscar</string>
+    <string name="procurar_erro_origem">Informe a cidade de partida.</string>
+    <string name="procurar_erro_destino">Informe a cidade de chegada.</string>
+    <string name="procurar_erro_data">Escolha a data da viagem.</string>
+    <string name="procurar_erro_generico">Erro ao buscar caronas: %1$s</string>
+    <string name="procurar_resumo_formato">%1$d carona(s) encontrada(s): %2$s → %3$s, %4$s</string>
+    <string name="procurar_sem_resultados">Nenhuma carona encontrada pra essa rota e data.</string>
+    <string name="procurar_rota_formato">%1$s → %2$s</string>
+    <string name="procurar_motorista_desconhecido">Motorista</string>
+    <string name="procurar_vagas_formato">Vagas: %1$d</string>
+    <string name="procurar_valor_formato">R$ %1$s /vaga</string>
+    <string name="procurar_botao_solicitar">Solicitar vaga</string>
+    <string name="procurar_solicitacao_enviada">Solicitação enviada! Acompanhe em "Minhas Viagens".</string>
+    <string name="procurar_erro_solicitar">Erro ao solicitar vaga: %1$s</string>
+
+    <!-- Minhas Ofertas (motorista) -->
+    <string name="minhas_ofertas_titulo">Minhas Ofertas</string>
+    <string name="minhas_ofertas_vazio">Você ainda não publicou nenhuma carona.</string>
+    <string name="minhas_ofertas_erro_carregar">Erro ao carregar suas ofertas: %1$s</string>
+    <string name="minhas_ofertas_status_ativa">ATIVA</string>
+    <string name="minhas_ofertas_status_cancelada">EXCLUÍDA</string>
+    <string name="minhas_ofertas_botao_editar">Editar</string>
+    <string name="minhas_ofertas_botao_excluir">Excluir</string>
+    <string name="minhas_ofertas_botao_salvar">Salvar Alterações</string>
+    <string name="minhas_ofertas_editar_titulo">✏️ Editar Oferta</string>
+    <string name="minhas_ofertas_salva_sucesso">Oferta atualizada com sucesso!</string>
+    <string name="minhas_ofertas_erro_salvar">Erro ao salvar alterações: %1$s</string>
+    <string name="minhas_ofertas_excluir_titulo">Excluir oferta</string>
+    <string name="minhas_ofertas_excluir_mensagem">Tem certeza que deseja excluir essa oferta de carona? Essa ação não pode ser desfeita.</string>
+    <string name="minhas_ofertas_excluida_sucesso">Oferta excluída.</string>
+    <string name="minhas_ofertas_erro_excluir">Erro ao excluir oferta: %1$s</string>
+
+    <!-- Minhas Viagens (passageiro) -->
+    <string name="minhas_viagens_titulo">Minhas Viagens</string>
+    <string name="minhas_viagens_vazio">Você ainda não solicitou nenhuma vaga.</string>
+    <string name="minhas_viagens_erro_carregar">Erro ao carregar suas viagens: %1$s</string>
+    <string name="minhas_viagens_total_pago_formato">Total pago: R$ %1$s</string>
+    <string name="minhas_viagens_valor_pago_formato">R$ %1$s</string>
+    <string name="minhas_viagens_status_solicitada">SOLICITADA</string>
+    <string name="minhas_viagens_status_concluida">CONCLUÍDA</string>
+    <string name="minhas_viagens_status_cancelada">CANCELADA</string>
+    <string name="minhas_viagens_botao_cancelar">Cancelar</string>
+    <string name="minhas_viagens_cancelar_titulo">Cancelar viagem</string>
+    <string name="minhas_viagens_cancelar_mensagem">Tem certeza que deseja cancelar essa solicitação de vaga?</string>
+    <string name="minhas_viagens_cancelada_sucesso">Viagem cancelada.</string>
+    <string name="minhas_viagens_erro_cancelar">Erro ao cancelar viagem: %1$s</string>
+    <string name="minhas_viagens_carro_formato">%1$s %2$s • %3$s • %4$s</string>
+
+    <!-- Solicitações recebidas (motorista, dentro de Minhas Ofertas) -->
+    <string name="solicitacoes_recebidas_titulo">📩 Solicitações Recebidas</string>
+    <string name="solicitacoes_recebidas_vazio">Nenhuma solicitação recebida ainda.</string>
+    <string name="solicitacoes_erro_carregar">Erro ao carregar solicitações: %1$s</string>
+    <string name="solicitacoes_botao_confirmar">Confirmar</string>
+    <string name="solicitacoes_botao_chat">💬 Chat</string>
+    <string name="solicitacoes_status_solicitada">SOLICITADA</string>
+    <string name="solicitacoes_status_confirmada">CONFIRMADA</string>
+    <string name="solicitacoes_status_cancelada">CANCELADA</string>
+    <string name="solicitacoes_confirmada_sucesso">Solicitação confirmada!</string>
+    <string name="solicitacoes_erro_confirmar">Erro ao confirmar solicitação: %1$s</string>
+
+    <!-- Conversas (botão Chat) -->
+    <string name="conversas_carona_titulo">Chat</string>
+    <string name="conversas_carona_vazio">Nenhuma conversa ainda. Elas aparecem aqui assim que você trocar a primeira mensagem numa solicitação.</string>
+
+    <!-- Chat -->
+    <string name="chat_carona_hint_mensagem">Digite uma mensagem…</string>
+    <string name="chat_carona_botao_enviar">Enviar</string>
+    <string name="chat_carona_erro_generico">Erro ao abrir conversa: %1$s</string>
+    <string name="chat_carona_erro_enviar">Erro ao enviar mensagem: %1$s</string>
+    <string name="chat_carona_mensagem_apagada">Mensagem apagada</string>
+    <string name="chat_carona_apagar_titulo">Apagar mensagem</string>
+    <string name="chat_carona_apagar_para_mim">Apagar só pra mim</string>
+    <string name="chat_carona_apagar_para_todos">Apagar pra todos</string>
+    <string name="chat_carona_erro_apagar">Erro ao apagar mensagem: %1$s</string>
 
     <!-- Editar cadastro -->
     <string name="editar_titulo">Editar Cadastro</string>

@@ -1,0 +1,55 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "caronas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "cidadeOrigemBusca", "order": "ASCENDING" },
+        { "fieldPath": "cidadeDestinoBusca", "order": "ASCENDING" },
+        { "fieldPath": "dataHoraPartida", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "caronas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "motoristaId", "order": "ASCENDING" },
+        { "fieldPath": "dataHoraPartida", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "solicitacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "passageiroId", "order": "ASCENDING" },
+        { "fieldPath": "dataHoraPartida", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "solicitacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "motoristaId", "order": "ASCENDING" },
+        { "fieldPath": "dataHoraPartida", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "motoristaId", "order": "ASCENDING" },
+        { "fieldPath": "ultimoTimestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "passageiroId", "order": "ASCENDING" },
+        { "fieldPath": "ultimoTimestamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
