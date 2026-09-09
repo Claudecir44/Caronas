@@ -38,7 +38,6 @@ class TelaCaronasActivity : AppCompatActivity() {
         btnSair = findViewById(R.id.btnSair)
 
         val tvMeuPerfil = findViewById<TextView>(R.id.tvMeuPerfil)
-        val tvEditarPerfil = findViewById<TextView>(R.id.tvEditarPerfil)
         val btnProcurar = findViewById<TextView>(R.id.btnProcurar)
         val btnOferecer = findViewById<TextView>(R.id.btnOferecer)
         val btnSuasViagens = findViewById<TextView>(R.id.btnSuasViagens)
@@ -46,9 +45,11 @@ class TelaCaronasActivity : AppCompatActivity() {
 
         carregarPerfil()
 
-        val abrirEditarPerfil = { startActivity(Intent(this, EditarCadastroCaronasActivity::class.java)) }
-        tvMeuPerfil.setOnClickListener { abrirEditarPerfil() }
-        tvEditarPerfil.setOnClickListener { abrirEditarPerfil() }
+        // "Meu Perfil" já abre a tela de edição (que reúne ver + editar +
+        // excluir cadastro) — não tem mais link separado de "Editar Perfil".
+        tvMeuPerfil.setOnClickListener {
+            startActivity(Intent(this, EditarCadastroCaronasActivity::class.java))
+        }
 
         // Busca/oferta de carona, "Suas Viagens" e Chat de verdade ainda não
         // existem — só placeholders por enquanto (ver plano da fase 1).
