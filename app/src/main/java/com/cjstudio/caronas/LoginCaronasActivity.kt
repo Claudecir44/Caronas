@@ -29,10 +29,12 @@ class LoginCaronasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        restaurarRedimensionamentoComTeclado()
         setContentView(R.layout.activity_login_caronas)
 
         etEmail = findViewById(R.id.etEmail)
         etSenha = findViewById(R.id.etSenha)
+        etSenha.habilitarToggleSenha()
         btnEntrar = findViewById(R.id.btnEntrar)
         tvEsqueciSenha = findViewById(R.id.tvEsqueciSenha)
         tvCriarConta = findViewById(R.id.tvCriarConta)

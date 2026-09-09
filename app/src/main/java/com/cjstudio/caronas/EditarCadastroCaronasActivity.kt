@@ -58,6 +58,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        restaurarRedimensionamentoComTeclado()
         setContentView(R.layout.activity_editar_cadastro_caronas)
 
         ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
@@ -194,7 +195,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
     private fun confirmarExclusao() {
         val campoSenha = EditText(this).apply {
             hint = getString(R.string.editar_senha_atual)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            habilitarToggleSenha()
         }
         val padding = (16 * resources.displayMetrics.density).toInt()
         val container = LinearLayout(this).apply {

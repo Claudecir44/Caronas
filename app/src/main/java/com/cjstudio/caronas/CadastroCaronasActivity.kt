@@ -53,6 +53,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        restaurarRedimensionamentoComTeclado()
         setContentView(R.layout.activity_cadastro_caronas)
 
         ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
@@ -60,7 +61,9 @@ class CadastroCaronasActivity : AppCompatActivity() {
         etEmail = findViewById(R.id.etEmail)
         etTelefone = findViewById(R.id.etTelefone)
         etSenha = findViewById(R.id.etSenha)
+        etSenha.habilitarToggleSenha()
         etConfirmarSenha = findViewById(R.id.etConfirmarSenha)
+        etConfirmarSenha.habilitarToggleSenha()
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
         etVeiculoModelo = findViewById(R.id.etVeiculoModelo)

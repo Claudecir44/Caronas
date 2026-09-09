@@ -29,10 +29,12 @@ class LoginAdminCaronasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        restaurarRedimensionamentoComTeclado()
         setContentView(R.layout.activity_login_admin_caronas)
 
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etSenha = findViewById<EditText>(R.id.etSenha)
+        etSenha.habilitarToggleSenha()
         val btnEntrar = findViewById<Button>(R.id.btnEntrar)
         val progressBar = findViewById<ProgressBar>(R.id.progressBar)
 
