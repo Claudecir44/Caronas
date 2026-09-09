@@ -80,7 +80,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                 tvPapelUsuario.text = getString(
                     if (usuario.motorista) R.string.tela_papel_motorista else R.string.tela_papel_passageiro
                 )
-                tvNomeUsuario.text = usuario.nomeCompleto ?: ""
+                tvNomeUsuario.text = usuario.nomeCompleto?.trim()?.substringBefore(" ") ?: ""
                 if (!usuario.fotoUrl.isNullOrEmpty()) {
                     ivFotoPerfil.load(usuario.fotoUrl) {
                         transformations(CircleCropTransformation())

@@ -11,15 +11,15 @@
         <item name="android:windowBackground">@color/fundo_escuro</item>
     </style>
 
-    <!-- Botão de ação da tela inicial (Procurar/Oferecer/Suas Viagens/Chat) —
-         2x2, cada um ocupando metade da largura de sua linha. -->
-    <style name="BotaoAcaoCaronas">
-        <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">72dp</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_margin">4dp</item>
+    <!-- Botões de ação da tela inicial (Procurar/Oferecer/Suas Viagens/Chat) —
+         empilhados um abaixo do outro, do lado direito da área de perfil. -->
+    <style name="BotaoAcaoCaronasVertical">
+        <item name="android:layout_width">128dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:layout_marginBottom">6dp</item>
         <item name="android:background">@drawable/botao_azul_neon</item>
         <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:gravity">center</item>
         <item name="android:clickable">true</item>
