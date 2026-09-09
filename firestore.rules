@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Regras básicas da fase 1 — qualquer usuário autenticado pode ler a
+// coleção "usuarios" (necessário pra descoberta de caronas futuramente),
+// mas só o dono do documento pode escrever nele. Revisar quando a lógica
+// de oferta/busca de carona (match motorista/passageiro) chegar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{usuarioId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == usuarioId;
+    }
+  }
+}

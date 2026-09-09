@@ -1,0 +1,72 @@
+<resources>
+    <!-- app_name vem do resValue de cada flavor (ver app/build.gradle.kts) —
+         não duplicar aqui. -->
+
+    <string name="carregando">Carregando…</string>
+    <string name="sair">Sair</string>
+    <string name="editar">Editar</string>
+    <string name="salvar">Salvar</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="excluir">Excluir</string>
+
+    <!-- Login -->
+    <string name="login_titulo">Caronas</string>
+    <string name="login_email">E-mail</string>
+    <string name="login_senha">Senha</string>
+    <string name="login_botao_entrar">Entrar</string>
+    <string name="login_esqueci_senha">Esqueci minha senha</string>
+    <string name="login_criar_conta">Ainda não tem conta? Cadastre-se</string>
+    <string name="login_erro_campos_obrigatorios">Preencha e-mail e senha.</string>
+    <string name="login_email_redefinicao_enviado">E-mail de redefinição de senha enviado.</string>
+
+    <!-- Cadastro -->
+    <string name="cadastro_titulo">Criar Conta</string>
+    <string name="cadastro_selecionar_foto">Selecionar Foto</string>
+    <string name="cadastro_nome_completo">Nome completo</string>
+    <string name="cadastro_email">E-mail</string>
+    <string name="cadastro_telefone">Telefone</string>
+    <string name="cadastro_senha">Senha</string>
+    <string name="cadastro_confirmar_senha">Confirmar senha</string>
+    <string name="cadastro_sou_motorista">Sou motorista</string>
+    <string name="cadastro_veiculo_titulo">Dados do veículo</string>
+    <string name="cadastro_veiculo_modelo">Modelo do veículo</string>
+    <string name="cadastro_veiculo_marca">Marca</string>
+    <string name="cadastro_veiculo_cor">Cor</string>
+    <string name="cadastro_veiculo_placa">Placa</string>
+    <string name="cadastro_botao_cadastrar">Cadastrar</string>
+    <string name="cadastro_erro_nome_obrigatorio">Informe o nome completo.</string>
+    <string name="cadastro_erro_email_obrigatorio">Informe um e-mail válido.</string>
+    <string name="cadastro_erro_telefone_obrigatorio">Informe o telefone.</string>
+    <string name="cadastro_erro_senha_tamanho">A senha deve ter entre 6 e 10 caracteres.</string>
+    <string name="cadastro_erro_senhas_diferentes">As senhas não coincidem.</string>
+    <string name="cadastro_erro_veiculo_obrigatorio">Preencha todos os dados do veículo.</string>
+    <string name="cadastro_erro_generico">Erro ao cadastrar: %1$s</string>
+    <string name="cadastro_sucesso">Cadastro realizado com sucesso!</string>
+
+    <!-- Tela inicial -->
+    <string name="tela_papel_motorista">Motorista</string>
+    <string name="tela_papel_passageiro">Passageiro</string>
+    <string name="tela_botao_procurar">Procurar</string>
+    <string name="tela_botao_oferecer">Oferecer</string>
+    <string name="tela_botao_viagens">Suas Viagens</string>
+    <string name="tela_botao_chat">Chat</string>
+    <string name="tela_botao_meu_perfil">Meu Perfil</string>
+    <string name="tela_botao_editar_perfil">Editar Perfil</string>
+    <string name="tela_em_breve">Em breve!</string>
+
+    <!-- Editar cadastro -->
+    <string name="editar_titulo">Editar Cadastro</string>
+    <string name="editar_botao_salvar">Salvar Alterações</string>
+    <string name="editar_botao_excluir">Excluir Cadastro</string>
+    <string name="editar_confirmar_exclusao_titulo">Excluir cadastro</string>
+    <string name="editar_confirmar_exclusao_mensagem">Essa ação apaga sua conta e seus dados permanentemente e não pode ser desfeita. Confirme sua senha para continuar.</string>
+    <string name="editar_senha_atual">Senha atual</string>
+    <string name="editar_sucesso">Dados atualizados com sucesso!</string>
+    <string name="editar_erro_generico">Erro ao salvar: %1$s</string>
+    <string name="editar_excluir_erro_generico">Erro ao excluir cadastro: %1$s</string>
+
+    <!-- Admin -->
+    <string name="admin_login_titulo">Admin Caronas</string>
+    <string name="admin_painel_em_construcao">Painel administrativo em construção — em breve.</string>
+    <string name="erro_generico">Ocorreu um erro: %1$s</string>
+</resources>

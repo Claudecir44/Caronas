@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fundo_cinza_claro"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp">
+
+    <!-- ========== TÍTULO ========== -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/tvTituloCaronas"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="@string/login_titulo"
+            android:textColor="#1E90FF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSair"
+            android:layout_width="60dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:text="@string/sair"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/botao_azul_neon"
+            android:padding="4dp" />
+
+    </RelativeLayout>
+
+    <!-- ========== PERFIL (foto, papel + nome, ações) ========== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#141E90FF"
+        android:padding="10dp"
+        android:layout_marginBottom="12dp">
+
+        <ImageView
+            android:id="@+id/ivFotoPerfil"
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:src="@drawable/ic_person_default"
+            android:scaleType="centerCrop"
+            android:background="@drawable/borda_circular_azul"
+            android:layout_marginEnd="10dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvPapelUsuario"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#1E90FF" />
+
+            <TextView
+                android:id="@+id/tvNomeUsuario"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/carregando"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#222222" />
+
+            <TextView
+                android:id="@+id/tvMeuPerfil"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tela_botao_meu_perfil"
+                android:textSize="11sp"
+                android:textColor="#1E90FF"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tvEditarPerfil"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tela_botao_editar_perfil"
+                android:textSize="11sp"
+                android:textColor="#1E90FF"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ========== AÇÕES (Procurar / Oferecer / Suas Viagens / Chat) ========== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/btnProcurar"
+                style="@style/BotaoAcaoCaronas"
+                android:text="@string/tela_botao_procurar" />
+
+            <TextView
+                android:id="@+id/btnOferecer"
+                style="@style/BotaoAcaoCaronas"
+                android:text="@string/tela_botao_oferecer" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btnSuasViagens"
+                style="@style/BotaoAcaoCaronas"
+                android:text="@string/tela_botao_viagens" />
+
+            <TextView
+                android:id="@+id/btnChat"
+                style="@style/BotaoAcaoCaronas"
+                android:text="@string/tela_botao_chat" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

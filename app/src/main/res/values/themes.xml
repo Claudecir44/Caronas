@@ -1,0 +1,28 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.Caronas" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/azul_neon</item>
+        <item name="colorPrimaryVariant">@color/azul_neon_escuro</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/azul_neon</item>
+        <item name="colorSecondaryVariant">@color/azul_neon_escuro</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/fundo_escuro</item>
+        <item name="android:windowBackground">@color/fundo_escuro</item>
+    </style>
+
+    <!-- Botão de ação da tela inicial (Procurar/Oferecer/Suas Viagens/Chat) —
+         2x2, cada um ocupando metade da largura de sua linha. -->
+    <style name="BotaoAcaoCaronas">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:background">@drawable/botao_azul_neon</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+</resources>
