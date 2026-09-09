@@ -72,19 +72,32 @@ class LoginCaronasActivity : AppCompatActivity() {
             return
         }
 
+        // Precisa escolher um papel pra entrar — não loga direto como
+        // motorista (ou o que já estava salvo) sem confirmar de propósito.
+        if (!cbLoginMotorista.isChecked && !cbLoginPassageiro.isChecked) {
+            Toast.makeText(this, R.string.login_erro_selecionar_papel, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val entrarComoMotorista = cbLoginMotorista.isChecked
+
         progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             val resultado = usuarioRepository.login(email, senha)
             resultado.onSuccess { usuario ->
-                // Se marcou alguma opção, aplica a escolha desta sessão ao
-                // cadastro; se não marcou nenhuma, mantém o papel que já
-                // estava salvo (login sem trocar nada).
-                if (cbLoginMotorista.isChecked) {
-                    usuarioRepository.atualizarPapelMotorista(usuario.id!!, true)
-                } else if (cbLoginPassageiro.isChecked) {
-                    usuarioRepository.atualizarPapelMotorista(usuario.id!!, false)
-                }
                 progressBar.visibility = View.GONE
+
+                // Escolheu entrar como motorista mas o cadastro não tem
+                // veículo salvo — não deixa entrar assim, manda completar o
+                // cadastro antes.
+                if (entrarComoMotorista && usuario.veiculo == null) {
+                    Toast.makeText(this@LoginCaronasActivity, R.string.login_erro_sem_veiculo, Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@LoginCaronasActivity, EditarCadastroCaronasActivity::class.java))
+                    finish()
+                    return@onSuccess
+                }
+
+                usuarioRepository.atualizarPapelMotorista(usuario.id!!, entrarComoMotorista)
                 startActivity(Intent(this@LoginCaronasActivity, TelaCaronasActivity::class.java))
                 finish()
             }.onFailure { e ->

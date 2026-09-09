@@ -19,6 +19,8 @@
     <string name="login_erro_campos_obrigatorios">Preencha e-mail e senha.</string>
     <string name="login_email_redefinicao_enviado">E-mail de redefinição de senha enviado.</string>
     <string name="login_entrar_como">Entrar como:</string>
+    <string name="login_erro_selecionar_papel">Selecione se você vai entrar como motorista ou passageiro.</string>
+    <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter um veículo cadastrado. Complete seu cadastro.</string>
 
     <!-- Cadastro -->
     <string name="cadastro_titulo">Criar Conta</string>
