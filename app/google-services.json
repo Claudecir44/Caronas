@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1032163427813",
+    "project_id": "caronas-6b0c4",
+    "storage_bucket": "caronas-6b0c4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1032163427813:android:ab39ef78ab5d1b891c5b0c",
+        "android_client_info": {
+          "package_name": "com.cjstudio.caronas.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGUtMd9XfiXwV8axlicI95SnwGBkbuCdA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1032163427813:android:fd5ce1de16666ef21c5b0c",
+        "android_client_info": {
+          "package_name": "com.cjstudio.caronas.usuario"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGUtMd9XfiXwV8axlicI95SnwGBkbuCdA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
