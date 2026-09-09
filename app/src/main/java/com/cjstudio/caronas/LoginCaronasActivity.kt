@@ -88,9 +88,10 @@ class LoginCaronasActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
 
                 // Escolheu entrar como motorista mas o cadastro não tem
-                // veículo salvo — não deixa entrar assim, manda completar o
-                // cadastro antes. Se já tem veículo cadastrado, entra direto.
-                if (entrarComoMotorista && usuario.veiculo == null) {
+                // veículo salvo (ou tem um vazio, sem modelo/marca/cor/
+                // placa) — não deixa entrar assim, manda completar o
+                // cadastro antes. Se já tem veículo de verdade, entra direto.
+                if (entrarComoMotorista && usuario.veiculo?.estaPreenchido() != true) {
                     Toast.makeText(this@LoginCaronasActivity, R.string.login_erro_sem_veiculo, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@LoginCaronasActivity, EditarCadastroCaronasActivity::class.java))
                     finish()

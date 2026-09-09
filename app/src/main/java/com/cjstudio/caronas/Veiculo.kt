@@ -9,4 +9,12 @@ data class Veiculo(
 ) {
     // Construtor vazio necessário para o Firestore.
     constructor() : this(null, null, null, null)
+
+    // Um Veiculo() "vazio" (todos os campos em branco) já apareceu salvo em
+    // documentos de usuário — não-nulo, então passava batido em qualquer
+    // checagem "!= null" (checkbox de Meu Perfil, gate de login como
+    // motorista), mas sem placa/modelo pra mostrar em lugar nenhum. Sempre
+    // checar isso em vez de só != null.
+    fun estaPreenchido(): Boolean =
+        !modelo.isNullOrBlank() && !marca.isNullOrBlank() && !cor.isNullOrBlank() && !placa.isNullOrBlank()
 }

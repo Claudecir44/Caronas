@@ -108,4 +108,13 @@ class SolicitacaoRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun excluirSolicitacao(solicitacaoId: String): Result<Unit> {
+        return try {
+            colecaoSolicitacoes().document(solicitacaoId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -100,6 +100,7 @@
     <string name="procurar_vagas_formato">Vagas: %1$d</string>
     <string name="procurar_valor_formato">R$ %1$s /vaga</string>
     <string name="procurar_botao_solicitar">Solicitar vaga</string>
+    <string name="procurar_vaga_ja_solicitada">Vaga solicitada</string>
     <string name="procurar_solicitacao_enviada">Solicitação enviada! Acompanhe em "Minhas Viagens".</string>
     <string name="procurar_erro_solicitar">Erro ao solicitar vaga: %1$s</string>
 
@@ -147,6 +148,10 @@
     <string name="solicitacoes_status_cancelada">CANCELADA</string>
     <string name="solicitacoes_confirmada_sucesso">Solicitação confirmada!</string>
     <string name="solicitacoes_erro_confirmar">Erro ao confirmar solicitação: %1$s</string>
+    <string name="solicitacoes_excluir_titulo">Excluir solicitação</string>
+    <string name="solicitacoes_excluir_mensagem">Tem certeza que deseja excluir essa solicitação? Essa ação não pode ser desfeita.</string>
+    <string name="solicitacoes_excluida_sucesso">Solicitação excluída.</string>
+    <string name="solicitacoes_erro_excluir">Erro ao excluir solicitação: %1$s</string>
 
     <!-- Conversas (botão Chat) -->
     <string name="conversas_carona_titulo">Chat</string>

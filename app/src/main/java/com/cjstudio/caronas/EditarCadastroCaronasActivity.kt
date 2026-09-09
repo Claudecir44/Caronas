@@ -117,8 +117,19 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         etNomeCompleto.setText(usuario.nomeCompleto)
         etEmail.setText(usuario.email)
         etTelefone.setText(usuario.telefone)
-        cbSouMotorista.isChecked = usuario.motorista
-        layoutVeiculo.visibility = if (usuario.motorista) View.VISIBLE else View.GONE
+
+        // "usuario.motorista" é o papel do ÚLTIMO login (Motorista ou
+        // Passageiro — ver LoginCaronasActivity.atualizarPapelMotorista),
+        // não se o cadastro tem veículo. Usar esse campo aqui fazia o
+        // checkbox vir desmarcado sempre que a pessoa tivesse logado como
+        // passageiro por último — e ao salvar QUALQUER edição (nome,
+        // telefone, foto) com o checkbox desmarcado, o veículo já salvo
+        // era apagado (veiculo = null lá embaixo), mesmo sem a pessoa
+        // mexer nisso de propósito. O que decide o checkbox aqui tem que
+        // ser só "esse cadastro tem veículo?".
+        val temVeiculoCadastrado = usuario.veiculo?.estaPreenchido() == true
+        cbSouMotorista.isChecked = temVeiculoCadastrado
+        layoutVeiculo.visibility = if (temVeiculoCadastrado) View.VISIBLE else View.GONE
         usuario.veiculo?.let { veiculo ->
             etVeiculoModelo.setText(veiculo.modelo)
             etVeiculoMarca.setText(veiculo.marca)
@@ -162,10 +173,12 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
             veiculo = Veiculo(modelo = modelo, marca = marca, cor = cor, placa = placa)
         }
 
+        // Não mexe em "motorista" (papel da sessão atual) — isso é decisão
+        // de login (LoginCaronasActivity), não de editar o perfil. Salvar
+        // aqui só atualiza dados cadastrais e o veículo.
         val usuarioAtualizado = base.copy(
             nomeCompleto = nome,
             telefone = telefone,
-            motorista = souMotorista,
             veiculo = veiculo
         )
 

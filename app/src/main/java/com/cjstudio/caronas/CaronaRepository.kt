@@ -24,6 +24,7 @@ class CaronaRepository @Inject constructor(
             carona.motoristaId = uid
             carona.motoristaNome = perfil.getString("nomeCompleto")
             carona.motoristaFotoUrl = perfil.getString("fotoUrl")
+            carona.veiculo = perfil.toObject(Usuario::class.java)?.veiculo
             carona.cidadeOrigemBusca = carona.cidadeOrigem?.let { TextoUtil.normalizar(it) }
             carona.cidadeDestinoBusca = carona.cidadeDestino?.let { TextoUtil.normalizar(it) }
 

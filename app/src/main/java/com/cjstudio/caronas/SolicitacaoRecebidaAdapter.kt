@@ -23,7 +23,8 @@ import java.util.Locale
 class SolicitacaoRecebidaAdapter(
     private val solicitacoes: List<Solicitacao>,
     private val onConfirmarClick: (Solicitacao) -> Unit,
-    private val onChatClick: (Solicitacao) -> Unit
+    private val onChatClick: (Solicitacao) -> Unit,
+    private val onExcluirLongClick: (Solicitacao) -> Unit
 ) : RecyclerView.Adapter<SolicitacaoRecebidaAdapter.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
@@ -100,6 +101,12 @@ class SolicitacaoRecebidaAdapter(
             posicaoAberta = if (aberto) -1 else position
             if (anterior != -1) notifyItemChanged(anterior)
             if (posicaoAberta != -1) notifyItemChanged(posicaoAberta)
+        }
+        // Toque e segure no cabeçalho (sempre visível, aberto ou fechado) —
+        // exclui a solicitação de vez, com confirmação (ver MinhasOfertasActivity).
+        holder.header.setOnLongClickListener {
+            onExcluirLongClick(solicitacao)
+            true
         }
 
         holder.btnConfirmar.setOnClickListener { onConfirmarClick(solicitacao) }

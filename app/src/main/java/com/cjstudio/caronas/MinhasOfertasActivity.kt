@@ -120,7 +120,8 @@ class MinhasOfertasActivity : AppCompatActivity() {
                         rvSolicitacoesRecebidas.adapter = SolicitacaoRecebidaAdapter(
                             solicitacoes,
                             onConfirmarClick = { confirmarSolicitacao(it) },
-                            onChatClick = { abrirChat(it) }
+                            onChatClick = { abrirChat(it) },
+                            onExcluirLongClick = { confirmarExcluirSolicitacao(it) }
                         )
                     }
                 }
@@ -143,6 +144,27 @@ class MinhasOfertasActivity : AppCompatActivity() {
                     Toast.makeText(this@MinhasOfertasActivity, getString(R.string.solicitacoes_erro_confirmar, e.message), Toast.LENGTH_LONG).show()
                 }
         }
+    }
+
+    private fun confirmarExcluirSolicitacao(solicitacao: Solicitacao) {
+        val solicitacaoId = solicitacao.id ?: return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.solicitacoes_excluir_titulo)
+            .setMessage(R.string.solicitacoes_excluir_mensagem)
+            .setPositiveButton(R.string.excluir) { _, _ ->
+                lifecycleScope.launch {
+                    solicitacaoRepository.excluirSolicitacao(solicitacaoId)
+                        .onSuccess {
+                            Toast.makeText(this@MinhasOfertasActivity, R.string.solicitacoes_excluida_sucesso, Toast.LENGTH_SHORT).show()
+                            carregarSolicitacoesRecebidas()
+                        }
+                        .onFailure { e ->
+                            Toast.makeText(this@MinhasOfertasActivity, getString(R.string.solicitacoes_erro_excluir, e.message), Toast.LENGTH_LONG).show()
+                        }
+                }
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
     }
 
     private fun abrirChat(solicitacao: Solicitacao) {

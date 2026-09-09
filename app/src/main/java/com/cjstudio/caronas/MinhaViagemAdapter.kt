@@ -96,7 +96,7 @@ class MinhaViagemAdapter(
         // .confirmarSolicitacao).
         if (confirmada) {
             holder.layoutMotorista.visibility = View.VISIBLE
-            holder.tvNomeMotorista.text = viagem.motoristaNome
+            holder.tvNomeMotorista.text = viagem.motoristaNome?.trim()?.substringBefore(" ")
                 ?: context.getString(R.string.procurar_motorista_desconhecido)
 
             val veiculo = viagem.veiculo

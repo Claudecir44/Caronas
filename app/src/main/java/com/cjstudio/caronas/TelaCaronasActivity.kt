@@ -62,6 +62,7 @@ class TelaCaronasActivity : AppCompatActivity() {
     private lateinit var progressBarBusca: ProgressBar
     private var usuarioAtual: Usuario? = null
     private var mostrandoMinhasViagens = false
+    private var adapterResultadosBusca: CaronaResultadoAdapter? = null
 
     private val formatoDataBusca = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
 
@@ -208,7 +209,8 @@ class TelaCaronasActivity : AppCompatActivity() {
                     } else {
                         tvSemResultadosBusca.visibility = View.GONE
                         rvResultadosBusca.visibility = View.VISIBLE
-                        rvResultadosBusca.adapter = CaronaResultadoAdapter(caronas) { carona -> solicitarVaga(carona) }
+                        adapterResultadosBusca = CaronaResultadoAdapter(caronas) { carona -> solicitarVaga(carona) }
+                        rvResultadosBusca.adapter = adapterResultadosBusca
                     }
                 }
                 .onFailure { e ->
@@ -219,12 +221,19 @@ class TelaCaronasActivity : AppCompatActivity() {
     }
 
     private fun solicitarVaga(carona: Carona) {
+        val caronaId = carona.id
+        // Marca otimista (antes da resposta do servidor) pra desabilitar o
+        // botão na hora — evita um segundo toque durante a espera da rede
+        // virar uma segunda solicitação.
+        caronaId?.let { adapterResultadosBusca?.marcarComoSolicitada(it) }
+
         lifecycleScope.launch {
             solicitacaoRepository.solicitarVaga(carona)
                 .onSuccess {
                     Toast.makeText(this@TelaCaronasActivity, R.string.procurar_solicitacao_enviada, Toast.LENGTH_LONG).show()
                 }
                 .onFailure { e ->
+                    caronaId?.let { adapterResultadosBusca?.desmarcarComoSolicitada(it) }
                     Toast.makeText(this@TelaCaronasActivity, getString(R.string.procurar_erro_solicitar, e.message), Toast.LENGTH_LONG).show()
                 }
         }

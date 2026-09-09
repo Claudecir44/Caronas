@@ -15,4 +15,8 @@ interface ISolicitacaoRepository {
     suspend fun confirmarSolicitacao(solicitacaoId: String): Result<Unit>
 
     suspend fun cancelarSolicitacao(solicitacaoId: String): Result<Unit>
+
+    // Apaga o documento de vez (toque e segure numa solicitação recebida) —
+    // diferente de cancelar, que só muda o status e mantém no histórico.
+    suspend fun excluirSolicitacao(solicitacaoId: String): Result<Unit>
 }
