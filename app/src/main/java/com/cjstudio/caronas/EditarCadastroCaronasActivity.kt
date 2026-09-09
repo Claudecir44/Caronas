@@ -58,8 +58,8 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        restaurarRedimensionamentoComTeclado()
         setContentView(R.layout.activity_editar_cadastro_caronas)
+        findViewById<View>(R.id.scrollRoot).ajustarPaddingParaTeclado()
 
         ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
         etNomeCompleto = findViewById(R.id.etNomeCompleto)
