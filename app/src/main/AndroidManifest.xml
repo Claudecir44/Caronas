@@ -42,6 +42,10 @@
             android:name=".EditarCadastroCaronasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".OferecerCaronaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- ===== Flavor admin (Admin Caronas) ===== -->
         <activity

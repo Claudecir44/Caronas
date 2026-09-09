@@ -10,5 +10,14 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == usuarioId;
     }
+
+    // Caronas oferecidas por um motorista. Leitura liberada pra qualquer
+    // autenticado (necessário pra tela "Procurar" futura); escrita só pelo
+    // próprio motorista dono do documento.
+    match /caronas/{caronaId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.motoristaId == request.auth.uid;
+    }
   }
 }

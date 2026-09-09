@@ -27,6 +27,7 @@ class TelaCaronasActivity : AppCompatActivity() {
     private lateinit var tvPapelUsuario: TextView
     private lateinit var tvNomeUsuario: TextView
     private lateinit var btnSair: Button
+    private var usuarioAtual: Usuario? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,11 +52,11 @@ class TelaCaronasActivity : AppCompatActivity() {
             startActivity(Intent(this, EditarCadastroCaronasActivity::class.java))
         }
 
-        // Busca/oferta de carona, "Suas Viagens" e Chat de verdade ainda não
+        // Busca de carona, "Suas Viagens" e Chat de verdade ainda não
         // existem — só placeholders por enquanto (ver plano da fase 1).
         val mostrarEmBreve = { android.view.View.OnClickListener { Toast.makeText(this, R.string.tela_em_breve, Toast.LENGTH_SHORT).show() } }
         btnProcurar.setOnClickListener(mostrarEmBreve())
-        btnOferecer.setOnClickListener(mostrarEmBreve())
+        btnOferecer.setOnClickListener { abrirOferecerCarona() }
         btnSuasViagens.setOnClickListener(mostrarEmBreve())
         btnChat.setOnClickListener(mostrarEmBreve())
 
@@ -75,9 +76,27 @@ class TelaCaronasActivity : AppCompatActivity() {
         carregarPerfil()
     }
 
+    // Só quem está cadastrado como motorista (com veículo) pode oferecer
+    // carona — passageiro sem carro não tem o que oferecer. Ver
+    // CadastroCaronasActivity/EditarCadastroCaronasActivity pra virar
+    // motorista.
+    private fun abrirOferecerCarona() {
+        val usuario = usuarioAtual
+        if (usuario == null) {
+            Toast.makeText(this, R.string.carregando, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!usuario.motorista) {
+            Toast.makeText(this, R.string.tela_oferecer_precisa_ser_motorista, Toast.LENGTH_LONG).show()
+            return
+        }
+        startActivity(Intent(this, OferecerCaronaActivity::class.java))
+    }
+
     private fun carregarPerfil() {
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
+                usuarioAtual = usuario
                 tvPapelUsuario.text = getString(
                     if (usuario.motorista) R.string.tela_papel_motorista else R.string.tela_papel_passageiro
                 )

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrollRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:background="@drawable/bg_fundo_caronas">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/oferecer_titulo"
+            android:textColor="#1E90FF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_gravity="center"
+            android:layout_marginTop="36dp"
+            android:layout_marginBottom="20dp" />
+
+        <EditText
+            android:id="@+id/etCidadeOrigem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/oferecer_origem_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8899AA"
+            android:inputType="textCapWords"
+            android:layout_marginBottom="10dp" />
+
+        <EditText
+            android:id="@+id/etCidadeDestino"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/oferecer_destino_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8899AA"
+            android:inputType="textCapWords"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <Button
+                android:id="@+id/tvData"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="@string/oferecer_escolher_data"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:background="@drawable/botao_azul_neon" />
+
+            <Button
+                android:id="@+id/tvHora"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="@string/oferecer_escolher_hora"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:background="@drawable/botao_azul_neon" />
+
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/etVagas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/oferecer_vagas_hint"
+            android:text="1"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8899AA"
+            android:inputType="number"
+            android:maxLength="1"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/btnCalcularSugestao"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/oferecer_botao_calcular_sugestao"
+            android:textColor="#1E90FF"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tvSugestao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#E8E8E8"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="#141E90FF"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone" />
+
+        <EditText
+            android:id="@+id/etValorPorVaga"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/oferecer_valor_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8899AA"
+            android:inputType="numberDecimal"
+            android:layout_marginBottom="20dp" />
+
+        <Button
+            android:id="@+id/btnPublicar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/oferecer_botao_publicar"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:background="@drawable/botao_azul_neon"
+            android:layout_marginBottom="16dp" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>

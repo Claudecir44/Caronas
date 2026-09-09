@@ -56,6 +56,31 @@
     <string name="tela_botao_meu_perfil">Meu Perfil</string>
     <string name="tela_botao_editar_perfil">Editar Perfil</string>
     <string name="tela_em_breve">Em breve!</string>
+    <string name="tela_oferecer_precisa_ser_motorista">Para oferecer uma carona você precisa estar cadastrado como motorista, com veículo. Complete seu cadastro em Meu Perfil.</string>
+
+    <!-- Oferecer carona -->
+    <string name="oferecer_titulo">Oferecer Carona</string>
+    <string name="oferecer_origem_hint">Cidade de partida</string>
+    <string name="oferecer_destino_hint">Cidade de chegada</string>
+    <string name="oferecer_escolher_data">Escolher data</string>
+    <string name="oferecer_escolher_hora">Escolher horário</string>
+    <string name="oferecer_vagas_hint">Vagas disponíveis</string>
+    <string name="oferecer_valor_hint">Valor por vaga (R$)</string>
+    <string name="oferecer_botao_calcular_sugestao">Calcular valor sugerido</string>
+    <string name="oferecer_calculando">Calculando distância…</string>
+    <string name="oferecer_sugestao_texto">Sugestão: %1$s para ~%2$d km — %3$s (referência pra dividir custos, ajuste se quiser)</string>
+    <string name="oferecer_tarifa_normal">tarifa de dia normal</string>
+    <string name="oferecer_tarifa_fim_de_semana">tarifa de fim de semana/feriado (+30%)</string>
+    <string name="oferecer_erro_cidades_nao_encontradas">Não encontramos essas cidades. Confira a digitação.</string>
+    <string name="oferecer_erro_origem">Informe a cidade de partida.</string>
+    <string name="oferecer_erro_destino">Informe a cidade de chegada.</string>
+    <string name="oferecer_erro_data_hora">Escolha a data e o horário da viagem.</string>
+    <string name="oferecer_erro_data_passado">Escolha uma data e horário futuros.</string>
+    <string name="oferecer_erro_vagas">Informe quantas vagas.</string>
+    <string name="oferecer_erro_valor">Informe o valor por vaga.</string>
+    <string name="oferecer_botao_publicar">Publicar Carona</string>
+    <string name="oferecer_sucesso">Carona publicada com sucesso!</string>
+    <string name="oferecer_erro_generico">Erro ao publicar carona: %1$s</string>
 
     <!-- Editar cadastro -->
     <string name="editar_titulo">Editar Cadastro</string>
