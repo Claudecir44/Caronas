@@ -179,6 +179,22 @@ class ChatCaronaRepository @Inject constructor(
             val conversaId = conversa.id ?: throw IllegalStateException("Conversa sem id.")
             val campo = if (conversa.motoristaId == uid) "naoLidasMotorista" else "naoLidasPassageiro"
             colecaoConversas().document(conversaId).update(campo, 0).await()
+
+            // Marca cada mensagem recebida ainda não lida como lida — é o
+            // que alimenta o "Lida"/"Não lida" embaixo das mensagens
+            // ENVIADAS de quem mandou (ver MensagemCaronaAdapter). Antes
+            // disso o campo "lida" nunca era gravado (só o contador da
+            // conversa era zerado), então ficava sempre false.
+            val naoLidas = colecaoMensagens(conversaId)
+                .whereEqualTo("destinatarioId", uid)
+                .whereEqualTo("lida", false)
+                .get().await()
+            if (!naoLidas.isEmpty) {
+                val lote = db.batch()
+                naoLidas.documents.forEach { doc -> lote.update(doc.reference, "lida", true) }
+                lote.commit().await()
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -203,6 +219,20 @@ class ChatCaronaRepository @Inject constructor(
             val conversaId = mensagem.conversaId ?: throw IllegalStateException("Mensagem sem conversa.")
             val mensagemId = mensagem.id ?: throw IllegalStateException("Mensagem sem id.")
             colecaoMensagens(conversaId).document(mensagemId).update("deletadaParaTodos", true).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun excluirConversa(conversa: ConversaCarona): Result<Unit> {
+        return try {
+            val conversaId = conversa.id ?: throw IllegalStateException("Conversa sem id.")
+            val mensagens = colecaoMensagens(conversaId).get().await()
+            val batch = db.batch()
+            mensagens.documents.forEach { doc -> batch.delete(doc.reference) }
+            batch.delete(colecaoConversas().document(conversaId))
+            batch.commit().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

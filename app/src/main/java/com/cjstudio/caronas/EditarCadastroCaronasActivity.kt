@@ -188,11 +188,27 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val uid = usuarioAtualizado.id!!
             val uriFoto = fotoUriSelecionada
+            // uploadFotoPerfil já grava fotoUrl no Firestore sozinho (update
+            // direto desse campo), mas atualizarPerfil logo abaixo grava o
+            // Usuario INTEIRO (com merge) — sem atualizar fotoUrl aqui
+            // também, esse merge reescrevia o campo de volta pro valor
+            // antigo (o de "usuarioAtualizado", carregado ANTES do upload),
+            // desfazendo a troca de foto na hora seguinte. Por isso a foto
+            // nunca aparecia salva depois de editar.
+            var usuarioParaSalvar = usuarioAtualizado
             if (uriFoto != null) {
                 usuarioRepository.uploadFotoPerfil(uid, uriFoto)
+                    .onSuccess { url -> usuarioParaSalvar = usuarioParaSalvar.copy(fotoUrl = url) }
+                    .onFailure { e ->
+                        Toast.makeText(
+                            this@EditarCadastroCaronasActivity,
+                            getString(R.string.editar_erro_generico, e.message),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
             }
 
-            usuarioRepository.atualizarPerfil(usuarioAtualizado).onSuccess {
+            usuarioRepository.atualizarPerfil(usuarioParaSalvar).onSuccess {
                 progressBar.visibility = View.GONE
                 btnSalvar.isEnabled = true
                 Toast.makeText(this@EditarCadastroCaronasActivity, R.string.editar_sucesso, Toast.LENGTH_LONG).show()

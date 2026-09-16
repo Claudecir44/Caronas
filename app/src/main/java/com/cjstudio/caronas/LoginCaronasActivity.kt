@@ -9,9 +9,9 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +27,6 @@ class LoginCaronasActivity : AppCompatActivity() {
     private lateinit var cbLoginMotorista: CheckBox
     private lateinit var cbLoginPassageiro: CheckBox
     private lateinit var btnEntrar: Button
-    private lateinit var tvEsqueciSenha: TextView
     private lateinit var tvCriarConta: TextView
     private lateinit var progressBar: ProgressBar
 
@@ -42,9 +41,9 @@ class LoginCaronasActivity : AppCompatActivity() {
         cbLoginMotorista = findViewById(R.id.cbLoginMotorista)
         cbLoginPassageiro = findViewById(R.id.cbLoginPassageiro)
         btnEntrar = findViewById(R.id.btnEntrar)
-        tvEsqueciSenha = findViewById(R.id.tvEsqueciSenha)
         tvCriarConta = findViewById(R.id.tvCriarConta)
         progressBar = findViewById(R.id.progressBar)
+        val tvSuporte = findViewById<TextView>(R.id.tvSuporte)
 
         // Mutuamente exclusivas — marcar uma desmarca a outra (não é papel
         // de conta separado, é só a escolha de como entrar desta vez;
@@ -60,7 +59,7 @@ class LoginCaronasActivity : AppCompatActivity() {
         tvCriarConta.setOnClickListener {
             startActivity(Intent(this, CadastroCaronasActivity::class.java))
         }
-        tvEsqueciSenha.setOnClickListener { enviarRedefinicaoSenha() }
+        tvSuporte.setOnClickListener { mostrarDialogSuporte() }
     }
 
     private fun fazerLogin() {
@@ -108,18 +107,88 @@ class LoginCaronasActivity : AppCompatActivity() {
         }
     }
 
-    private fun enviarRedefinicaoSenha() {
-        val email = etEmail.text.toString().trim()
-        if (email.isEmpty()) {
-            Toast.makeText(this, R.string.login_erro_campos_obrigatorios, Toast.LENGTH_SHORT).show()
-            return
+    // "Suporte" (canto inferior esquerdo) — menu com as duas opções
+    // pedidas, cada uma abrindo o mesmo formulário (nome completo, e-mail,
+    // telefone), só muda o texto de explicação e a ação do envio.
+    private fun mostrarDialogSuporte() {
+        val opcoes = arrayOf(
+            getString(R.string.login_suporte_opcao_esqueci_senha),
+            getString(R.string.login_suporte_opcao_reenviar_verificacao)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.login_suporte)
+            .setItems(opcoes) { _, which ->
+                if (which == 0) abrirFormularioSuporte(ehRedefinicaoSenha = true)
+                else abrirFormularioSuporte(ehRedefinicaoSenha = false)
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
+
+    private fun abrirFormularioSuporte(ehRedefinicaoSenha: Boolean) {
+        val view = layoutInflater.inflate(R.layout.dialog_suporte_caronas, null)
+        val tvExplicacao = view.findViewById<TextView>(R.id.tvExplicacaoSuporte)
+        val etNome = view.findViewById<EditText>(R.id.etNomeSuporte)
+        val etEmailSuporte = view.findViewById<EditText>(R.id.etEmailSuporte)
+        val etTelefoneSuporte = view.findViewById<EditText>(R.id.etTelefoneSuporte)
+
+        tvExplicacao.setText(
+            if (ehRedefinicaoSenha) R.string.login_suporte_esqueci_senha_explicacao
+            else R.string.login_suporte_reenviar_verificacao_explicacao
+        )
+        // Já vem com o e-mail digitado no login, se houver — economiza
+        // redigitar o mais comum de errar.
+        etEmailSuporte.setText(etEmail.text.toString().trim())
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(
+                if (ehRedefinicaoSenha) R.string.login_suporte_opcao_esqueci_senha
+                else R.string.login_suporte_opcao_reenviar_verificacao
+            )
+            .setView(view)
+            .setPositiveButton(R.string.login_suporte_botao_enviar, null)
+            .setNegativeButton(R.string.cancelar, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nome = etNome.text.toString().trim()
+                val emailDigitado = etEmailSuporte.text.toString().trim()
+                val telefone = etTelefoneSuporte.text.toString().trim()
+
+                if (nome.isEmpty() || emailDigitado.isEmpty() || telefone.isEmpty()) {
+                    Toast.makeText(this, R.string.login_suporte_erro_campos_obrigatorios, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                dialog.dismiss()
+                if (ehRedefinicaoSenha) enviarRedefinicaoSenha(emailDigitado) else enviarReenvioVerificacao(emailDigitado)
+            }
         }
-        FirebaseAuth.getInstance().sendPasswordResetEmail(email)
-            .addOnSuccessListener {
-                Toast.makeText(this, R.string.login_email_redefinicao_enviado, Toast.LENGTH_LONG).show()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, getString(R.string.erro_generico, e.message), Toast.LENGTH_LONG).show()
-            }
+        dialog.show()
+    }
+
+    private fun enviarRedefinicaoSenha(email: String) {
+        lifecycleScope.launch {
+            usuarioRepository.enviarRedefinicaoSenha(email)
+                .onSuccess {
+                    Toast.makeText(this@LoginCaronasActivity, R.string.login_email_redefinicao_enviado, Toast.LENGTH_LONG).show()
+                }
+                .onFailure { e ->
+                    Toast.makeText(this@LoginCaronasActivity, getString(R.string.login_suporte_erro_generico, e.message), Toast.LENGTH_LONG).show()
+                }
+        }
+    }
+
+    private fun enviarReenvioVerificacao(email: String) {
+        lifecycleScope.launch {
+            usuarioRepository.reenviarEmailVerificacao(email)
+                .onSuccess {
+                    Toast.makeText(this@LoginCaronasActivity, R.string.login_suporte_reenvio_enviado, Toast.LENGTH_LONG).show()
+                }
+                .onFailure { e ->
+                    Toast.makeText(this@LoginCaronasActivity, getString(R.string.login_suporte_erro_generico, e.message), Toast.LENGTH_LONG).show()
+                }
+        }
     }
 }

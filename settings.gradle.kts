@@ -19,6 +19,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Só pro ShortcutBadger (badge numérico no ícone do launcher,
+        // ver AppIconBadgeUtil.kt) — não publicado no Maven Central, só
+        // aqui.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

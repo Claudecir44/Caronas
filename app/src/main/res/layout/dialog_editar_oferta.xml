@@ -19,6 +19,110 @@
             android:textStyle="bold"
             android:layout_marginBottom="20dp" />
 
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:boxStrokeColor="@color/azul_neon"
+            app:hintTextColor="@color/azul_neon"
+            app:prefixText="🚩  "
+            android:hint="@string/oferecer_origem_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCidadeOrigemEditar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            app:boxStrokeColor="#B0BEC5"
+            app:hintTextColor="#78909C"
+            app:prefixText="📍  "
+            android:hint="@string/oferecer_endereco_origem_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEnderecoOrigemEditar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:inputType="textCapSentences"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:id="@+id/containerParadasEditar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp" />
+
+        <TextView
+            android:id="@+id/btnAdicionarParadaEditar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/oferecer_botao_adicionar_parada"
+            android:textColor="@color/azul_neon"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:padding="10dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:boxStrokeColor="@color/azul_neon"
+            app:hintTextColor="@color/azul_neon"
+            app:prefixText="🏁  "
+            android:hint="@string/oferecer_destino_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCidadeDestinoEditar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="18dp"
+            app:boxStrokeColor="#B0BEC5"
+            app:hintTextColor="#78909C"
+            app:prefixText="📍  "
+            android:hint="@string/oferecer_endereco_destino_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEnderecoDestinoEditar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:inputType="textCapSentences"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginBottom="18dp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

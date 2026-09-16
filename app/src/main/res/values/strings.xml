@@ -9,22 +9,46 @@
     <string name="cancelar">Cancelar</string>
     <string name="excluir">Excluir</string>
 
+    <!-- Configurações -->
+    <string name="config_titulo">Configurações</string>
+    <string name="config_botao_termos">Termos de Uso e Privacidade</string>
+    <string name="config_botao_editar_perfil">Editar Perfil</string>
+
     <!-- Login -->
     <string name="login_titulo">Caronas</string>
     <string name="login_email">E-mail</string>
     <string name="login_senha">Senha</string>
     <string name="login_botao_entrar">Entrar</string>
-    <string name="login_esqueci_senha">Esqueci minha senha</string>
     <string name="login_criar_conta">Ainda não tem conta? Cadastre-se</string>
     <string name="login_erro_campos_obrigatorios">Preencha e-mail e senha.</string>
     <string name="login_email_redefinicao_enviado">E-mail de redefinição de senha enviado.</string>
+    <string name="login_suporte">Suporte</string>
+    <string name="login_suporte_opcao_esqueci_senha">Esqueci minha senha</string>
+    <string name="login_suporte_opcao_reenviar_verificacao">Reenviar e-mail de validação</string>
+    <string name="login_suporte_esqueci_senha_explicacao">Informe seus dados pra receber um e-mail de redefinição de senha.</string>
+    <string name="login_suporte_reenviar_verificacao_explicacao">Informe seus dados pra receber um novo e-mail de validação de cadastro.</string>
+    <string name="login_suporte_botao_enviar">Enviar</string>
+    <string name="login_suporte_erro_campos_obrigatorios">Preencha nome completo, e-mail e telefone.</string>
+    <string name="login_suporte_reenvio_enviado">E-mail de validação reenviado — confira também a caixa de spam.</string>
+    <string name="login_suporte_reenvio_ja_verificado">Esse cadastro já está verificado. Você já pode entrar normalmente.</string>
+    <string name="login_suporte_erro_generico">Erro: %1$s</string>
+
+    <!-- Notificações push -->
+    <string name="notificacao_titulo_solicitacao">Solicitação de viagem</string>
+    <string name="notificacao_titulo_aceita">Viagem Aceita</string>
+    <string name="notificacao_titulo_cancelada">Viagem Cancelada</string>
+    <string name="notificacao_titulo_mensagem">Mensagem Caronas</string>
+    <string name="notificacao_canal_solicitacao">Solicitações de viagem</string>
+    <string name="notificacao_canal_aceita">Viagens aceitas</string>
+    <string name="notificacao_canal_cancelada">Viagens canceladas</string>
+    <string name="notificacao_canal_mensagem">Mensagens do chat</string>
     <string name="login_entrar_como">Entrar como:</string>
     <string name="login_erro_selecionar_papel">Selecione se você vai entrar como motorista ou passageiro.</string>
     <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter um veículo cadastrado. Complete seu cadastro.</string>
 
     <!-- Cadastro -->
     <string name="cadastro_titulo">Criar Conta</string>
-    <string name="cadastro_selecionar_foto">Selecionar Foto</string>
+    <string name="cadastro_selecionar_foto">Selecionar Foto *</string>
     <string name="cadastro_nome_completo">Nome completo</string>
     <string name="cadastro_email">E-mail</string>
     <string name="cadastro_telefone">Telefone</string>
@@ -42,9 +66,10 @@
     <string name="cadastro_erro_telefone_obrigatorio">Informe o telefone.</string>
     <string name="cadastro_erro_senha_tamanho">A senha deve ter entre 6 e 10 caracteres.</string>
     <string name="cadastro_erro_senhas_diferentes">As senhas não coincidem.</string>
+    <string name="cadastro_erro_foto_obrigatoria">Escolha uma foto de perfil para continuar.</string>
     <string name="cadastro_erro_veiculo_obrigatorio">Preencha todos os dados do veículo.</string>
     <string name="cadastro_erro_generico">Erro ao cadastrar: %1$s</string>
-    <string name="cadastro_sucesso">Cadastro realizado com sucesso!</string>
+    <string name="cadastro_sucesso">Cadastro realizado com sucesso! Valide seu cadastro no e-mail.</string>
 
     <!-- Tela inicial -->
     <string name="tela_papel_motorista">Motorista</string>
@@ -52,6 +77,7 @@
     <string name="tela_botao_procurar">Procurar</string>
     <string name="tela_botao_oferecer">Oferecer</string>
     <string name="tela_botao_chat">Chat</string>
+    <string name="tela_botao_avaliacoes">Avaliações</string>
     <string name="tela_botao_minhas_ofertas">Minhas Ofertas</string>
     <string name="tela_botao_minhas_viagens">Minhas Viagens</string>
     <string name="tela_botao_meu_perfil">Meu Perfil</string>
@@ -60,8 +86,18 @@
 
     <!-- Oferecer carona -->
     <string name="oferecer_titulo">Oferecer Carona</string>
+    <string name="oferecer_subtitulo">Preencha os dados da viagem que você vai oferecer</string>
     <string name="oferecer_origem_hint">Cidade de partida</string>
+    <string name="oferecer_endereco_origem_hint">Endereço de saída (opcional)</string>
     <string name="oferecer_destino_hint">Cidade de chegada</string>
+    <string name="oferecer_endereco_destino_hint">Endereço de chegada (opcional)</string>
+    <string name="oferecer_botao_adicionar_parada">+ Adicionar parada no trajeto</string>
+    <string name="oferecer_botao_remover_parada">Remover</string>
+    <string name="oferecer_parada_rotulo">PARADA</string>
+    <string name="oferecer_parada_cidade_hint">Cidade da parada</string>
+    <string name="oferecer_parada_endereco_hint">Endereço da parada (opcional)</string>
+    <string name="oferecer_erro_parada_cidade">Preencha a cidade de cada parada, ou remova as que ficaram em branco.</string>
+    <string name="autocomplete_atribuicao">Sugestões de endereço por https://locationiq.com</string>
     <string name="oferecer_escolher_data">Escolher data</string>
     <string name="oferecer_escolher_hora">Escolher horário</string>
     <string name="oferecer_vagas_hint">Vagas disponíveis</string>
@@ -69,6 +105,8 @@
     <string name="oferecer_botao_calcular_sugestao">Calcular valor sugerido</string>
     <string name="oferecer_calculando">Calculando distância…</string>
     <string name="oferecer_sugestao_texto">Sugestão: %1$s para ~%2$d km — %3$s (referência pra dividir custos, ajuste se quiser)</string>
+    <string name="oferecer_trecho_formato">%1$s → %2$s: %3$s (~%4$d km)</string>
+    <string name="oferecer_sugestao_total_formato">Total: %1$s (~%2$d km) — %3$s</string>
     <string name="oferecer_tarifa_normal">tarifa de dia normal</string>
     <string name="oferecer_tarifa_fim_de_semana">tarifa de fim de semana/feriado (+30%)</string>
     <string name="oferecer_erro_cidades_nao_encontradas">Não encontramos essas cidades. Confira a digitação.</string>
@@ -120,6 +158,10 @@
     <string name="minhas_ofertas_excluir_mensagem">Tem certeza que deseja excluir essa oferta de carona? Essa ação não pode ser desfeita.</string>
     <string name="minhas_ofertas_excluida_sucesso">Oferta excluída.</string>
     <string name="minhas_ofertas_erro_excluir">Erro ao excluir oferta: %1$s</string>
+    <string name="minhas_ofertas_detalhe_origem">🚩 Origem: %1$s</string>
+    <string name="minhas_ofertas_detalhe_parada">📍 Parada: %1$s</string>
+    <string name="minhas_ofertas_detalhe_destino">🏁 Destino: %1$s</string>
+    <string name="minhas_ofertas_detalhe_com_endereco">%1$s — %2$s</string>
 
     <!-- Minhas Viagens (passageiro) -->
     <string name="minhas_viagens_titulo">Minhas Viagens</string>
@@ -136,6 +178,10 @@
     <string name="minhas_viagens_cancelada_sucesso">Viagem cancelada.</string>
     <string name="minhas_viagens_erro_cancelar">Erro ao cancelar viagem: %1$s</string>
     <string name="minhas_viagens_carro_formato">%1$s %2$s • %3$s • %4$s</string>
+    <string name="minhas_viagens_excluir_titulo">Excluir viagem</string>
+    <string name="minhas_viagens_excluir_mensagem">Tem certeza que deseja excluir essa viagem do seu histórico? Essa ação não pode ser desfeita.</string>
+    <string name="minhas_viagens_excluida_sucesso">Viagem excluída.</string>
+    <string name="minhas_viagens_erro_excluir">Erro ao excluir viagem: %1$s</string>
 
     <!-- Solicitações recebidas (motorista, dentro de Minhas Ofertas) -->
     <string name="solicitacoes_recebidas_titulo">📩 Solicitações Recebidas</string>
@@ -152,6 +198,38 @@
     <string name="solicitacoes_excluir_mensagem">Tem certeza que deseja excluir essa solicitação? Essa ação não pode ser desfeita.</string>
     <string name="solicitacoes_excluida_sucesso">Solicitação excluída.</string>
     <string name="solicitacoes_erro_excluir">Erro ao excluir solicitação: %1$s</string>
+    <string name="solicitacoes_cancelar_titulo">Cancelar viagem</string>
+    <string name="solicitacoes_cancelar_mensagem">Tem certeza que deseja cancelar essa viagem já confirmada? O passageiro será avisado.</string>
+    <string name="solicitacoes_cancelada_sucesso">Viagem cancelada.</string>
+    <string name="solicitacoes_erro_cancelar">Erro ao cancelar viagem: %1$s</string>
+
+    <!-- Avaliações -->
+    <string name="avaliar_botao">⭐ Avaliar</string>
+    <string name="avaliar_titulo">Avaliar viagem</string>
+    <string name="avaliar_subtitulo_formato">Como foi a viagem com %1$s?</string>
+    <string name="avaliar_comentario_hint">Comentário (opcional)</string>
+    <string name="avaliar_botao_enviar">Enviar avaliação</string>
+    <string name="avaliar_erro_nota">Escolha uma nota de 1 a 5 estrelas.</string>
+    <string name="avaliar_sucesso">Avaliação enviada, obrigado!</string>
+    <string name="avaliar_erro_enviar">Erro ao enviar avaliação: %1$s</string>
+
+    <!-- Minhas Avaliações Recebidas (botão abaixo do Chat) -->
+    <string name="tela_avaliacoes_titulo">📝 Comentários recebidos</string>
+    <string name="tela_avaliacoes_viagens_formato">Viagens realizadas: %1$d</string>
+    <string name="tela_avaliacoes_distribuicao_titulo">Avaliações recebidas</string>
+    <string name="tela_avaliacoes_estrela_contagem_formato">%1$s  —  %2$d</string>
+    <string name="tela_avaliacoes_sem_comentarios">Nenhum comentário recebido ainda.</string>
+    <string name="tela_avaliacoes_erro_carregar">Erro ao carregar avaliações: %1$s</string>
+
+    <!-- Perfil público -->
+    <string name="perfil_publico_titulo">Perfil</string>
+    <string name="perfil_publico_carregando">Carregando perfil…</string>
+    <string name="perfil_publico_erro_carregar">Erro ao carregar perfil: %1$s</string>
+    <string name="perfil_publico_sem_avaliacoes">Ainda sem avaliações.</string>
+    <string name="perfil_publico_media_formato">%1$.1f de 5 (%2$d avaliações)</string>
+    <string name="perfil_publico_sem_nota">Sem avaliações ainda</string>
+    <string name="perfil_publico_motorista">Motorista</string>
+    <string name="perfil_publico_passageiro">Passageiro</string>
 
     <!-- Conversas (botão Chat) -->
     <string name="conversas_carona_titulo">Chat</string>
@@ -167,6 +245,12 @@
     <string name="chat_carona_apagar_para_mim">Apagar só pra mim</string>
     <string name="chat_carona_apagar_para_todos">Apagar pra todos</string>
     <string name="chat_carona_erro_apagar">Erro ao apagar mensagem: %1$s</string>
+    <string name="chat_carona_status_lida">Lida</string>
+    <string name="chat_carona_status_nao_lida">Não lida</string>
+    <string name="chat_conversa_excluir_titulo">Excluir conversa</string>
+    <string name="chat_conversa_excluir_mensagem">Tem certeza que deseja excluir essa conversa? Todas as mensagens serão apagadas e essa ação não pode ser desfeita.</string>
+    <string name="chat_conversa_excluida_sucesso">Conversa excluída.</string>
+    <string name="chat_conversa_erro_excluir">Erro ao excluir conversa: %1$s</string>
 
     <!-- Editar cadastro -->
     <string name="editar_titulo">Editar Cadastro</string>
@@ -181,6 +265,72 @@
 
     <!-- Admin -->
     <string name="admin_login_titulo">Admin Caronas</string>
+    <string name="admin_titulo_dashboard">Administração</string>
     <string name="admin_painel_em_construcao">Painel administrativo em construção — em breve.</string>
+    <string name="login_erro_acesso_restrito_admin">Acesso restrito a administradores.</string>
+    <string name="admin_botao_motoristas">Motoristas</string>
+    <string name="admin_botao_passageiros">Passageiros</string>
+    <string name="admin_botao_viagens_motorista">Viagens (Motoristas)</string>
+    <string name="admin_botao_viagens_passageiro">Viagens (Passageiros)</string>
+    <string name="admin_botao_viagens">Viagens</string>
+    <string name="admin_viagens_escolher_titulo">Ver viagens de:</string>
+    <string name="admin_botao_editar_perfil">Editar Perfil</string>
+    <string name="admin_login_criar_conta">Ainda não é admin? Cadastre-se</string>
+    <string name="admin_cadastro_titulo">Cadastrar admin</string>
+    <string name="admin_cadastro_selecionar_foto">Selecionar foto *</string>
+    <string name="admin_cadastro_nome_hint">Nome</string>
+    <string name="admin_cadastro_sobrenome_hint">Sobrenome</string>
+    <string name="admin_cadastro_autorizacao_titulo">Autorização do administrador master</string>
+    <string name="admin_cadastro_senha_autorizacao_hint">Senha do administrador master</string>
+    <string name="admin_cadastro_botao">Cadastrar</string>
+    <string name="admin_cadastro_erro_foto_obrigatoria">Selecione uma foto.</string>
+    <string name="admin_cadastro_erro_nome_obrigatorio">Informe o nome.</string>
+    <string name="admin_cadastro_erro_sobrenome_obrigatorio">Informe o sobrenome.</string>
+    <string name="admin_cadastro_erro_senha_autorizacao">Informe a senha do administrador master.</string>
+    <string name="admin_cadastro_erro_cpf">Informe o CPF.</string>
+    <string name="admin_cadastro_cpf_hint">CPF</string>
+    <string name="admin_cadastro_sucesso">Admin cadastrado! Valide o e-mail e entre pela tela de login.</string>
+    <string name="admin_cadastro_erro_generico">Erro: %1$s</string>
+    <string name="admin_editar_titulo">Editar admin</string>
+    <string name="admin_editar_botao">Salvar</string>
+    <string name="admin_editar_sucesso">Admin atualizado com sucesso!</string>
+    <string name="admin_editar_excluir_botao">Excluir Cadastro de Admin</string>
+    <string name="admin_editar_excluir_confirmar_titulo">Excluir cadastro de admin</string>
+    <string name="admin_editar_excluir_confirmar_mensagem">Isso remove o acesso de %1$s ao painel administrativo (a conta e o cadastro de usuário comum continuam existindo). Confirme a senha do administrador master para continuar.</string>
+    <string name="admin_editar_excluir_sucesso">Cadastro de admin excluído.</string>
+    <string name="admin_buscar_titulo">Editar Perfil</string>
+    <string name="admin_buscar_cpf_hint">Buscar por CPF</string>
+    <string name="admin_buscar_botao">Buscar</string>
+    <string name="admin_buscar_nao_encontrado">Nenhum admin encontrado com esse CPF.</string>
+    <string name="admin_buscar_erro_cpf_obrigatorio">Informe um CPF pra buscar.</string>
+    <string name="admin_lista_motoristas_titulo">Motoristas</string>
+    <string name="admin_lista_passageiros_titulo">Passageiros</string>
+    <string name="admin_lista_viagens_titulo">Viagens (Motoristas)</string>
+    <string name="admin_lista_viagens_passageiro_titulo">Viagens (Passageiros)</string>
+    <string name="admin_lista_motoristas_vazio">Nenhum motorista cadastrado.</string>
+    <string name="admin_lista_passageiros_vazio">Nenhum passageiro cadastrado.</string>
+    <string name="admin_lista_viagens_vazio">Nenhuma viagem cadastrada.</string>
+    <string name="admin_lista_viagens_passageiro_vazio">Nenhuma solicitação de viagem ainda.</string>
+    <string name="admin_erro_carregar">Erro ao carregar: %1$s</string>
+    <string name="admin_veiculo_formato">%1$s %2$s — %3$s — Placa %4$s</string>
+    <string name="admin_remover_usuario_titulo">Remover cadastro</string>
+    <string name="admin_remover_usuario_mensagem">Tem certeza que deseja remover %1$s? Isso apaga TODOS os dados dele do Firebase (cadastro, viagens, conversas, avaliações e a conta de login) e não pode ser desfeito. O e-mail fica livre para um novo cadastro.</string>
+    <string name="admin_remover_usuario_sucesso">Cadastro removido.</string>
+    <string name="admin_remover_usuario_erro">Erro ao remover: %1$s</string>
+
+    <!-- Mensagens (painel admin) -->
+    <string name="admin_botao_mensagens">Mensagens</string>
+    <string name="admin_mensagens_busca_hint">Nome completo, telefone ou e-mail</string>
+    <string name="admin_mensagens_busca_botao">Buscar</string>
+    <string name="admin_mensagens_titulo_formato">💬 Mensagens de %1$s</string>
+    <string name="admin_mensagens_selecionar_titulo">Vários usuários encontrados — selecione um:</string>
+    <string name="admin_mensagens_usuario_nao_encontrado">Nenhum usuário encontrado com esse termo.</string>
+    <string name="admin_mensagens_vazio">Esse usuário ainda não tem nenhuma mensagem.</string>
+    <string name="admin_mensagens_erro_buscar">Erro ao buscar: %1$s</string>
+    <string name="admin_mensagem_remetente_destinatario_formato">%1$s → %2$s</string>
+    <string name="admin_motorista_formato">Motorista: %1$s</string>
+    <string name="admin_passageiro_formato">Passageiro: %1$s</string>
+    <string name="admin_status_confirmada">CONFIRMADA</string>
+    <string name="admin_status_solicitada">SOLICITADA</string>
     <string name="erro_generico">Ocorreu um erro: %1$s</string>
 </resources>

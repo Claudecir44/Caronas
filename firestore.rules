@@ -6,6 +6,31 @@ rules_version = '2';
 // de oferta/busca de carona (match motorista/passageiro) chegar.
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Painel administrativo (nativo + web) — um único papel "admin", sem
+    // granularidade tipo colaborador/permissões (o Match tem isso, mas só
+    // se justifica na escala dele; aqui um admin só ou é ou não é).
+    // Documento "admins/{uid}" só existe pra quem foi promovido — a
+    // criação é sempre "false" abaixo, nunca pelo cliente, pra impedir
+    // qualquer conta se autopromover escrevendo o próprio uid ali. O
+    // primeiro admin é criado uma única vez por um script com Admin SDK
+    // (fora das regras); os próximos, futuramente, por uma Cloud Function
+    // equivalente (mesmo motivo).
+    function ehAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{adminId} {
+      allow read: if ehAdmin();
+      allow create, delete: if false;
+
+      // Único write liberado pro cliente: o próprio admin trocando a
+      // PRÓPRIA foto (ver AdminRepository.atualizarFotoAdmin) — qualquer
+      // outro campo (nome, email, etc.) continua só via Cloud Function
+      // (Admin SDK), nunca direto do cliente.
+      allow update: if ehAdmin() && request.auth.uid == adminId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoUrl']);
+    }
+
     match /usuarios/{usuarioId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == usuarioId;
@@ -17,7 +42,51 @@ service cloud.firestore {
     match /caronas/{caronaId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.motoristaId == request.auth.uid;
+      // "resource == null" cobre um "excluir" repetido/atrasado (ex.: dois
+      // toques rápidos, ou uma tela desatualizada tentando apagar uma
+      // oferta que outra sessão já apagou) — sem essa guarda, o Firestore
+      // erra ao ler resource.data num resource nulo e nega com
+      // PERMISSION_DENIED em vez de simplesmente não achar nada pra
+      // apagar (mesmo bug já documentado abaixo em /solicitacoes).
+      allow update, delete: if request.auth != null &&
+        (resource == null || resource.data.motoristaId == request.auth.uid);
+
+      // Ocupação de vaga POR TRECHO da rota (ver SolicitacaoRepository.
+      // solicitarVaga/vagasDisponiveis) — só guarda os 2 índices da parada
+      // de embarque/desembarque + quem pediu, nada de nome/foto/rota em
+      // texto. Documento com o MESMO ID da solicitação correspondente em
+      // /solicitacoes (1:1), criado no mesmo lote (WriteBatch) que a
+      // solicitação. Subcoleção (não uma coleção "ocupacao" solta filtrada
+      // por caronaId) pelo mesmo motivo estrutural de conversas/mensagens
+      // abaixo: só assim o Firestore consegue provar, numa consulta em
+      // lista, que todo resultado pertence a ESTA carona — sem isso,
+      // qualquer usuário checando vaga disponível pra uma carona que não é
+      // sua ficaria PERMISSION_DENIED tentando listar ocupações de outros
+      // passageiros (que não são nem motorista nem passageiro daquelas
+      // solicitações específicas).
+      match /ocupacao/{solicitacaoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.passageiroId == request.auth.uid
+          && request.resource.data.indiceOrigemNaRota is int
+          && request.resource.data.indiceDestinoNaRota is int
+          && request.resource.data.indiceDestinoNaRota > request.resource.data.indiceOrigemNaRota;
+        // Apagado ao cancelar (o próprio passageiro) ou excluir (o
+        // motorista dono da carona) — ver SolicitacaoRepository
+        // .cancelarSolicitacao/excluirSolicitacao. "resource == null" cobre
+        // solicitações criadas ANTES desta subcoleção existir (não têm
+        // documento de ocupação correspondente) — sem essa guarda, tentar
+        // apagar um documento que já não existe faz o Firestore errar ao
+        // ler resource.data num resource nulo, e nega o delete inteiro
+        // (mesmo problema já documentado no "get" de /conversas acima).
+        // Como o batch de cancelar/excluir grava os dois deletes juntos,
+        // negar só a parte da ocupação derrubava a solicitação junto.
+        allow delete: if request.auth != null
+          && (resource == null
+              || resource.data.passageiroId == request.auth.uid
+              || get(/databases/$(database)/documents/caronas/$(caronaId)).data.motoristaId == request.auth.uid);
+        allow update: if false;
+      }
     }
 
     // Pedido de vaga de um passageiro numa carona ("Solicitar vaga" na
@@ -26,8 +95,23 @@ service cloud.firestore {
     // (cancelar, confirmar) tanto pelo passageiro quanto pelo motorista da
     // carona; criação só pelo próprio passageiro.
     match /solicitacoes/{solicitacaoId} {
-      allow read, update, delete: if request.auth != null &&
-        (resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid);
+      // "resource == null" cobre um get()/update()/delete() numa
+      // solicitação que já não existe mais (ex.: o motorista excluiu essa
+      // solicitação recebida — SolicitacaoRepository.excluirSolicitacao —
+      // enquanto o passageiro ainda via ela na própria lista, desatualizada,
+      // e tentava cancelar). Sem essa guarda o Firestore erra ao ler
+      // resource.data num resource nulo e nega com PERMISSION_DENIED em vez
+      // de simplesmente "não existe" — foi exatamente esse o bug real por
+      // trás do "cancelar dá erro de permissão" (mesmo problema documentado
+      // e já corrigido antes em /conversas e em /caronas/.../ocupacao).
+      //
+      // ehAdmin() liberado só na leitura (lista "Viagens (Passageiros)" do
+      // painel admin) — nunca em update/delete, edição continua exclusiva
+      // dos dois participantes.
+      allow read: if request.auth != null &&
+        (resource == null || resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid || ehAdmin());
+      allow update, delete: if request.auth != null &&
+        (resource == null || resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid);
       allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid;
     }
 
@@ -37,22 +121,73 @@ service cloud.firestore {
     // (contador de não lidas, resumo da última mensagem) só pelos dois
     // participantes; criação por qualquer um dos dois, quem mandar a
     // primeira mensagem.
+    // Avaliação de uma viagem (motorista->passageiro ou passageiro->
+    // motorista, mesma coleção pros dois sentidos — ver Avaliacao.kt). ID do
+    // documento é sempre "{solicitacaoId}_{avaliadorId}": uma 2ª tentativa
+    // de avaliar a mesma viagem cai como "update" de um doc já existente
+    // (não "create"), e update é bloqueado abaixo — isso impede duplicar
+    // sem precisar de transação.
+    match /avaliacoes/{avaliacaoId} {
+      // Pública de verdade: qualquer autenticado lê qualquer avaliação
+      // (é o requisito de "visível a todos os usuários" da tela de perfil).
+      allow read: if request.auth != null;
+
+      function solicitacaoDaAvaliacao(solicitacaoId) {
+        let sol = get(/databases/$(database)/documents/solicitacoes/$(solicitacaoId)).data;
+        return sol;
+      }
+
+      // Só pode avaliar quem participou de verdade da viagem (motorista ou
+      // passageiro daquela solicitação), e só depois que ela foi
+      // CONFIRMADA e já ocorreu — sem isso, dava pra avaliar uma viagem que
+      // nunca foi aceita, ou avaliar antes dela acontecer de verdade.
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.avaliadorId
+        && request.resource.data.nota is int
+        && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+        && avaliacaoId == request.resource.data.solicitacaoId + '_' + request.auth.uid
+        && solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).status == 'confirmada'
+        && solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).dataHoraPartida < request.time.toMillis()
+        && (request.auth.uid == solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).motoristaId
+            || request.auth.uid == solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).passageiroId)
+        && request.resource.data.avaliadoId ==
+             (request.auth.uid == solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).motoristaId
+               ? solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).passageiroId
+               : solicitacaoDaAvaliacao(request.resource.data.solicitacaoId).motoristaId);
+
+      // Imutável depois de criada — sem edição, sem exclusão (mesmo
+      // espírito das denúncias/sugestões do Match: uma avaliação apagável
+      // pelo próprio autor perderia o sentido de reputação confiável).
+      allow update, delete: if false;
+    }
+
     match /conversas/{conversaId} {
       // "get" (documento específico, pelo id da solicitação) precisa da
       // guarda "resource == null": antes da primeira mensagem, o documento
       // ainda não existe, e sem essa guarda o Firestore erra ao tentar ler
       // resource.data num resource nulo, negando o get() que só queria
       // checar se a conversa já existe.
+      // ehAdmin() liberado só na LEITURA (get/list aqui, read em mensagens
+      // abaixo) — nunca em update/create/delete, que continuam exclusivos
+      // dos dois participantes. Usado pela seção "Mensagens" do painel
+      // admin (ver AdminRepository.listarMensagensDoUsuario).
       allow get: if request.auth != null &&
-        (resource == null || resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
-      // "list" (a busca das conversas do usuário pro botão Chat) já filtra
-      // por motoristaId/passageiroId, então nunca cai no caso "não existe".
+        (resource == null || resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid || ehAdmin());
+      // "list" (a busca das conversas do usuário pro botão Chat, ou do
+      // painel admin por motoristaId/passageiroId) já filtra por um desses
+      // dois campos, então nunca cai no caso "não existe".
       allow list: if request.auth != null &&
-        (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+        (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid || ehAdmin());
       allow update: if request.auth != null &&
         (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
       allow create: if request.auth != null &&
         (request.resource.data.motoristaId == request.auth.uid || request.resource.data.passageiroId == request.auth.uid);
+      // Excluir a conversa inteira (toque e segure na lista de conversas —
+      // ver ChatCaronaRepository.excluirConversa/ConversasCaronaActivity).
+      // "resource == null" pelo mesmo motivo do "get" acima (double-tap,
+      // ou a outra ponta já excluindo a mesma conversa).
+      allow delete: if request.auth != null &&
+        (resource == null || resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
 
       // Mensagens moram como subcoleção da própria conversa (em vez de uma
       // coleção "mensagens" solta, filtrada por conversaId) — de propósito:
@@ -66,11 +201,21 @@ service cloud.firestore {
       // Com a subcoleção, conversaId vem do caminho (wildcard acima), então
       // dá pra confirmar quem participa com um get() no documento pai.
       match /mensagens/{mensagemId} {
-        allow read, update: if request.auth != null &&
+        allow read: if request.auth != null &&
+          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
+           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid ||
+           ehAdmin());
+        allow update: if request.auth != null &&
           (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
            get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
         allow create: if request.auth != null &&
           request.resource.data.remetenteId == request.auth.uid &&
+          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
+           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
+        // Apagadas em lote junto com a conversa (ver
+        // ChatCaronaRepository.excluirConversa) — mesma checagem de
+        // participante via get() no documento pai.
+        allow delete: if request.auth != null &&
           (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
            get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
       }

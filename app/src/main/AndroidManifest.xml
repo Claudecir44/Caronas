@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Pedida em runtime na tela principal (ver TelaCaronasActivity) — só
+         existe de verdade a partir do Android 13 (API 33); em versões
+         antigas a permissão nem existe, notificação sempre aparece. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".CaronasApplication"
@@ -39,6 +43,12 @@
             android:name=".TelaCaronasActivity"
             android:exported="false" />
         <activity
+            android:name=".ConfiguracoesCaronasActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TermosPrivacidadeCaronasActivity"
+            android:exported="false" />
+        <activity
             android:name=".EditarCadastroCaronasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
@@ -47,15 +57,23 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".MinhasOfertasActivity"
-            android:exported="false" />
-        <activity
             android:name=".ConversasCaronaActivity"
             android:exported="false" />
         <activity
             android:name=".ChatCaronaActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".PerfilPublicoActivity"
+            android:exported="false" />
+
+        <service
+            android:name=".CaronasFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- ===== Flavor admin (Admin Caronas) ===== -->
         <activity
@@ -63,7 +81,14 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".CadastroAdminCaronasActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".AdministracaoCaronasActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BuscarAdminActivity"
             android:exported="false" />
 
     </application>

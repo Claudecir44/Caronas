@@ -15,9 +15,7 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:padding="12dp"
-        android:text="Mensagem"
-        android:clickable="true"
-        android:focusable="true" />
+        android:text="Mensagem" />
 
     <TextView
         android:id="@+id/tvHoraEnviada"
@@ -28,5 +26,15 @@
         android:textSize="10sp"
         android:layout_marginTop="2dp"
         android:text="00:00" />
+
+    <TextView
+        android:id="@+id/tvStatusLeituraEnviada"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:layout_marginTop="1dp"
+        android:visibility="gone" />
 
 </LinearLayout>

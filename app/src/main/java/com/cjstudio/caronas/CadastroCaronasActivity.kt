@@ -124,6 +124,10 @@ class CadastroCaronasActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.cadastro_erro_senhas_diferentes, Toast.LENGTH_SHORT).show()
             return
         }
+        if (fotoUriSelecionada == null) {
+            Toast.makeText(this, R.string.cadastro_erro_foto_obrigatoria, Toast.LENGTH_SHORT).show()
+            return
+        }
 
         var veiculo: Veiculo? = null
         if (souMotorista) {
@@ -167,8 +171,14 @@ class CadastroCaronasActivity : AppCompatActivity() {
                     }
                 }
                 progressBar.visibility = View.GONE
+                // Desloga em vez de entrar direto (mesmo padrão do Match,
+                // CadastroUsuarioActivity) — a conta continuou autenticada
+                // só pro upload da foto acima; agora que o cadastro
+                // terminou, o próximo login já cai na checagem de e-mail
+                // verificado (ver UsuarioRepository.login).
+                usuarioRepository.logout()
                 Toast.makeText(this@CadastroCaronasActivity, R.string.cadastro_sucesso, Toast.LENGTH_LONG).show()
-                startActivity(Intent(this@CadastroCaronasActivity, TelaCaronasActivity::class.java))
+                startActivity(Intent(this@CadastroCaronasActivity, LoginCaronasActivity::class.java))
                 finish()
             }.onFailure { e ->
                 progressBar.visibility = View.GONE

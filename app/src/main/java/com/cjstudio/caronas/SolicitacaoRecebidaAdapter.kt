@@ -22,9 +22,16 @@ import java.util.Locale
 // MinhaViagemAdapter).
 class SolicitacaoRecebidaAdapter(
     private val solicitacoes: List<Solicitacao>,
+    private val avaliadas: Set<String>,
     private val onConfirmarClick: (Solicitacao) -> Unit,
     private val onChatClick: (Solicitacao) -> Unit,
-    private val onExcluirLongClick: (Solicitacao) -> Unit
+    private val onExcluirLongClick: (Solicitacao) -> Unit,
+    private val onAvaliarClick: (Solicitacao) -> Unit,
+    private val onPerfilClick: (String) -> Unit,
+    // Cancela uma viagem que o motorista já tinha confirmado (ver
+    // TelaCaronasActivity.confirmarCancelarComoMotorista) — diferente de
+    // onExcluirLongClick, que apaga o registro inteiro sem avisar ninguém.
+    private val onCancelarClick: (Solicitacao) -> Unit
 ) : RecyclerView.Adapter<SolicitacaoRecebidaAdapter.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
@@ -40,7 +47,9 @@ class SolicitacaoRecebidaAdapter(
         val tvStatus: TextView = view.findViewById(R.id.tvStatusSolicitacao)
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraSolicitacao)
         val btnConfirmar: Button = view.findViewById(R.id.btnConfirmarSolicitacao)
+        val btnCancelar: Button = view.findViewById(R.id.btnCancelarSolicitacao)
         val btnChat: Button = view.findViewById(R.id.btnChatSolicitacao)
+        val btnAvaliar: Button = view.findViewById(R.id.btnAvaliarSolicitacao)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -74,23 +83,46 @@ class SolicitacaoRecebidaAdapter(
             holder.ivFoto.setImageResource(R.drawable.ic_person_default)
         }
 
+        val passageiroId = solicitacao.passageiroId
+        if (passageiroId != null) {
+            val abrirPerfil = { onPerfilClick(passageiroId) }
+            holder.ivFoto.setOnClickListener { abrirPerfil() }
+            holder.tvNome.setOnClickListener { abrirPerfil() }
+        }
+
+        // "Avaliar"/"Cancelar" dependem de já ter ocorrido ou não (mesmo
+        // critério de MinhaViagemAdapter, do lado do motorista) — calculado
+        // antes do "when" abaixo porque os dois dependem disso.
+        val jaOcorreu = (solicitacao.dataHoraPartida ?: 0L) < System.currentTimeMillis()
+
         when (solicitacao.status) {
             "confirmada" -> {
                 holder.tvStatus.text = context.getString(R.string.solicitacoes_status_confirmada)
                 holder.tvStatus.setBackgroundColor(0xFF2E7D32.toInt())
                 holder.btnConfirmar.visibility = View.GONE
+                // Só dá pra desistir de uma viagem confirmada ANTES dela
+                // acontecer — depois disso vira histórico, mesmo espírito
+                // de "podeCancelar" em MinhaViagemAdapter (lado do passageiro).
+                holder.btnCancelar.visibility = if (!jaOcorreu) View.VISIBLE else View.GONE
             }
             "cancelada" -> {
                 holder.tvStatus.text = context.getString(R.string.solicitacoes_status_cancelada)
                 holder.tvStatus.setBackgroundColor(0xFFD32F2F.toInt())
                 holder.btnConfirmar.visibility = View.GONE
+                holder.btnCancelar.visibility = View.GONE
             }
             else -> {
                 holder.tvStatus.text = context.getString(R.string.solicitacoes_status_solicitada)
                 holder.tvStatus.setBackgroundColor(0xFF1E90FF.toInt())
                 holder.btnConfirmar.visibility = View.VISIBLE
+                holder.btnCancelar.visibility = View.GONE
             }
         }
+        holder.btnCancelar.setOnClickListener { onCancelarClick(solicitacao) }
+
+        val podeAvaliar = solicitacao.status == "confirmada" && jaOcorreu && solicitacao.id !in avaliadas
+        holder.btnAvaliar.visibility = if (podeAvaliar) View.VISIBLE else View.GONE
+        holder.btnAvaliar.setOnClickListener { onAvaliarClick(solicitacao) }
 
         val aberto = position == posicaoAberta
         holder.corpoExpandido.visibility = if (aberto) View.VISIBLE else View.GONE
@@ -103,7 +135,7 @@ class SolicitacaoRecebidaAdapter(
             if (posicaoAberta != -1) notifyItemChanged(posicaoAberta)
         }
         // Toque e segure no cabeçalho (sempre visível, aberto ou fechado) —
-        // exclui a solicitação de vez, com confirmação (ver MinhasOfertasActivity).
+        // exclui a solicitação de vez, com confirmação (ver TelaCaronasActivity.confirmarExcluirSolicitacao).
         holder.header.setOnLongClickListener {
             onExcluirLongClick(solicitacao)
             true

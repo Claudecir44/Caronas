@@ -149,6 +149,24 @@
                     android:textStyle="bold"
                     android:background="@drawable/botao_azul_neon" />
 
+                <!-- Só aparece se a viagem já foi confirmada e ainda não
+                     ocorreu (ver SolicitacaoRecebidaAdapter) — o motorista
+                     desiste de uma viagem que já tinha aceitado; diferente
+                     de excluir (que apaga o registro sem avisar ninguém),
+                     aqui o passageiro é notificado. -->
+                <Button
+                    android:id="@+id/btnCancelarSolicitacao"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/cancelar"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:background="#D32F2F"
+                    android:visibility="gone" />
+
                 <Button
                     android:id="@+id/btnChatSolicitacao"
                     android:layout_width="0dp"
@@ -160,6 +178,21 @@
                     android:textColor="#1E90FF"
                     android:textStyle="bold"
                     android:background="#141E90FF" />
+
+                <!-- Só aparece quando a viagem foi confirmada E já ocorreu
+                     (ver SolicitacaoRecebidaAdapter). -->
+                <Button
+                    android:id="@+id/btnAvaliarSolicitacao"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/avaliar_botao"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:background="@drawable/botao_azul_neon"
+                    android:visibility="gone" />
 
             </LinearLayout>
 

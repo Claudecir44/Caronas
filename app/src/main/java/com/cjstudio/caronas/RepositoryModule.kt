@@ -25,4 +25,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChatCaronaRepository(impl: ChatCaronaRepository): IChatCaronaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAvaliacaoRepository(impl: AvaliacaoRepository): IAvaliacaoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAutocompleteRepository(impl: AutocompleteRepository): IAutocompleteRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAdminRepository(impl: AdminRepository): IAdminRepository
 }

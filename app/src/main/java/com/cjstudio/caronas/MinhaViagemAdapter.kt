@@ -22,8 +22,15 @@ import java.util.Locale
 // Match (cardPerfil/cardHeader/cardExpanded em TelaUsuarioActivity).
 class MinhaViagemAdapter(
     private val viagens: List<Solicitacao>,
+    private val avaliadas: Set<String>,
     private val onCancelarClick: (Solicitacao) -> Unit,
-    private val onChatClick: (Solicitacao) -> Unit
+    private val onChatClick: (Solicitacao) -> Unit,
+    private val onAvaliarClick: (Solicitacao) -> Unit,
+    private val onPerfilClick: (String) -> Unit,
+    // Toque e segure no cabeçalho apaga a viagem do histórico de vez, com
+    // confirmação — mesmo padrão já usado em SolicitacaoRecebidaAdapter do
+    // lado do motorista (ver TelaCaronasActivity.confirmarExcluirViagem).
+    private val onExcluirLongClick: (Solicitacao) -> Unit
 ) : RecyclerView.Adapter<MinhaViagemAdapter.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
@@ -43,6 +50,7 @@ class MinhaViagemAdapter(
         val tvValorPago: TextView = view.findViewById(R.id.tvValorPagoViagem)
         val btnChat: Button = view.findViewById(R.id.btnChatViagem)
         val btnCancelar: Button = view.findViewById(R.id.btnCancelarViagem)
+        val btnAvaliar: Button = view.findViewById(R.id.btnAvaliarViagem)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -121,6 +129,13 @@ class MinhaViagemAdapter(
             } else {
                 holder.ivFotoMotorista.setImageResource(R.drawable.ic_person_default)
             }
+
+            val motoristaId = viagem.motoristaId
+            if (motoristaId != null) {
+                val abrirPerfil = { onPerfilClick(motoristaId) }
+                holder.ivFotoMotorista.setOnClickListener { abrirPerfil() }
+                holder.tvNomeMotorista.setOnClickListener { abrirPerfil() }
+            }
         } else {
             holder.layoutMotorista.visibility = View.GONE
         }
@@ -135,11 +150,23 @@ class MinhaViagemAdapter(
             if (anterior != -1) notifyItemChanged(anterior)
             if (posicaoAberta != -1) notifyItemChanged(posicaoAberta)
         }
+        holder.header.setOnLongClickListener {
+            onExcluirLongClick(viagem)
+            true
+        }
 
         val podeCancelar = !cancelada && !jaOcorreu
         holder.btnCancelar.visibility = if (podeCancelar) View.VISIBLE else View.GONE
         holder.btnCancelar.setOnClickListener { onCancelarClick(viagem) }
         holder.btnChat.setOnClickListener { onChatClick(viagem) }
+
+        // "Avaliar" só depois que a viagem foi de fato confirmada pelo
+        // motorista E já ocorreu — diferente do badge "CONCLUÍDA" acima
+        // (que usa só jaOcorreu), aqui confirmada é obrigatório: não faz
+        // sentido avaliar uma viagem que o motorista nunca aceitou.
+        val podeAvaliar = confirmada && jaOcorreu && viagem.id !in avaliadas
+        holder.btnAvaliar.visibility = if (podeAvaliar) View.VISIBLE else View.GONE
+        holder.btnAvaliar.setOnClickListener { onAvaliarClick(viagem) }
     }
 
     override fun getItemCount() = viagens.size

@@ -15,8 +15,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CaronaResultadoAdapter(
-    private val caronas: List<Carona>,
-    private val onSolicitarClick: (Carona) -> Unit
+    private val resultados: List<ResultadoBuscaCarona>,
+    private val onSolicitarClick: (ResultadoBuscaCarona) -> Unit,
+    private val onPerfilClick: (String) -> Unit
 ) : RecyclerView.Adapter<CaronaResultadoAdapter.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
@@ -30,14 +31,14 @@ class CaronaResultadoAdapter(
 
     fun marcarComoSolicitada(caronaId: String) {
         if (!solicitadas.add(caronaId)) return
-        val posicao = caronas.indexOfFirst { it.id == caronaId }
+        val posicao = resultados.indexOfFirst { it.carona.id == caronaId }
         if (posicao != -1) notifyItemChanged(posicao)
     }
 
     // Desfaz a marcação otimista se o pedido falhar no servidor.
     fun desmarcarComoSolicitada(caronaId: String) {
         if (!solicitadas.remove(caronaId)) return
-        val posicao = caronas.indexOfFirst { it.id == caronaId }
+        val posicao = resultados.indexOfFirst { it.carona.id == caronaId }
         if (posicao != -1) notifyItemChanged(posicao)
     }
 
@@ -58,13 +59,18 @@ class CaronaResultadoAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val carona = caronas[position]
+        val resultado = resultados[position]
+        val carona = resultado.carona
         val context = holder.itemView.context
 
+        // Só o TRECHO buscado (embarque → desembarque) — nunca a rota
+        // inteira do motorista. Uma parada em outro pedaço da viagem, pra
+        // pegar outro passageiro, não é da conta de quem só vai andar
+        // deste trecho pra cá.
         holder.tvRota.text = context.getString(
             R.string.procurar_rota_formato,
-            carona.cidadeOrigem ?: "",
-            carona.cidadeDestino ?: ""
+            resultado.cidadeEmbarque,
+            resultado.cidadeDesembarque
         )
         holder.tvDataHora.text = carona.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
 
@@ -86,10 +92,12 @@ class CaronaResultadoAdapter(
             ""
         }
 
-        holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, carona.vagas)
+        holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, resultado.vagasDisponiveis)
+        // Valor SÓ do trecho buscado — nunca o valor da rota inteira do
+        // motorista (ver ResultadoBuscaCarona/TelaCaronasActivity.buscarCaronas).
         holder.tvValor.text = context.getString(
             R.string.procurar_valor_formato,
-            String.format(Locale("pt", "BR"), "%.2f", carona.valorPorVaga ?: 0.0)
+            String.format(Locale("pt", "BR"), "%.2f", resultado.valorTrecho)
         )
 
         if (!carona.motoristaFotoUrl.isNullOrEmpty()) {
@@ -102,6 +110,13 @@ class CaronaResultadoAdapter(
             holder.ivFoto.setImageResource(R.drawable.ic_person_default)
         }
 
+        val motoristaId = carona.motoristaId
+        if (motoristaId != null) {
+            val abrirPerfil = { onPerfilClick(motoristaId) }
+            holder.ivFoto.setOnClickListener { abrirPerfil() }
+            holder.tvNomeMotorista.setOnClickListener { abrirPerfil() }
+        }
+
         val jaSolicitada = carona.id != null && carona.id in solicitadas
         holder.btnSolicitar.isEnabled = !jaSolicitada
         holder.btnSolicitar.alpha = if (jaSolicitada) 0.6f else 1f
@@ -109,9 +124,9 @@ class CaronaResultadoAdapter(
             if (jaSolicitada) R.string.procurar_vaga_ja_solicitada else R.string.procurar_botao_solicitar
         )
         holder.btnSolicitar.setOnClickListener {
-            if (!jaSolicitada) onSolicitarClick(carona)
+            if (!jaSolicitada) onSolicitarClick(resultado)
         }
     }
 
-    override fun getItemCount() = caronas.size
+    override fun getItemCount() = resultados.size
 }

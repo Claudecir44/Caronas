@@ -17,7 +17,10 @@ import java.util.Locale
 class ConversaCaronaAdapter(
     private val conversas: List<ConversaCarona>,
     private val meuId: String,
-    private val onClick: (ConversaCarona) -> Unit
+    private val onClick: (ConversaCarona) -> Unit,
+    // Toque e segure na linha — apaga a conversa inteira, com confirmação
+    // (ver ConversasCaronaActivity.confirmarExcluirConversa).
+    private val onLongClick: (ConversaCarona) -> Unit
 ) : RecyclerView.Adapter<ConversaCaronaAdapter.ViewHolder>() {
 
     private val formatoHora = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
@@ -41,13 +44,20 @@ class ConversaCaronaAdapter(
         val conversa = conversas[position]
         val context = holder.itemView.context
 
-        holder.tvNome.text = conversa.nomeOutroUsuario(meuId) ?: context.getString(R.string.procurar_motorista_desconhecido)
+        // Só o primeiro nome na lista — mesmo padrão já usado no resto do
+        // app (ex.: MinhaViagemAdapter, SolicitacaoRecebidaAdapter).
+        holder.tvNome.text = conversa.nomeOutroUsuario(meuId)?.trim()?.substringBefore(" ")
+            ?: context.getString(R.string.procurar_motorista_desconhecido)
         holder.tvRota.text = context.getString(
             R.string.procurar_rota_formato,
             conversa.cidadeOrigem ?: "",
             conversa.cidadeDestino ?: ""
         )
-        holder.tvUltimaMensagem.text = conversa.ultimaMensagem ?: ""
+        // O conteúdo da última mensagem não aparece mais aqui na lista —
+        // só fica visível de verdade depois de abrir a conversa (tocar no
+        // item), pra quem olhar por cima do ombro não ler a prévia sem
+        // querer.
+        holder.tvUltimaMensagem.visibility = View.GONE
         holder.tvHora.text = conversa.ultimoTimestamp?.let { formatoHora.format(it) } ?: ""
 
         val naoLidas = conversa.naoLidasParaMim(meuId)
@@ -70,6 +80,10 @@ class ConversaCaronaAdapter(
         }
 
         holder.cliqueRoot.setOnClickListener { onClick(conversa) }
+        holder.cliqueRoot.setOnLongClickListener {
+            onLongClick(conversa)
+            true
+        }
     }
 
     override fun getItemCount() = conversas.size

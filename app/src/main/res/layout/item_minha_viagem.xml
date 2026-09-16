@@ -175,6 +175,22 @@
                     android:textStyle="bold"
                     android:background="#D32F2F" />
 
+                <!-- Só aparece quando a viagem foi confirmada E já ocorreu
+                     (ver MinhaViagemAdapter) — mesmo espaço do botão
+                     Cancelar, nunca os dois juntos. -->
+                <Button
+                    android:id="@+id/btnAvaliarViagem"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/avaliar_botao"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:background="@drawable/botao_azul_neon"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
         </LinearLayout>

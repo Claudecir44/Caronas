@@ -114,27 +114,48 @@ class ChatCaronaActivity : AppCompatActivity() {
         }
     }
 
+    // Mensagem própria (que eu mandei): "apagar só pra mim" e "apagar pra
+    // todos". Mensagem do outro: só "apagar só pra mim" — não posso apagar
+    // pra todos uma mensagem que não é minha (mesmo padrão do Match).
     private fun mostrarDialogApagar(mensagem: MensagemCarona) {
-        val opcoes = arrayOf(
-            getString(R.string.chat_carona_apagar_para_mim),
-            getString(R.string.chat_carona_apagar_para_todos)
-        )
-        AlertDialog.Builder(this)
-            .setTitle(R.string.chat_carona_apagar_titulo)
-            .setItems(opcoes) { _, escolha ->
-                lifecycleScope.launch {
-                    val resultado = if (escolha == 0) {
-                        chatCaronaRepository.apagarMensagemParaMim(mensagem)
-                    } else {
-                        chatCaronaRepository.apagarMensagemParaTodos(mensagem)
-                    }
-                    resultado.onFailure { e ->
-                        Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_apagar, e.message), Toast.LENGTH_SHORT).show()
+        val meuId = auth.currentUser?.uid
+        val souRemetente = mensagem.remetenteId == meuId
+
+        if (souRemetente) {
+            val opcoes = arrayOf(
+                getString(R.string.chat_carona_apagar_para_mim),
+                getString(R.string.chat_carona_apagar_para_todos)
+            )
+            AlertDialog.Builder(this)
+                .setTitle(R.string.chat_carona_apagar_titulo)
+                .setItems(opcoes) { _, escolha ->
+                    lifecycleScope.launch {
+                        val resultado = if (escolha == 0) {
+                            chatCaronaRepository.apagarMensagemParaMim(mensagem)
+                        } else {
+                            chatCaronaRepository.apagarMensagemParaTodos(mensagem)
+                        }
+                        resultado.onFailure { e ->
+                            Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_apagar, e.message), Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
-            }
-            .setNegativeButton(R.string.cancelar, null)
-            .show()
+                .setNegativeButton(R.string.cancelar, null)
+                .show()
+        } else {
+            val opcoes = arrayOf(getString(R.string.chat_carona_apagar_para_mim))
+            AlertDialog.Builder(this)
+                .setTitle(R.string.chat_carona_apagar_titulo)
+                .setItems(opcoes) { _, _ ->
+                    lifecycleScope.launch {
+                        chatCaronaRepository.apagarMensagemParaMim(mensagem).onFailure { e ->
+                            Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_apagar, e.message), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton(R.string.cancelar, null)
+                .show()
+        }
     }
 
     companion object {

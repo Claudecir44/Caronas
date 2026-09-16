@@ -11,6 +11,13 @@ interface IUsuarioRepository {
 
     suspend fun buscarUsuarioLogado(): Result<Usuario>
 
+    // Perfil de QUALQUER usuário (não só o logado) — usado pela tela de
+    // perfil público (PerfilPublicoActivity), aberta ao tocar no nome/foto
+    // de alguém na busca, em Minhas Viagens ou em Solicitações Recebidas.
+    // firestore.rules já libera leitura de "usuarios/{id}" pra qualquer
+    // autenticado, então isso não precisa de regra nova.
+    suspend fun buscarUsuarioPorId(uid: String): Result<Usuario>
+
     // Grava com merge — nunca sobrescreve o doc inteiro.
     suspend fun atualizarPerfil(usuario: Usuario): Result<Unit>
 
@@ -31,4 +38,15 @@ interface IUsuarioRepository {
     suspend fun logout()
 
     suspend fun usuarioLogadoId(): String?
+
+    // Envia o e-mail de redefinição de senha do próprio Firebase Auth —
+    // usado pela caixa "Suporte" da tela de login (opção "Esqueci minha
+    // senha"). Nunca revela se o e-mail existe ou não (mesmo comportamento
+    // padrão do Firebase).
+    suspend fun enviarRedefinicaoSenha(email: String): Result<Unit>
+
+    // Reenvia o e-mail de verificação de cadastro via Cloud Function
+    // "reenviarVerificacaoEmail" (ver functions/index.js) — usado pela
+    // caixa "Suporte" da tela de login (opção "Reenviar e-mail de validação").
+    suspend fun reenviarEmailVerificacao(email: String): Result<Unit>
 }

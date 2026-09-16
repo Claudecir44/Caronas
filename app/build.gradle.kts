@@ -7,10 +7,10 @@ plugins {
 
 // google-services precisa de app/google-services.json pra sequer configurar
 // (senão o build inteiro falha na fase de configuração, mesmo pra tarefas
-// que não têm nada a ver com Firebase). O projeto Firebase do Caronas ainda
-// não existe (bloqueado por cota de projetos GCP da conta) — aplica o
-// plugin só quando o arquivo já estiver presente, pra o resto do app
-// continuar compilando normalmente enquanto isso não é resolvido.
+// que não têm nada a ver com Firebase). O projeto Firebase do Caronas já
+// existe (caronas-6b0c4) e o arquivo já está commitado — esse "if" só
+// continua aqui como salvaguarda pra nunca quebrar o build inteiro caso
+// esse arquivo suma de um checkout novo por engano.
 val temGoogleServices = file("google-services.json").exists()
 if (temGoogleServices) {
     apply(plugin = "com.google.gms.google-services")
@@ -95,6 +95,15 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.functions)
+    implementation(libs.firebase.messaging)
+    // Badge numérico no ícone do launcher (ver AppIconBadgeUtil.kt) — a
+    // API pública do Android só faz o CANAL de notificação pedir um badge
+    // (setShowBadge, já configurado), mas quem desenha o número em cima do
+    // ícone é o launcher de cada fabricante, cada um com sua própria API
+    // proprietária (MIUI, Samsung, Sony, etc.). ShortcutBadger abstrai
+    // isso — detecta o launcher e manda o broadcast/intent certo.
+    implementation(libs.shortcutbadger)
 
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

@@ -8,6 +8,7 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -19,7 +20,8 @@ class UsuarioRepository @Inject constructor(
     private val auth: FirebaseAuth,
     private val db: FirebaseFirestore,
     private val storage: FirebaseStorage,
-    private val prefs: DataStore<Preferences>
+    private val prefs: DataStore<Preferences>,
+    private val functions: FirebaseFunctions
 ) : IUsuarioRepository {
 
     private fun colecaoUsuarios() = db.collection("usuarios")
@@ -33,6 +35,17 @@ class UsuarioRepository @Inject constructor(
 
             usuario.id = uid
             colecaoUsuarios().document(uid).set(usuario).await()
+
+            // Best-effort — mesmo padrão do Match: se o envio falhar (sem
+            // rede no momento, por ex.), o cadastro em si já está feito e
+            // não deveria ser desfeito por causa disso. O bloqueio de
+            // verdade acontece no login (isEmailVerified abaixo), que
+            // também reenvia o e-mail a cada tentativa.
+            try {
+                authResult.user?.sendEmailVerification()?.await()
+            } catch (_: Exception) {
+                // Ignorado de propósito — ver comentário acima.
+            }
 
             prefs.edit { it[KEY_USUARIO_ID] = uid }
             Result.success(uid)
@@ -48,7 +61,32 @@ class UsuarioRepository @Inject constructor(
     override suspend fun login(email: String, senha: String): Result<Usuario> {
         return try {
             val authResult = auth.signInWithEmailAndPassword(email, senha).await()
-            val uid = authResult.user?.uid ?: throw IllegalStateException("Falha ao entrar.")
+            val firebaseUser = authResult.user ?: throw IllegalStateException("Falha ao entrar.")
+
+            // reload() força buscar o perfil de novo no servidor antes de
+            // checar isEmailVerified — sem isso, o valor no FirebaseUser
+            // devolvido pelo signIn pode vir desatualizado (falso) mesmo
+            // que o usuário já tenha clicado no link de verificação minutos
+            // atrás, porque essa mudança aconteceu FORA do app (no
+            // navegador) e o token do signIn nem sempre reflete ela na
+            // hora. Era exatamente esse o bug: validar o e-mail e o login
+            // continuar pedindo validação de novo.
+            firebaseUser.reload().await()
+
+            // Mesmo padrão do Match (UsuarioRepository.loginUsuario): tenta
+            // reenviar o e-mail de verificação quando a conta ainda não foi
+            // confirmada, caso o primeiro tenha caído no spam ou não tenha
+            // chegado — e não deixa entrar sem confirmar. Com cooldown (ver
+            // reenviarVerificacaoComCooldown/VerificacaoEmailUtil.kt) — sem
+            // isso, login repetido em sequência rápida estourava o limite
+            // de envio do próprio Firebase.
+            if (!firebaseUser.isEmailVerified) {
+                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs)
+                auth.signOut()
+                throw IllegalStateException(mensagem)
+            }
+
+            val uid = firebaseUser.uid
             prefs.edit { it[KEY_USUARIO_ID] = uid }
             buscarUsuarioLogado()
         } catch (e: Exception) {
@@ -61,6 +99,17 @@ class UsuarioRepository @Inject constructor(
             val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
             val doc = colecaoUsuarios().document(uid).get().await()
             val usuario = doc.toObject(Usuario::class.java) ?: throw IllegalStateException("Cadastro não encontrado.")
+            usuario.id = doc.id
+            Result.success(usuario)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun buscarUsuarioPorId(uid: String): Result<Usuario> {
+        return try {
+            val doc = colecaoUsuarios().document(uid).get().await()
+            val usuario = doc.toObject(Usuario::class.java) ?: throw IllegalStateException("Usuário não encontrado.")
             usuario.id = doc.id
             Result.success(usuario)
         } catch (e: Exception) {
@@ -143,5 +192,25 @@ class UsuarioRepository @Inject constructor(
 
     override suspend fun usuarioLogadoId(): String? {
         return auth.currentUser?.uid
+    }
+
+    override suspend fun enviarRedefinicaoSenha(email: String): Result<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun reenviarEmailVerificacao(email: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("reenviarVerificacaoEmail")
+                .call(mapOf("email" to email))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

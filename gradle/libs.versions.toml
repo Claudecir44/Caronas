@@ -21,6 +21,7 @@ ksp = "2.3.9"
 hilt = "2.60.1"
 datastore = "1.2.1"
 turbine = "1.2.1"
+shortcutbadger = "6d4ce808b0"
 
 [libraries]
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
@@ -39,6 +40,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
+firebase-functions = { group = "com.google.firebase", name = "firebase-functions" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -49,6 +52,7 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+shortcutbadger = { group = "com.github.leolin310148", name = "ShortcutBadger", version.ref = "shortcutbadger" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

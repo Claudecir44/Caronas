@@ -5,8 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "cidadeOrigemBusca", "order": "ASCENDING" },
-        { "fieldPath": "cidadeDestinoBusca", "order": "ASCENDING" },
+        { "fieldPath": "cidadesBusca", "arrayConfig": "CONTAINS" },
         { "fieldPath": "dataHoraPartida", "order": "ASCENDING" }
       ]
     },
@@ -49,7 +48,24 @@
         { "fieldPath": "passageiroId", "order": "ASCENDING" },
         { "fieldPath": "ultimoTimestamp", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "avaliacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "avaliadoId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "ocupacao",
+      "fieldPath": "passageiroId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

@@ -24,4 +24,12 @@ interface IChatCaronaRepository {
     suspend fun apagarMensagemParaMim(mensagem: MensagemCarona): Result<Unit>
 
     suspend fun apagarMensagemParaTodos(mensagem: MensagemCarona): Result<Unit>
+
+    // Apaga a conversa inteira (documento + toda a subcoleção de mensagens)
+    // — toque e segure numa conversa na lista do botão "Chat". Diferente de
+    // apagar mensagem por mensagem: aqui some a conversa inteira da lista
+    // dos dois participantes. Se uma nova mensagem for trocada depois pra
+    // essa mesma solicitação, buscarOuCriarConversa recria o documento do
+    // zero (mesmo id, histórico novo).
+    suspend fun excluirConversa(conversa: ConversaCarona): Result<Unit>
 }

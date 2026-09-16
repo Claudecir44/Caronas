@@ -5,6 +5,9 @@
     <color name="azul_neon">#1E90FF</color>
     <color name="azul_neon_escuro">#0D47A1</color>
     <color name="prata">#E8E8E8</color>
+    <!-- Grafite — usado em "Minhas Ofertas" (caronas oferecidas), pra
+         diferenciar visualmente do azul usado no resto do app. -->
+    <color name="grafite">#455A64</color>
     <color name="fundo_escuro">#0A0E1A</color>
     <color name="fundo_cinza_claro">#F2F2F7</color>
     <color name="black">#FF000000</color>

@@ -20,9 +20,22 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="26dp"
             android:text="@string/login_titulo"
-            android:textColor="#1E90FF"
+            android:textColor="@color/azul_neon_escuro"
             android:textSize="32sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvConfiguracoes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/tvTituloCaronas"
+            android:layout_alignParentStart="true"
+            android:text="⚙️"
+            android:textSize="24sp"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/config_titulo" />
 
         <Button
             android:id="@+id/btnSair"
@@ -114,11 +127,37 @@
                 android:textStyle="bold"
                 android:textColor="#222222" />
 
-            <TextView
-                android:id="@+id/btnMinhasOfertasOuViagens"
-                style="@style/BotaoAcaoCaronasVertical"
-                android:layout_marginTop="8dp"
-                android:text="@string/tela_botao_minhas_ofertas" />
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/btnMinhasOfertasOuViagens"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:layout_marginTop="0dp"
+                    android:text="@string/tela_botao_minhas_ofertas" />
+
+                <TextView
+                    android:id="@+id/badgeMinhasOfertasOuViagens"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:minWidth="18dp"
+                    android:minHeight="18dp"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#D32F2F"
+                    android:paddingHorizontal="3dp"
+                    android:visibility="gone"
+                    android:elevation="4dp" />
+
+            </FrameLayout>
 
         </LinearLayout>
 
@@ -168,49 +207,199 @@
 
             </FrameLayout>
 
+            <TextView
+                android:id="@+id/btnAvaliacoes"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/tela_botao_avaliacoes" />
+
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- ========== RESULTADOS DA BUSCA (Procurar) ========== -->
-    <!-- Some até a primeira busca ser feita; depois disso, mostra o resumo
-         + a lista (ou o aviso de vazio). -->
-    <ProgressBar
-        android:id="@+id/progressBarBusca"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="10dp"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvResumoBusca"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="6dp"
-        android:textColor="#1E90FF"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvSemResultadosBusca"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/procurar_sem_resultados"
-        android:textColor="#8899AA"
-        android:textSize="13sp"
-        android:gravity="center"
-        android:padding="24dp"
-        android:visibility="gone" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvResultadosBusca"
+    <!-- ========== RESULTADOS (Procurar / Minhas Ofertas / Minhas Viagens / Avaliações) ========== -->
+    <!-- Área compartilhada pelas 3 ações — cada uma preenche esta mesma
+         área (mutuamente exclusivas por papel: motorista só usa Minhas
+         Ofertas aqui, passageiro só usa Procurar/Minhas Viagens, nunca ao
+         mesmo tempo). Segunda seção (tvTituloSecaoDois em diante) só é
+         usada por "Minhas Ofertas" (Solicitações Recebidas) — mesmo
+         conteúdo que existia em MinhasOfertasActivity, agora nesta mesma
+         tela, mesmo espírito de Minhas Viagens já embutida aqui antes. -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:visibility="gone" />
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Só aparece na seção "Avaliações" (ver
+                 TelaCaronasActivity.mostrarAvaliacoes) — resumo fixo acima
+                 da lista de comentários (que usa a mesma
+                 progressBarBusca/tvSemResultadosBusca/rvResultadosBusca das
+                 outras seções, só troca o texto/adapter). -->
+            <LinearLayout
+                android:id="@+id/layoutResumoAvaliacoes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#FFFFFF"
+                android:padding="14dp"
+                android:layout_marginTop="10dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvViagensRealizadasAvaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/grafite"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:text="Viagens realizadas: 0" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tela_avaliacoes_distribuicao_titulo"
+                    android:textColor="@color/azul_neon"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:id="@+id/tvNota5Avaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#455A64"
+                    android:textSize="13sp"
+                    android:paddingVertical="2dp"
+                    android:text="⭐⭐⭐⭐⭐  —  0" />
+
+                <TextView
+                    android:id="@+id/tvNota4Avaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#455A64"
+                    android:textSize="13sp"
+                    android:paddingVertical="2dp"
+                    android:text="⭐⭐⭐⭐  —  0" />
+
+                <TextView
+                    android:id="@+id/tvNota3Avaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#455A64"
+                    android:textSize="13sp"
+                    android:paddingVertical="2dp"
+                    android:text="⭐⭐⭐  —  0" />
+
+                <TextView
+                    android:id="@+id/tvNota2Avaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#455A64"
+                    android:textSize="13sp"
+                    android:paddingVertical="2dp"
+                    android:text="⭐⭐  —  0" />
+
+                <TextView
+                    android:id="@+id/tvNota1Avaliacoes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#455A64"
+                    android:textSize="13sp"
+                    android:paddingVertical="2dp"
+                    android:text="⭐  —  0" />
+
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressBarBusca"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="10dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvResumoBusca"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="6dp"
+                android:textColor="#1E90FF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvSemResultadosBusca"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/procurar_sem_resultados"
+                android:textColor="#8899AA"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="24dp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvResultadosBusca"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvTituloSecaoDois"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/solicitacoes_recebidas_titulo"
+                android:textColor="@color/azul_neon"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressBarSecaoDois"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvSemResultadosSecaoDois"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/solicitacoes_recebidas_vazio"
+                android:textColor="#8899AA"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="24dp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSecaoDois"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

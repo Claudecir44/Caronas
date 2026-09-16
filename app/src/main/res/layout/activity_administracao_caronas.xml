@@ -3,34 +3,224 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:background="@drawable/bg_fundo_caronas"
-    android:padding="24dp">
+    android:background="@color/fundo_cinza_claro"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp">
 
+    <!-- ========== TÍTULO + SAIR (mesmo formato da tela do usuário) ========== -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="26dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/admin_titulo_dashboard"
+                android:textColor="#000000"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/login_titulo"
+                android:textColor="@color/azul_neon_escuro"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSair"
+            android:layout_width="76dp"
+            android:layout_height="40dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="26dp"
+            android:text="@string/sair"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/botao_azul_neon"
+            android:padding="4dp" />
+
+    </RelativeLayout>
+
+    <!-- ========== EDITAR PERFIL (fora do box azul, mesmo espírito do "Meu
+         Perfil" da tela do usuário) ========== -->
     <TextView
+        android:id="@+id/tvEditarPerfilAdmin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/admin_login_titulo"
-        android:textColor="#1E90FF"
-        android:textSize="26sp"
+        android:text="@string/admin_botao_editar_perfil"
+        android:textSize="13sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:textColor="#1E90FF"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_marginBottom="8dp" />
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- ========== PERFIL DO ADMIN (foto + nome à esquerda, ações à direita) ========== -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/admin_painel_em_construcao"
-        android:textColor="#E8E8E8"
-        android:textSize="14sp"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        android:orientation="horizontal"
+        android:background="#141E90FF"
+        android:padding="10dp">
 
-    <Button
-        android:id="@+id/btnSair"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/sair"
-        android:textColor="#FFFFFF"
-        android:background="@drawable/botao_azul_neon" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="start">
+
+            <ImageView
+                android:id="@+id/ivFotoAdminLogado"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:src="@drawable/ic_person_default"
+                android:scaleType="centerCrop"
+                android:background="@drawable/borda_circular_azul"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/tvAdminNome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/carregando"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#222222" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/btnMotoristas"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/admin_botao_motoristas" />
+
+            <TextView
+                android:id="@+id/btnPassageiros"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/admin_botao_passageiros" />
+
+            <TextView
+                android:id="@+id/btnViagens"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/admin_botao_viagens" />
+
+            <TextView
+                android:id="@+id/btnMensagens"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/admin_botao_mensagens" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ========== LISTA DA SEÇÃO SELECIONADA (mesma tela, sem abrir outra
+         Activity — mesmo espírito dos resultados de busca da tela do
+         usuário, logo abaixo do box azul) ========== -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="10dp">
+
+            <!-- Só aparece na seção "Mensagens" (ver
+                 AdministracaoCaronasActivity.abrirBuscaMensagens) — busca
+                 por nome completo, telefone ou e-mail pra achar de quem ver
+                 as conversas. -->
+            <LinearLayout
+                android:id="@+id/containerBuscaMensagens"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/etBuscaMensagens"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/admin_mensagens_busca_hint"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch"
+                    android:maxLines="1"
+                    android:textColor="@color/grafite"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btnBuscarMensagens"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/admin_mensagens_busca_botao"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/botao_azul_neon" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvTituloSecaoAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/azul_neon"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressBarSecaoAdmin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvVazioSecaoAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#8899AA"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="24dp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSecaoAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

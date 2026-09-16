@@ -107,5 +107,15 @@
             android:textSize="15sp"
             android:background="@drawable/botao_azul_neon" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/autocomplete_atribuicao"
+            android:textColor="#8899AA"
+            android:textSize="10sp"
+            android:gravity="center"
+            android:autoLink="web"
+            android:layout_marginTop="10dp" />
+
     </LinearLayout>
 </ScrollView>

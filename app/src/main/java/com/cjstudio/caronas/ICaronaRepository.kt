@@ -15,9 +15,13 @@ interface ICaronaRepository {
     // mais recentes primeiro — usado pela tela "Minhas Ofertas".
     suspend fun buscarMinhasOfertas(): Result<List<Carona>>
 
-    // Atualiza só data/hora, vagas e valor por vaga de uma oferta já
-    // publicada — rota não é editável (mudar a rota é publicar outra oferta).
-    suspend fun atualizarOferta(caronaId: String, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double): Result<Unit>
+    // Atualiza uma oferta já publicada por completo — rota (origem,
+    // paradas intermediárias e destino, cada uma já com "ordem" certa,
+    // mesmo formato de OferecerCaronaActivity.montarRota), data/hora, vagas
+    // e valor por vaga. Reconstrói cidadeOrigem/cidadeDestino/cidadesBusca
+    // a partir de "rota", mesma normalização de publicarCarona — sem isso,
+    // uma edição de rota não apareceria em buscas por trecho novo.
+    suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double): Result<Unit>
 
     suspend fun excluirOferta(caronaId: String): Result<Unit>
 }

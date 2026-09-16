@@ -15,17 +15,20 @@
         android:padding="14dp">
 
         <LinearLayout
+            android:id="@+id/headerMinhaOferta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
 
             <TextView
                 android:id="@+id/tvRotaOferta"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#1E90FF"
+                android:textColor="@color/grafite"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:text="Origem → Destino" />
@@ -36,11 +39,20 @@
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
                 android:textStyle="bold"
-                android:textColor="#1E90FF"
-                android:background="#141E90FF"
+                android:textColor="@color/grafite"
+                android:background="#14455A64"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="3dp"
+                android:layout_marginEnd="8dp"
                 android:text="ATIVA" />
+
+            <TextView
+                android:id="@+id/tvExpandIconOferta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/grafite"
+                android:textSize="12sp"
+                android:text="▼" />
 
         </LinearLayout>
 
@@ -74,12 +86,26 @@
                 android:id="@+id/tvValorOferta"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#1E90FF"
+                android:textColor="@color/grafite"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:text="R$ 0,00 /vaga" />
 
         </LinearLayout>
+
+        <!-- Detalhes completos da rota (origem/paradas/destino, com
+             endereço quando houver) — só aparece ao tocar no cabeçalho
+             (ver MinhaOfertaAdapter, mesmo espírito de expandir/recolher
+             já usado em item_minha_viagem.xml). -->
+        <LinearLayout
+            android:id="@+id/corpoExpandidoOferta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F5F7FA"
+            android:padding="10dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -96,7 +122,7 @@
                 android:textSize="12sp"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
-                android:background="@drawable/botao_azul_neon" />
+                android:background="@drawable/botao_grafite" />
 
             <Button
                 android:id="@+id/btnExcluirOferta"
