@@ -67,10 +67,13 @@ class TelaCaronasActivity : AppCompatActivity() {
     private lateinit var ivFotoPerfil: ImageView
     private lateinit var tvPapelUsuario: TextView
     private lateinit var tvNomeUsuario: TextView
+    private lateinit var tvContadorViagensGratis: TextView
+    private lateinit var tvContadorViagensRealizadas: TextView
     private lateinit var btnMinhasOfertasOuViagens: TextView
     private lateinit var badgeMinhasOfertasOuViagens: TextView
     private lateinit var btnProcurar: TextView
     private lateinit var btnOferecer: TextView
+    private lateinit var btnPagamentos: TextView
     private lateinit var badgeChatNaoLidas: TextView
     private lateinit var btnSair: Button
     private lateinit var tvResumoBusca: TextView
@@ -124,6 +127,8 @@ class TelaCaronasActivity : AppCompatActivity() {
         ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
         tvPapelUsuario = findViewById(R.id.tvPapelUsuario)
         tvNomeUsuario = findViewById(R.id.tvNomeUsuario)
+        tvContadorViagensGratis = findViewById(R.id.tvContadorViagensGratis)
+        tvContadorViagensRealizadas = findViewById(R.id.tvContadorViagensRealizadas)
         btnMinhasOfertasOuViagens = findViewById(R.id.btnMinhasOfertasOuViagens)
         badgeMinhasOfertasOuViagens = findViewById(R.id.badgeMinhasOfertasOuViagens)
         btnSair = findViewById(R.id.btnSair)
@@ -152,6 +157,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         }
         btnProcurar = findViewById(R.id.btnProcurar)
         btnOferecer = findViewById(R.id.btnOferecer)
+        btnPagamentos = findViewById(R.id.btnPagamentos)
         val btnChat = findViewById<TextView>(R.id.btnChat)
         badgeChatNaoLidas = findViewById(R.id.badgeChatNaoLidas)
         val btnAvaliacoes = findViewById<TextView>(R.id.btnAvaliacoes)
@@ -168,6 +174,13 @@ class TelaCaronasActivity : AppCompatActivity() {
 
         btnProcurar.setOnClickListener { abrirDialogBuscarCarona() }
         btnOferecer.setOnClickListener { abrirOferecerCarona() }
+        // Conteúdo/configuração real ainda por vir (pedido explícito do
+        // usuário: "a ser criado a sua configuração depois") — por ora
+        // abre a mesma tela de acesso pago já existente, é o que mais se
+        // aproxima de "Pagamentos" hoje (ver AssinaturaMotoristaActivity).
+        btnPagamentos.setOnClickListener {
+            startActivity(Intent(this, AssinaturaMotoristaActivity::class.java))
+        }
         btnChat.setOnClickListener { startActivity(Intent(this, ConversasCaronaActivity::class.java)) }
         btnAvaliacoes.setOnClickListener { toggleAvaliacoes() }
 
@@ -333,10 +346,15 @@ class TelaCaronasActivity : AppCompatActivity() {
         val cidadeDesembarque = carona.paradas.getOrNull(indiceDestino)?.cidade ?: destinoBuscado
 
         // Trecho = rota inteira: usa o valor que o motorista já publicou,
-        // sem geocodificar de novo. Trecho parcial: calcula o preço só
-        // daquele pedaço (mesma lógica de DistanciaUtil usada ao publicar a
-        // oferta) — nunca o valor da rota inteira, mesmo que ela tenha
-        // paradas no meio pra pegar outros passageiros.
+        // sem geocodificar de novo. Trecho parcial: em vez de recalcular um
+        // preço do zero (o que IGNORARIA se o motorista alterou manualmente
+        // o valor por vaga, mostrando ao passageiro um número diferente do
+        // que o motorista realmente definiu), cobra a fração proporcional
+        // do preço REAL da oferta — distância do trecho / distância total
+        // da rota, aplicada sobre carona.valorPorVaga (nunca sobre um valor
+        // sugerido recalculado). Só cai pro cálculo antigo (sugestão pura)
+        // se a carona não tiver distanciaKm/valorPorVaga salvos (ofertas
+        // publicadas antes desses campos existirem).
         val valorTrecho = if (indiceOrigem == 0 && indiceDestino == carona.paradas.lastIndex) {
             carona.valorPorVaga ?: 0.0
         } else {
@@ -353,7 +371,14 @@ class TelaCaronasActivity : AppCompatActivity() {
                     )
                 }.getOrNull()
             } else null
-            sugestao?.valorSugerido ?: (carona.valorPorVaga ?: 0.0)
+
+            val distanciaTotal = carona.distanciaKm
+            val precoTotal = carona.valorPorVaga
+            if (sugestao != null && distanciaTotal != null && distanciaTotal > 0 && precoTotal != null) {
+                precoTotal * (sugestao.distanciaKm / distanciaTotal)
+            } else {
+                sugestao?.valorSugerido ?: (carona.valorPorVaga ?: 0.0)
+            }
         }
 
         // Vagas livres só do trecho buscado (embarque->desembarque), não a
@@ -514,6 +539,20 @@ class TelaCaronasActivity : AppCompatActivity() {
                         id to disponiveis
                     }.toMap()
 
+                    // Total recebido por oferta = soma de valorPago de todas
+                    // as solicitações CONFIRMADAS daquela carona — uma
+                    // query só (buscarSolicitacoesRecebidas já traz TODAS as
+                    // solicitações recebidas pelo motorista, de qualquer
+                    // oferta), agrupada aqui por caronaId em vez de 1
+                    // consulta por oferta.
+                    val totalPorOferta = solicitacaoRepository.buscarSolicitacoesRecebidas().getOrDefault(emptyList())
+                        .filter { it.status == "confirmada" }
+                        .groupBy { it.caronaId }
+                        .mapNotNull { (caronaId, solicitacoes) ->
+                            caronaId?.let { it to solicitacoes.sumOf { s -> s.valorPago ?: 0.0 } }
+                        }
+                        .toMap()
+
                     progressBarBusca.visibility = View.GONE
                     if (ofertas.isEmpty()) {
                         tvSemResultadosBusca.visibility = View.VISIBLE
@@ -523,6 +562,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                         rvResultadosBusca.adapter = MinhaOfertaAdapter(
                             ofertas,
                             vagasDisponiveisPorOferta = vagasPorOferta,
+                            totalRecebidoPorOferta = totalPorOferta,
                             onEditarClick = { abrirDialogEditarOferta(it) },
                             onExcluirClick = { confirmarExcluirOferta(it) }
                         )
@@ -1072,6 +1112,56 @@ class TelaCaronasActivity : AppCompatActivity() {
         }
     }
 
+    // Dois contadorezinhos acima do "Sair", só pro motorista (ver
+    // AcessoMotoristaUtil/Usuario.caronasOferecidas): quantas das 10
+    // gratuitas já usou (ou, se já pagou, até quando vale o acesso) e
+    // quantas caronas já de fato aconteceram (data já passada — reusa
+    // buscarMinhasOfertas, que "Minhas Ofertas" já carrega de qualquer
+    // forma, em vez de outra consulta nova só pra isso).
+    private fun atualizarContadoresMotorista(usuario: Usuario) {
+        if (usuario.motorista) {
+            // "Grátis: X/10" (ou "Acesso pago até..." depois de pagar) só
+            // existe pro motorista — é quem tem o limite de 10 caronas
+            // gratuitas (ver AcessoMotoristaUtil).
+            tvContadorViagensGratis.visibility = View.VISIBLE
+            val acessoPagoValido = usuario.acessoMotoristaExpiraEm?.time?.let { it > System.currentTimeMillis() } == true
+            tvContadorViagensGratis.text = if (acessoPagoValido) {
+                getString(R.string.tela_contador_viagens_gratis_pago_formato, formatoDataOferta.format(usuario.acessoMotoristaExpiraEm!!))
+            } else {
+                getString(
+                    R.string.tela_contador_viagens_gratis_formato,
+                    minOf(usuario.caronasOferecidas, AcessoMotoristaUtil.CARONAS_GRATUITAS),
+                    AcessoMotoristaUtil.CARONAS_GRATUITAS
+                )
+            }
+
+            lifecycleScope.launch {
+                caronaRepository.buscarMinhasOfertas().onSuccess { ofertas ->
+                    val agora = System.currentTimeMillis()
+                    val realizadas = ofertas.count { (it.dataHoraPartida ?: Long.MAX_VALUE) < agora }
+                    tvContadorViagensRealizadas.visibility = View.VISIBLE
+                    tvContadorViagensRealizadas.text = getString(R.string.tela_contador_viagens_realizadas_formato, realizadas)
+                }
+            }
+        } else {
+            // Passageiro não tem limite/cobrança — só o contador de
+            // "Realizadas", baseado nas solicitações CONFIRMADAS cuja data
+            // já passou (mesma ideia de MinhaViagemAdapter pro "já ocorreu").
+            tvContadorViagensGratis.visibility = View.GONE
+
+            lifecycleScope.launch {
+                solicitacaoRepository.buscarMinhasSolicitacoes().onSuccess { solicitacoes ->
+                    val agora = System.currentTimeMillis()
+                    val realizadas = solicitacoes.count {
+                        it.status == "confirmada" && (it.dataHoraPartida ?: Long.MAX_VALUE) < agora
+                    }
+                    tvContadorViagensRealizadas.visibility = View.VISIBLE
+                    tvContadorViagensRealizadas.text = getString(R.string.tela_contador_viagens_realizadas_formato, realizadas)
+                }
+            }
+        }
+    }
+
     private fun carregarPerfil() {
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
@@ -1101,6 +1191,9 @@ class TelaCaronasActivity : AppCompatActivity() {
                 // mostrar os dois pro mesmo papel.
                 btnOferecer.visibility = if (usuario.motorista) View.VISIBLE else View.GONE
                 btnProcurar.visibility = if (usuario.motorista) View.GONE else View.VISIBLE
+                btnPagamentos.visibility = if (usuario.motorista) View.VISIBLE else View.GONE
+
+                atualizarContadoresMotorista(usuario)
                 if (!usuario.fotoUrl.isNullOrEmpty()) {
                     ivFotoPerfil.load(usuario.fotoUrl) {
                         transformations(CircleCropTransformation())

@@ -40,7 +40,11 @@ class ViagemAdminAdapter(
         holder.tvDataHora.text = carona.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
         holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, carona.vagas)
         holder.tvStatus.text = context.getString(
-            if (carona.status == "cancelada") R.string.minhas_ofertas_status_cancelada else R.string.minhas_ofertas_status_ativa
+            when {
+                carona.status == "cancelada" -> R.string.minhas_ofertas_status_cancelada
+                StatusViagemUtil.jaConcluida(carona.dataHoraPartida) -> R.string.minhas_ofertas_status_concluida
+                else -> R.string.minhas_ofertas_status_ativa
+            }
         )
     }
 

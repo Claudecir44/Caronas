@@ -73,9 +73,11 @@ class MinhaViagemAdapter(
             String.format(Locale("pt", "BR"), "%.2f", viagem.valorPago ?: 0.0)
         )
 
-        // "concluída" é inferido aqui comparando a data da viagem com agora,
-        // em vez de um status próprio guardado no Firestore (ver Solicitacao.kt).
-        val jaOcorreu = (viagem.dataHoraPartida ?: 0L) < System.currentTimeMillis()
+        // "concluída" é inferido aqui comparando a data da viagem com agora
+        // (10 minutos de tolerância depois do horário de partida — ver
+        // StatusViagemUtil), em vez de um status próprio guardado no
+        // Firestore (ver Solicitacao.kt).
+        val jaOcorreu = StatusViagemUtil.jaConcluida(viagem.dataHoraPartida)
         val cancelada = viagem.status == "cancelada"
 
         val confirmada = viagem.status == "confirmada"

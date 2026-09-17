@@ -1,8 +1,11 @@
 package com.cjstudio.caronas
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -14,7 +17,9 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,6 +31,9 @@ import coil3.transform.CircleCropTransformation
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -56,7 +64,16 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private lateinit var containerBuscaMensagens: LinearLayout
     private lateinit var etBuscaMensagens: EditText
     private lateinit var btnArquivadosManifestacoes: Button
+    private lateinit var badgeManifestacoes: TextView
+    private lateinit var tvContadorSecao: TextView
     private var mostrandoArquivadas = false
+    private var badgeManifestacoesIniciado = false
+
+    // Mesmo padrão de TelaCaronasActivity — pede a permissão de notificação
+    // em runtime (Android 13+) pra o push de notificarNovaManifestacao
+    // conseguir de fato aparecer na tela do admin, não só chegar no app.
+    private val lancadorPermissaoNotificacao =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +82,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         ivFoto = findViewById(R.id.ivFotoAdminLogado)
         tvNome = findViewById(R.id.tvAdminNome)
         tvTituloSecao = findViewById(R.id.tvTituloSecaoAdmin)
+        tvContadorSecao = findViewById(R.id.tvContadorSecaoAdmin)
         progressBarSecao = findViewById(R.id.progressBarSecaoAdmin)
         tvVazioSecao = findViewById(R.id.tvVazioSecaoAdmin)
         rvSecao = findViewById(R.id.rvSecaoAdmin)
@@ -72,6 +90,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         containerBuscaMensagens = findViewById(R.id.containerBuscaMensagens)
         etBuscaMensagens = findViewById(R.id.etBuscaMensagens)
         btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
+        badgeManifestacoes = findViewById(R.id.badgeManifestacoes)
 
         findViewById<TextView>(R.id.tvEditarPerfilAdmin).setOnClickListener {
             startActivity(Intent(this, BuscarAdminActivity::class.java))
@@ -79,6 +98,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnMotoristas).setOnClickListener { mostrarMotoristas() }
         findViewById<TextView>(R.id.btnPassageiros).setOnClickListener { mostrarPassageiros() }
         findViewById<TextView>(R.id.btnViagens).setOnClickListener { abrirDialogEscolherViagens() }
+        findViewById<TextView>(R.id.btnFinanceiro).setOnClickListener {
+            startActivity(Intent(this, FinanceiroCaronasActivity::class.java))
+        }
         findViewById<TextView>(R.id.btnMensagens).setOnClickListener { abrirBuscaMensagens() }
         findViewById<TextView>(R.id.btnManifestacoes).setOnClickListener {
             mostrandoArquivadas = false
@@ -104,6 +126,16 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                 finish()
             }
         }
+        solicitarPermissaoNotificacaoSeNecessario()
+    }
+
+    private fun solicitarPermissaoNotificacaoSeNecessario() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val jaConcedida = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!jaConcedida) {
+            lancadorPermissaoNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     override fun onResume() {
@@ -111,10 +143,15 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         // Recarrega sempre (não só no onCreate) — cobre a volta da tela de
         // Editar Perfil, caso o admin tenha editado o PRÓPRIO cadastro.
         carregarAdminLogado(ivFoto, tvNome)
+        if (!badgeManifestacoesIniciado) {
+            badgeManifestacoesIniciado = true
+            escutarBadgeManifestacoes()
+        }
     }
 
     private fun carregarAdminLogado(ivFoto: ImageView, tvNome: TextView) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FcmTokenUtil.atualizarTokenAdmin(uid)
         lifecycleScope.launch {
             adminRepository.buscarAdminLogado(uid).onSuccess { admin ->
                 tvNome.text = admin.nome?.ifEmpty { null } ?: admin.email ?: ""
@@ -129,13 +166,37 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         }
     }
 
+    // Badge no botão "Sugestões" — total de reclamações/sugestões/denúncias
+    // pendentes (não respondidas, não arquivadas), em tempo real. Mesmo
+    // padrão de TelaCaronasActivity.escutarBadgeMinhasOfertasOuViagens.
+    private fun escutarBadgeManifestacoes() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                adminRepository.escutarContagemManifestacoesPendentes().catch { }.collect { total ->
+                    if (total > 0) {
+                        badgeManifestacoes.visibility = View.VISIBLE
+                        badgeManifestacoes.text = total.toString()
+                    } else {
+                        badgeManifestacoes.visibility = View.GONE
+                    }
+                }
+            }
+        }
+    }
+
     private fun mostrarMotoristas() {
         prepararSecao(getString(R.string.admin_lista_motoristas_titulo), getString(R.string.admin_lista_motoristas_vazio))
         lifecycleScope.launch {
             adminRepository.listarTodosUsuarios()
                 .onSuccess { usuarios ->
-                    exibirResultadoSecao(usuarios.filter { it.veiculo?.estaPreenchido() == true }) { lista ->
-                        UsuarioAdminAdapter(lista, onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarMotoristas() } })
+                    val motoristas = usuarios.filter { it.veiculo?.estaPreenchido() == true }
+                    exibirContadorSecao(motoristas.size)
+                    exibirResultadoSecao(motoristas) { lista ->
+                        UsuarioAdminAdapter(
+                            lista,
+                            onClick = { usuario -> abrirDetalhesUsuario(usuario) },
+                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarMotoristas() } }
+                        )
                     }
                 }
                 .onFailure { mostrarErroSecao(it) }
@@ -147,8 +208,13 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.listarTodosUsuarios()
                 .onSuccess { usuarios ->
+                    exibirContadorSecao(usuarios.count { it.veiculo?.estaPreenchido() != true })
                     exibirResultadoSecao(usuarios.filter { it.veiculo?.estaPreenchido() != true }) { lista ->
-                        UsuarioAdminAdapter(lista, onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarPassageiros() } })
+                        UsuarioAdminAdapter(
+                            lista,
+                            onClick = { usuario -> abrirDetalhesUsuario(usuario) },
+                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarPassageiros() } }
+                        )
                     }
                 }
                 .onFailure { mostrarErroSecao(it) }
@@ -160,6 +226,14 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     // trava de senha do administrador master das outras ações destrutivas
     // do painel. aoRemover recarrega a lista certa (Motoristas ou
     // Passageiros, dependendo de onde veio o toque).
+    // Toque simples (não toque-e-segure, que continua excluindo) num
+    // motorista ou passageiro — abre o cadastro completo, com opção de
+    // editar/salvar (ver DetalhesUsuarioAdminActivity).
+    private fun abrirDetalhesUsuario(usuario: Usuario) {
+        val uid = usuario.id ?: return
+        startActivity(Intent(this, DetalhesUsuarioAdminActivity::class.java).putExtra(DetalhesUsuarioAdminActivity.EXTRA_UID, uid))
+    }
+
     private fun confirmarRemoverUsuario(usuario: Usuario, aoRemover: () -> Unit) {
         val uid = usuario.id ?: return
         val nome = usuario.nomeCompleto?.ifBlank { null } ?: usuario.email ?: "esse usuário"
@@ -172,6 +246,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                 adminRepository.excluirUsuario(uid, senhaMaster)
                     .onSuccess {
                         Toast.makeText(this@AdministracaoCaronasActivity, R.string.admin_remover_usuario_sucesso, Toast.LENGTH_LONG).show()
+                        // aoRemover() já rechama mostrarMotoristas()/mostrarPassageiros(),
+                        // que recalcula o contador sozinho (ver exibirContadorSecao).
                         aoRemover()
                     }
                     .onFailure { e ->
@@ -246,10 +322,20 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         btnArquivadosManifestacoes.visibility = if (mostrarArquivados) View.VISIBLE else View.GONE
         tvTituloSecao.text = titulo
         tvTituloSecao.visibility = if (titulo.isEmpty()) View.GONE else View.VISIBLE
+        // Só Motoristas/Passageiros preenchem isso (ver exibirContadorSecao) —
+        // some de novo ao trocar pra qualquer outra seção.
+        tvContadorSecao.visibility = View.GONE
         tvVazioSecao.text = textoVazio
         tvVazioSecao.visibility = View.GONE
         rvSecao.visibility = View.GONE
         progressBarSecao.visibility = View.VISIBLE
+    }
+
+    // Total de motoristas/passageiros, ao lado do título da seção (não mais
+    // em cima dos botões — pedido explícito do usuário).
+    private fun exibirContadorSecao(total: Int) {
+        tvContadorSecao.text = total.toString()
+        tvContadorSecao.visibility = View.VISIBLE
     }
 
     // Toque em "Mensagens" — só mostra a caixa de busca, ainda não busca

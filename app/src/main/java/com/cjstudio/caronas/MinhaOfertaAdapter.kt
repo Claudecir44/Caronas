@@ -23,6 +23,10 @@ class MinhaOfertaAdapter(
     // capacidade total, sem desconto) se a oferta não tiver id ou não
     // estiver no mapa.
     private val vagasDisponiveisPorOferta: Map<String, Int> = emptyMap(),
+    // Soma de valorPago de todas as solicitações CONFIRMADAS de cada
+    // oferta (id -> total), calculado uma vez em TelaCaronasActivity.
+    // carregarOfertas a partir de uma única query (não uma por oferta).
+    private val totalRecebidoPorOferta: Map<String, Double> = emptyMap(),
     private val onEditarClick: (Carona) -> Unit,
     private val onExcluirClick: (Carona) -> Unit
 ) : RecyclerView.Adapter<MinhaOfertaAdapter.ViewHolder>() {
@@ -39,6 +43,7 @@ class MinhaOfertaAdapter(
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraOferta)
         val tvVagas: TextView = view.findViewById(R.id.tvVagasOferta)
         val tvValor: TextView = view.findViewById(R.id.tvValorOferta)
+        val tvTotalRecebido: TextView = view.findViewById(R.id.tvTotalRecebidoOferta)
         val btnEditar: Button = view.findViewById(R.id.btnEditarOferta)
         val btnExcluir: Button = view.findViewById(R.id.btnExcluirOferta)
     }
@@ -65,8 +70,23 @@ class MinhaOfertaAdapter(
             String.format(Locale("pt", "BR"), "%.2f", oferta.valorPorVaga ?: 0.0)
         )
         holder.tvStatus.text = context.getString(
-            if (oferta.status == "cancelada") R.string.minhas_ofertas_status_cancelada else R.string.minhas_ofertas_status_ativa
+            when {
+                oferta.status == "cancelada" -> R.string.minhas_ofertas_status_cancelada
+                StatusViagemUtil.jaConcluida(oferta.dataHoraPartida) -> R.string.minhas_ofertas_status_concluida
+                else -> R.string.minhas_ofertas_status_ativa
+            }
         )
+
+        val totalRecebido = oferta.id?.let { totalRecebidoPorOferta[it] } ?: 0.0
+        if (totalRecebido > 0.0) {
+            holder.tvTotalRecebido.visibility = View.VISIBLE
+            holder.tvTotalRecebido.text = context.getString(
+                R.string.minhas_ofertas_total_recebido_formato,
+                String.format(Locale("pt", "BR"), "%.2f", totalRecebido)
+            )
+        } else {
+            holder.tvTotalRecebido.visibility = View.GONE
+        }
 
         val aberto = position == posicaoAberta
         holder.tvExpandIcon.text = if (aberto) "▲" else "▼"

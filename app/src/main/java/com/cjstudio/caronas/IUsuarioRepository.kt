@@ -56,4 +56,10 @@ interface IUsuarioRepository {
     // sensível"), gated por firestore.rules pra exigir usuarioId == uid de
     // quem está enviando.
     suspend fun enviarManifestacao(tipo: String, nomeCompleto: String, email: String, telefone: String, mensagem: String): Result<Unit>
+
+    // Cria a preferência de pagamento (Mercado Pago) do acesso avulso do
+    // motorista (R$15,99 = 30 dias, ver AssinaturaMotoristaActivity/
+    // functions/index.js:createPaymentPreferenceMotorista) e devolve a URL
+    // de checkout (initPoint) pra abrir no navegador.
+    suspend fun iniciarPagamentoAcessoMotorista(): Result<String>
 }

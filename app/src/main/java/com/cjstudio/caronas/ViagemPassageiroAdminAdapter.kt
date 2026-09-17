@@ -41,9 +41,11 @@ class ViagemPassageiroAdminAdapter(
         holder.tvValor.text = context.getString(
             R.string.procurar_valor_formato, String.format(Locale("pt", "BR"), "%.2f", solicitacao.valorPago ?: 0.0)
         )
-        holder.tvStatus.text = when (solicitacao.status) {
-            "confirmada" -> context.getString(R.string.admin_status_confirmada)
-            "cancelada" -> context.getString(R.string.minhas_ofertas_status_cancelada)
+        holder.tvStatus.text = when {
+            solicitacao.status == "confirmada" && StatusViagemUtil.jaConcluida(solicitacao.dataHoraPartida) ->
+                context.getString(R.string.minhas_viagens_status_concluida)
+            solicitacao.status == "confirmada" -> context.getString(R.string.admin_status_confirmada)
+            solicitacao.status == "cancelada" -> context.getString(R.string.minhas_ofertas_status_cancelada)
             else -> context.getString(R.string.admin_status_solicitada)
         }
     }

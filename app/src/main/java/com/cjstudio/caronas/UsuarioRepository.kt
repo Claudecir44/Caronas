@@ -231,4 +231,17 @@ class UsuarioRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun iniciarPagamentoAcessoMotorista(): Result<String> {
+        return try {
+            val resultado = functions.getHttpsCallable("createPaymentPreferenceMotorista").call().await()
+            @Suppress("UNCHECKED_CAST")
+            val dados = resultado.data as? Map<String, Any?>
+            val initPoint = dados?.get("initPoint") as? String
+                ?: throw IllegalStateException("Resposta inválida do servidor.")
+            Result.success(initPoint)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

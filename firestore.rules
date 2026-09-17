@@ -33,7 +33,40 @@ service cloud.firestore {
 
     match /usuarios/{usuarioId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == usuarioId;
+      allow create: if request.auth != null && request.auth.uid == usuarioId
+        && request.resource.data.get('caronasOferecidas', 0) == 0
+        && request.resource.data.get('acessoMotoristaExpiraEm', null) == null;
+
+      // Só o dono edita o próprio perfil, mas com duas travas pro modelo
+      // de "10 caronas grátis, depois R$15,99/30 dias" (ver Usuario.kt,
+      // CaronaRepository.publicarCarona, permiteOferecerCarona abaixo):
+      // caronasOferecidas só pode ficar igual ou subir exatamente 1 (o
+      // mesmo valor que o app grava no mesmo lote que cria a carona) —
+      // nunca pular, nunca voltar; acessoMotoristaExpiraEm nunca muda por
+      // uma escrita do cliente — só a Cloud Function
+      // concederAcessoMotorista (Admin SDK, só depois de confirmar o
+      // pagamento de verdade) grava nesse campo. Sem essas duas travas,
+      // dava pra "zerar" o contador ou estender o próprio acesso direto
+      // numa escrita no Firestore, sem pagar nada. ".get(campo, padrão)"
+      // em vez de ".campo" pra não quebrar em contas antigas que ainda
+      // não têm esses dois campos (criadas antes dessa regra existir).
+      allow update: if request.auth != null && request.auth.uid == usuarioId
+        && request.resource.data.get('acessoMotoristaExpiraEm', null) == resource.data.get('acessoMotoristaExpiraEm', null)
+        && (request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0)
+            || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1);
+
+      allow delete: if request.auth != null && request.auth.uid == usuarioId;
+    }
+
+    // Trava de "10 caronas grátis, depois R$15,99/30 dias" pro motorista
+    // (ver Usuario.kt, CaronaRepository.publicarCarona) — mesmo cálculo
+    // que o app faz antes de mostrar a tela de Oferecer Carona, reforçado
+    // aqui pra ninguém burlar escrevendo direto no Firestore.
+    function permiteOferecerCarona(uid) {
+      let usuario = get(/databases/$(database)/documents/usuarios/$(uid)).data;
+      let ofertas = usuario.get('caronasOferecidas', 0);
+      let expiraEm = usuario.get('acessoMotoristaExpiraEm', null);
+      return ofertas < 10 || (expiraEm != null && expiraEm > request.time);
     }
 
     // Caronas oferecidas por um motorista. Leitura liberada pra qualquer
@@ -41,7 +74,8 @@ service cloud.firestore {
     // próprio motorista dono do documento.
     match /caronas/{caronaId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid
+        && permiteOferecerCarona(request.auth.uid);
       // "resource == null" cobre um "excluir" repetido/atrasado (ex.: dois
       // toques rápidos, ou uma tela desatualizada tentando apagar uma
       // oferta que outra sessão já apagou) — sem essa guarda, o Firestore
@@ -244,6 +278,16 @@ service cloud.firestore {
         && resource.data.status == 'respondido'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arquivado', 'arquivadoEm']);
       allow delete: if false;
+    }
+
+    // Histórico de cobranças dos R$15,99/30 dias do motorista (ver
+    // concederAcessoMotorista em functions/index.js, tela "Financeiro" do
+    // painel admin). Só admin lê; só a Cloud Function grava (Admin SDK,
+    // depois de confirmar o pagamento de verdade no webhook do Mercado
+    // Pago) — mesmo padrão de "pagamentos" no Match.
+    match /pagamentosMotorista/{pagamentoId} {
+      allow read: if ehAdmin();
+      allow write: if false;
     }
   }
 }

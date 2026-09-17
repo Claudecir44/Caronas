@@ -25,4 +25,19 @@ object FcmTokenUtil {
             }
             .addOnFailureListener { e -> Log.e(TAG, "Erro ao obter fcmToken: ${e.message}") }
     }
+
+    // Mesma ideia de atualizarToken, mas grava em admins/{uid} — usado pela
+    // flavor admin (ver AdministracaoCaronasActivity, CaronasFirebaseMessagingService.
+    // onNewToken) pra receber o push de notificarNovaManifestacao (functions/index.js)
+    // quando chega uma reclamação/sugestão/denúncia nova.
+    fun atualizarTokenAdmin(uid: String?) {
+        if (uid.isNullOrBlank()) return
+        FirebaseMessaging.getInstance().token
+            .addOnSuccessListener { token ->
+                FirebaseFirestore.getInstance().collection("admins").document(uid)
+                    .update("fcmToken", token)
+                    .addOnFailureListener { e -> Log.e(TAG, "Erro ao salvar fcmToken (admin): ${e.message}") }
+            }
+            .addOnFailureListener { e -> Log.e(TAG, "Erro ao obter fcmToken: ${e.message}") }
+    }
 }

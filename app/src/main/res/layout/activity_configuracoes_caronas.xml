@@ -1,49 +1,192 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/fundo_cinza_claro"
-    android:padding="24dp">
+    android:background="@color/fundo_cinza_claro">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/config_titulo"
-        android:textColor="@color/azul_neon"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:paddingTop="36dp"
-        android:paddingBottom="28dp" />
+        android:orientation="vertical"
+        android:padding="20dp">
 
-    <Button
-        android:id="@+id/btnConfigTermos"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="@string/config_botao_termos"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:background="@drawable/botao_azul_neon"
-        android:layout_marginBottom="12dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/config_titulo"
+            android:textColor="@color/azul_neon"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingTop="28dp"
+            android:paddingBottom="28dp" />
 
-    <Button
-        android:id="@+id/btnConfigEditarPerfil"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="@string/config_botao_editar_perfil"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:background="@drawable/botao_azul_neon"
-        android:layout_marginBottom="12dp" />
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardElevation="3dp">
 
-    <Button
-        android:id="@+id/btnConfigManifestacoes"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="@string/config_botao_manifestacoes"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:background="@drawable/botao_azul_neon" />
+            <LinearLayout
+                android:id="@+id/btnConfigTermos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
 
-</LinearLayout>
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icone_config"
+                    android:text="📄"
+                    android:textSize="20sp"
+                    android:gravity="center"
+                    android:layout_marginEnd="14dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/config_botao_termos"
+                    android:textColor="#222222"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textSize="22sp"
+                    android:textColor="#B0BEC5" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardElevation="3dp">
+
+            <LinearLayout
+                android:id="@+id/btnConfigEditarPerfil"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icone_config"
+                    android:text="👤"
+                    android:textSize="20sp"
+                    android:gravity="center"
+                    android:layout_marginEnd="14dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/config_botao_editar_perfil"
+                    android:textColor="#222222"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textSize="22sp"
+                    android:textColor="#B0BEC5" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardElevation="3dp">
+
+            <LinearLayout
+                android:id="@+id/btnConfigManifestacoes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icone_config"
+                    android:text="📝"
+                    android:textSize="20sp"
+                    android:gravity="center"
+                    android:layout_marginEnd="14dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/config_botao_manifestacoes"
+                    android:textColor="#222222"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textSize="22sp"
+                    android:textColor="#B0BEC5" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Pequeno, alinhado à direita, logo depois dos cards — fica
+             sempre visível no fluxo normal da tela. Antes ficava fixo no
+             canto absoluto da tela (FrameLayout + gravity bottom|end) e
+             sumia atrás da barra de navegação do sistema em alguns
+             aparelhos; essa tela não trata insets/edge-to-edge, então
+             evitar ancorar no fundo absoluto é o jeito seguro. -->
+        <TextView
+            android:id="@+id/btnVoltarConfig"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="20dp"
+            android:text="@string/voltar"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/botao_azul_neon"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -142,13 +142,43 @@
             android:orientation="horizontal"
             android:layout_marginTop="6dp">
 
-            <TextView
-                android:id="@+id/btnManifestacoes"
-                style="@style/BotaoAcaoCaronasVertical"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/admin_botao_manifestacoes" />
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:id="@+id/btnManifestacoes"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:layout_width="match_parent"
+                    android:layout_marginEnd="0dp"
+                    android:text="@string/admin_botao_manifestacoes" />
+
+                <!-- Badge de reclamações/sugestões/denúncias pendentes (ver
+                     AdministracaoCaronasActivity.escutarBadgeManifestacoes) —
+                     mesmo estilo visual do badge de "Minhas Ofertas"/"Chat"
+                     na tela do usuário comum (activity_tela_caronas.xml). -->
+                <TextView
+                    android:id="@+id/badgeManifestacoes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-4dp"
+                    android:minWidth="18dp"
+                    android:minHeight="18dp"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#D32F2F"
+                    android:paddingHorizontal="3dp"
+                    android:visibility="gone"
+                    android:elevation="4dp" />
+
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/btnMensagens"
@@ -166,6 +196,17 @@
                 android:text="@string/admin_botao_viagens" />
 
         </LinearLayout>
+
+        <!-- Histórico de cobranças dos R$15,99/30 dias do motorista (ver
+             FinanceiroCaronasActivity) — linha própria, largura inteira,
+             mesmo espírito do botão "Financeiro" do dashboard do Match. -->
+        <TextView
+            android:id="@+id/btnFinanceiro"
+            style="@style/BotaoAcaoCaronasVertical"
+            android:layout_width="match_parent"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="0dp"
+            android:text="@string/admin_botao_financeiro" />
 
     </LinearLayout>
 
@@ -218,15 +259,40 @@
 
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvTituloSecaoAdmin"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/azul_neon"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="10dp"
-                android:visibility="gone" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/tvTituloSecaoAdmin"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/azul_neon"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <!-- Total de motoristas/passageiros (ver
+                     AdministracaoCaronasActivity.mostrarMotoristas/
+                     mostrarPassageiros) — só preenchido/visível nessas duas
+                     seções, vazio nas outras. -->
+                <TextView
+                    android:id="@+id/tvContadorSecaoAdmin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:background="@color/azul_neon_escuro"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
             <ProgressBar
                 android:id="@+id/progressBarSecaoAdmin"

@@ -1,6 +1,7 @@
 package com.cjstudio.caronas
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
@@ -34,7 +35,18 @@ class CaronaRepository @Inject constructor(
             carona.paradas = carona.paradas.map { it.copy(cidadeBusca = it.cidade?.let { c -> TextoUtil.normalizar(c) }) }
             carona.cidadesBusca = carona.paradas.mapNotNull { it.cidadeBusca }
 
-            val ref = colecaoCaronas().add(carona).await()
+            // Cria a carona e soma 1 no contador de viagens oferecidas
+            // (usuarios/{uid}.caronasOferecidas) no MESMO lote — é esse
+            // contador que firestore.rules (permiteOferecerCarona) usa pra
+            // saber se o motorista ainda está dentro das 10 gratuitas ou
+            // precisa de acessoMotoristaExpiraEm válido. Precisa ser atômico
+            // com a criação da carona: se só uma das duas partes fosse
+            // gravada, o contador ficaria fora de sincronia com a realidade.
+            val ref = colecaoCaronas().document()
+            val batch = db.batch()
+            batch.set(ref, carona)
+            batch.update(db.collection("usuarios").document(uid), "caronasOferecidas", FieldValue.increment(1))
+            batch.commit().await()
             Result.success(ref.id)
         } catch (e: Exception) {
             Result.failure(e)

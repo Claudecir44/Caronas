@@ -70,6 +70,23 @@
             android:name=".EnviarManifestacaoActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".AssinaturaMotoristaActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <!-- Retorno do checkout do Mercado Pago (back_urls em
+                 createPaymentPreferenceMotorista, functions/index.js). A
+                 confirmação de verdade vem do webhook via Firestore — esse
+                 deep link só traz o usuário de volta pro app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="caronasapp" android:host="payment_success" />
+                <data android:scheme="caronasapp" android:host="payment_failure" />
+                <data android:scheme="caronasapp" android:host="payment_pending" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".CaronasFirebaseMessagingService"
@@ -94,6 +111,25 @@
         <activity
             android:name=".BuscarAdminActivity"
             android:exported="false" />
+        <activity
+            android:name=".DetalhesUsuarioAdminActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FinanceiroCaronasActivity"
+            android:exported="false" />
+
+        <!-- Usado só pelo relatório em PDF do "Financeiro" (ver PdfUtil.kt/
+             FinanceiroCaronasActivity) pra abrir o arquivo gerado no
+             visualizador de PDF/WhatsApp/e-mail do aparelho. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

@@ -105,6 +105,43 @@
             font-size: 14px;
         }
         .aba-botao.ativa { background: #1E90FF; color: #fff; }
+        .badge-tab {
+            display: inline-block;
+            min-width: 16px;
+            height: 16px;
+            line-height: 16px;
+            border-radius: 8px;
+            background: #D32F2F;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            padding: 0 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .badge-tab:empty { display: none; }
+        .badge-tab-neutral { background: #0D47A1; }
+
+        /* Aba "Financeiro" (ver carregarFinanceiro/gerarRelatorioPagamentosMotorista) */
+        .filtro-financeiro {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: #fafafa; border-radius: 8px; padding: 14px; margin-bottom: 16px;
+        }
+        .filtro-financeiro label { font-size: 13px; color: #455A64; font-weight: 600; }
+        .filtro-financeiro select, .filtro-financeiro input[type=date] {
+            padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px;
+        }
+        .filtro-financeiro button {
+            background: #1E90FF; color: #fff; border: none; border-radius: 6px;
+            padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer;
+        }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+        .stat-card {
+            background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 14px;
+        }
+        .stat-card .stat-label { font-size: 12px; color: #555; }
+        .stat-card .stat-valor { font-size: 22px; font-weight: 700; color: #0D47A1; margin-top: 2px; }
 
         .aba-conteudo { display: none; }
         .aba-conteudo.ativa { display: block; }
@@ -113,6 +150,26 @@
         th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { color: #455A64; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
         tr:hover { background: #FAFBFC; }
+        tr.linha-clicavel { cursor: pointer; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .modal-caixa {
+            background: #fff; border-radius: 12px; padding: 24px;
+            width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto;
+        }
+        .modal-caixa h3 { color: #0D47A1; margin-bottom: 16px; }
+        .modal-caixa label { display: block; font-size: 12px; color: #999; font-weight: 700; margin-top: 12px; margin-bottom: 4px; }
+        .modal-caixa input[type="text"] {
+            width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px;
+            font-size: 14px; box-sizing: border-box;
+        }
+        .modal-caixa input:disabled { background: #F2F2F7; color: #555; }
+        .modal-caixa .modal-valor-fixo { font-size: 14px; color: #555; padding: 8px 0; }
+        .modal-botoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
         td img.foto-linha {
             width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #E8E8E8;
         }
@@ -172,11 +229,12 @@
     </div>
 
     <div class="abas">
-        <button class="aba-botao ativa" data-aba="motoristas" onclick="mostrarAba('motoristas')">Motoristas</button>
-        <button class="aba-botao" data-aba="passageiros" onclick="mostrarAba('passageiros')">Passageiros</button>
+        <button class="aba-botao ativa" data-aba="motoristas" onclick="mostrarAba('motoristas')">Motoristas<span id="contadorMotoristasTab" class="badge-tab badge-tab-neutral"></span></button>
+        <button class="aba-botao" data-aba="passageiros" onclick="mostrarAba('passageiros')">Passageiros<span id="contadorPassageirosTab" class="badge-tab badge-tab-neutral"></span></button>
         <button class="aba-botao" data-aba="viagensMotorista" onclick="mostrarAba('viagensMotorista')">Viagens (Motoristas)</button>
         <button class="aba-botao" data-aba="viagensPassageiro" onclick="mostrarAba('viagensPassageiro')">Viagens (Passageiros)</button>
-        <button class="aba-botao" data-aba="manifestacoes" onclick="mostrarAba('manifestacoes'); carregarManifestacoes();">📝 Sugestões e Reclamações</button>
+        <button class="aba-botao" data-aba="manifestacoes" onclick="mostrarAba('manifestacoes'); carregarManifestacoes();">📝 Sugestões e Reclamações<span id="badgeManifestacoesTab" class="badge-tab"></span></button>
+        <button class="aba-botao" data-aba="financeiro" onclick="mostrarAba('financeiro'); carregarFinanceiro();">💰 Financeiro</button>
     </div>
 
     <div class="aba-conteudo ativa" id="abaMotoristas">
@@ -210,6 +268,40 @@
             <tbody id="corpoManifestacoes"></tbody></table>
         <div class="vazio" id="vazioManifestacoes" style="display:none;">Nada recebido ainda.</div>
     </div>
+
+    <div class="aba-conteudo" id="abaFinanceiro">
+        <h3 style="color:#0D47A1; margin-bottom:12px;">💰 Financeiro — Acesso Motorista</h3>
+
+        <div class="filtro-financeiro">
+            <label>Período:</label>
+            <select id="selectPeriodoFinanceiro" onchange="onMudarPeriodoFinanceiro()">
+                <option value="todos">Todos</option>
+                <option value="diario">Diário (hoje)</option>
+                <option value="semanal">Semanal (7 dias)</option>
+                <option value="mensal">Mensal (30 dias)</option>
+                <option value="trimestral">Trimestral (3 meses)</option>
+                <option value="semestral">Semestral (6 meses)</option>
+                <option value="anual">Anual (12 meses)</option>
+                <option value="personalizado">Personalizado</option>
+            </select>
+            <span id="datasPersonalizadasFinanceiro" style="display:none; gap:10px; align-items:center;">
+                <label>De:</label> <input type="date" id="dataInicialFinanceiro">
+                <label>Até:</label> <input type="date" id="dataFinalFinanceiro">
+            </span>
+            <button onclick="aplicarFiltroFinanceiro()">Filtrar</button>
+            <button style="background:#00897B;" onclick="mostrarModalGerarRelatorioFinanceiro()">📄 Gerar Relatório</button>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">Pagamentos no Período</div><div class="stat-valor" id="statTotalPagamentos">0</div></div>
+            <div class="stat-card"><div class="stat-label">Motoristas Pagantes</div><div class="stat-valor" id="statMotoristasUnicos">0</div></div>
+            <div class="stat-card"><div class="stat-label">Total Arrecadado</div><div class="stat-valor" id="statTotalArrecadado">R$ 0,00</div></div>
+        </div>
+
+        <table><thead><tr><th>Nome</th><th>E-mail</th><th>Valor</th><th>Data</th><th>Expira em</th><th>Status</th></tr></thead>
+            <tbody id="corpoFinanceiro"></tbody></table>
+        <div class="vazio" id="vazioFinanceiro" style="display:none;">Nenhum pagamento encontrado nesse período.</div>
+    </div>
 </div>
 
 <script>
@@ -232,6 +324,10 @@
     const FOTO_PADRAO = "data:image/svg+xml;utf8," + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23B0BEC5"><path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.5c-3.3 0-9.8 1.6-9.8 4.9v2.4h19.6v-2.4c0-3.3-6.5-4.9-9.8-4.9z"/></svg>'
     );
+
+    // Preenchido a cada carregarDados() — abrirDetalhesUsuario() usa isso
+    // pra não precisar reconsultar o Firestore ao abrir o modal.
+    let usuariosCache = {};
 
     function fazerLogin() {
         const email = document.getElementById('loginEmail').value.trim();
@@ -276,6 +372,21 @@
         document.getElementById('painel').style.display = 'block';
         carregarAdminLogado(user.uid);
         carregarDados();
+        escutarBadgeManifestacoes();
+    }
+
+    // Badge na aba "Sugestões e Reclamações" — total de manifestações
+    // pendentes (não respondidas, não arquivadas), em tempo real. Mesmo
+    // critério do badge nativo (ver AdministracaoCaronasActivity.
+    // escutarBadgeManifestacoes).
+    function escutarBadgeManifestacoes() {
+        db.collection('manifestacoes')
+            .where('arquivado', '==', false)
+            .where('status', '==', 'pendente')
+            .onSnapshot((snapshot) => {
+                const badge = document.getElementById('badgeManifestacoesTab');
+                badge.textContent = snapshot.size > 0 ? String(snapshot.size) : '';
+            }, (err) => console.error('Erro no badge de manifestações', err));
     }
 
     function fazerLogout() {
@@ -306,6 +417,13 @@
         return !!(v && v.modelo && v.marca && v.cor && v.placa);
     }
 
+    // Mesma regra do app nativo (ver StatusViagemUtil.kt): "Concluída" é
+    // só exibição, nunca grava um status novo no Firestore — 10 minutos de
+    // tolerância depois do horário de partida.
+    function jaConcluida(dataHoraPartida) {
+        return !!dataHoraPartida && Date.now() > dataHoraPartida + 10 * 60 * 1000;
+    }
+
     function escapar(texto) {
         const div = document.createElement('div');
         div.textContent = texto || '';
@@ -329,15 +447,24 @@
             if (veiculoEstaPreenchido(u.veiculo)) motoristas.push(u); else passageiros.push(u);
         });
 
+        // Cache pra abrirDetalhesUsuario() não precisar reconsultar o
+        // Firestore ao abrir o modal de edição (mesmo espírito de
+        // sugestoesCache no Match).
+        usuariosCache = {};
+        [...motoristas, ...passageiros].forEach((u) => { usuariosCache[u.id] = u; });
+
+        document.getElementById('contadorMotoristasTab').textContent = String(motoristas.length);
+        document.getElementById('contadorPassageirosTab').textContent = String(passageiros.length);
+
         const corpoMotoristas = document.getElementById('corpoMotoristas');
         corpoMotoristas.innerHTML = motoristas.map((u) => `
-            <tr>
+            <tr class="linha-clicavel" onclick="abrirDetalhesUsuario('${escapar(u.id)}')">
                 <td><img class="foto-linha" src="${u.fotoUrl || FOTO_PADRAO}" alt=""></td>
                 <td>${escapar(u.nomeCompleto)}</td>
                 <td>${escapar(u.email)}</td>
                 <td>
                     ${escapar(u.telefone)}
-                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="removerUsuario(this)">🗑️</button>
+                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="event.stopPropagation(); removerUsuario(this)">🗑️</button>
                 </td>
                 <td>${escapar(u.veiculo.marca)} ${escapar(u.veiculo.modelo)} — ${escapar(u.veiculo.cor)} — ${escapar(u.veiculo.placa)}</td>
             </tr>
@@ -346,13 +473,13 @@
 
         const corpoPassageiros = document.getElementById('corpoPassageiros');
         corpoPassageiros.innerHTML = passageiros.map((u) => `
-            <tr>
+            <tr class="linha-clicavel" onclick="abrirDetalhesUsuario('${escapar(u.id)}')">
                 <td><img class="foto-linha" src="${u.fotoUrl || FOTO_PADRAO}" alt=""></td>
                 <td>${escapar(u.nomeCompleto)}</td>
                 <td>${escapar(u.email)}</td>
                 <td>
                     ${escapar(u.telefone)}
-                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="removerUsuario(this)">🗑️</button>
+                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="event.stopPropagation(); removerUsuario(this)">🗑️</button>
                 </td>
             </tr>
         `).join('');
@@ -374,7 +501,7 @@
                     <td>${escapar(c.motoristaNome)}</td>
                     <td>${dataHora}</td>
                     <td>${c.vagas ?? 0}</td>
-                    <td><span class="badge">${c.status === 'cancelada' ? 'CANCELADA' : 'ATIVA'}</span></td>
+                    <td><span class="badge">${c.status === 'cancelada' ? 'CANCELADA' : (jaConcluida(c.dataHoraPartida) ? 'CONCLUÍDA' : 'ATIVA')}</span></td>
                 </tr>
             `;
         }).join('');
@@ -390,7 +517,9 @@
             const rota = `${escapar(s.cidadeOrigem)} → ${escapar(s.cidadeDestino)}`;
             const dataHora = s.dataHoraPartida ? formatoData.format(new Date(s.dataHoraPartida)) : '';
             const valor = (s.valorPago ?? 0).toFixed(2).replace('.', ',');
-            const statusTexto = s.status === 'confirmada' ? 'CONFIRMADA' : (s.status === 'cancelada' ? 'CANCELADA' : 'SOLICITADA');
+            const statusTexto = s.status === 'confirmada'
+                ? (jaConcluida(s.dataHoraPartida) ? 'CONCLUÍDA' : 'CONFIRMADA')
+                : (s.status === 'cancelada' ? 'CANCELADA' : 'SOLICITADA');
             return `
                 <tr>
                     <td>${rota}</td>
@@ -403,6 +532,93 @@
             `;
         }).join('');
         document.getElementById('vazioViagensPassageiro').style.display = viagensPassageiro.length ? 'none' : 'block';
+    }
+
+    // "Ver cadastro completo" — clique numa linha de Motorista/Passageiro
+    // (não no botão de excluir, que já para a propagação — ver
+    // event.stopPropagation() no onclick do botão). Campos começam
+    // travados; "Editar" libera; "Salvar" pede a senha do administrador
+    // master e grava via admAtualizarUsuario (Admin SDK — mesma trava do
+    // toque no app nativo, ver DetalhesUsuarioAdminActivity).
+    function abrirDetalhesUsuario(uid) {
+        const u = usuariosCache[uid];
+        if (!u) return;
+        const ehMotorista = veiculoEstaPreenchido(u.veiculo);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-caixa">
+                <h3>Cadastro completo</h3>
+                <label>Nome completo</label>
+                <input type="text" id="modalNome" value="${escapar(u.nomeCompleto)}" disabled>
+                <label>E-mail</label>
+                <div class="modal-valor-fixo">${escapar(u.email)}</div>
+                <label>Telefone</label>
+                <input type="text" id="modalTelefone" value="${escapar(u.telefone)}" disabled>
+                ${ehMotorista ? `
+                    <label>Marca</label>
+                    <input type="text" id="modalVeiculoMarca" value="${escapar(u.veiculo.marca)}" disabled>
+                    <label>Modelo</label>
+                    <input type="text" id="modalVeiculoModelo" value="${escapar(u.veiculo.modelo)}" disabled>
+                    <label>Cor</label>
+                    <input type="text" id="modalVeiculoCor" value="${escapar(u.veiculo.cor)}" disabled>
+                    <label>Placa</label>
+                    <input type="text" id="modalVeiculoPlaca" value="${escapar(u.veiculo.placa)}" disabled>
+                ` : ''}
+                <div class="modal-botoes">
+                    <button class="btn" id="btnCancelarDetalhesUsuario" style="background:#999;color:#fff;">Fechar</button>
+                    <button class="btn" id="btnEditarSalvarDetalhesUsuario" style="background:#1E90FF;color:#fff;">Editar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const camposEditaveis = overlay.querySelectorAll('input');
+        let emEdicao = false;
+        const btnEditarSalvar = overlay.querySelector('#btnEditarSalvarDetalhesUsuario');
+
+        overlay.querySelector('#btnCancelarDetalhesUsuario').onclick = () => overlay.remove();
+        btnEditarSalvar.onclick = () => {
+            if (!emEdicao) {
+                emEdicao = true;
+                camposEditaveis.forEach((el) => { el.disabled = false; });
+                btnEditarSalvar.textContent = 'Salvar';
+                return;
+            }
+
+            const nomeCompleto = overlay.querySelector('#modalNome').value.trim();
+            const telefone = overlay.querySelector('#modalTelefone').value.trim();
+            if (!nomeCompleto || !telefone) {
+                alert('Preencha nome completo e telefone.');
+                return;
+            }
+            const senha = prompt('Senha do administrador master:');
+            if (!senha) return;
+
+            const dados = { uid, nomeCompleto, telefone, senhaAutorizacao: senha };
+            if (ehMotorista) {
+                dados.veiculo = {
+                    marca: overlay.querySelector('#modalVeiculoMarca').value.trim(),
+                    modelo: overlay.querySelector('#modalVeiculoModelo').value.trim(),
+                    cor: overlay.querySelector('#modalVeiculoCor').value.trim(),
+                    placa: overlay.querySelector('#modalVeiculoPlaca').value.trim(),
+                };
+            }
+
+            btnEditarSalvar.disabled = true;
+            const atualizar = funcoes.httpsCallable('admAtualizarUsuario');
+            atualizar(dados)
+                .then(() => {
+                    alert('Cadastro atualizado.');
+                    overlay.remove();
+                    carregarDados();
+                })
+                .catch((e) => {
+                    btnEditarSalvar.disabled = false;
+                    alert('Erro ao salvar: ' + e.message);
+                });
+        };
     }
 
     // Remove um motorista ou passageiro POR COMPLETO (cadastro, conta de
@@ -553,6 +769,189 @@
         excluir({ manifestacaoId: id, senhaAutorizacao: senha })
             .then(() => { alert('Excluído.'); carregarManifestacoes(); })
             .catch((e) => alert('Erro ao excluir: ' + e.message));
+    }
+
+    // ===== FINANCEIRO — histórico de cobranças dos R$15,99/30 dias do
+    // motorista (ver PagamentoMotorista.kt/FinanceiroCaronasActivity no app
+    // nativo, concederAcessoMotorista em functions/index.js). Adaptado do
+    // painel do Match (aba "Financeiro"): mesmo filtro de período + PDF
+    // mensal, sem os cards por "plano" (aqui só existe um valor fixo) e sem
+    // CPF (Caronas não coleta CPF de motorista/passageiro comum). =====
+    let pagamentosMotoristaCache = [];
+
+    function onMudarPeriodoFinanceiro() {
+        const personalizado = document.getElementById('selectPeriodoFinanceiro').value === 'personalizado';
+        document.getElementById('datasPersonalizadasFinanceiro').style.display = personalizado ? 'inline-flex' : 'none';
+    }
+
+    async function carregarFinanceiro() {
+        const snap = await db.collection('pagamentosMotorista').get();
+        pagamentosMotoristaCache = [];
+        snap.forEach((doc) => { const p = doc.data(); p.id = doc.id; pagamentosMotoristaCache.push(p); });
+        aplicarFiltroFinanceiro();
+    }
+
+    function aplicarFiltroFinanceiro() {
+        const periodo = document.getElementById('selectPeriodoFinanceiro').value;
+        const agora = Date.now();
+        let dataLimite = 0;
+        let dataInicialMs = 0;
+        let dataFinalMs = Infinity;
+
+        if (periodo === 'personalizado') {
+            const dataInicialStr = document.getElementById('dataInicialFinanceiro').value;
+            const dataFinalStr = document.getElementById('dataFinalFinanceiro').value;
+            if (!dataInicialStr || !dataFinalStr) {
+                alert('Preencha as duas datas.');
+                return;
+            }
+            dataInicialMs = new Date(dataInicialStr + 'T00:00:00').getTime();
+            dataFinalMs = new Date(dataFinalStr + 'T23:59:59').getTime();
+        } else {
+            const dias = { diario: 1, semanal: 7, mensal: 30, trimestral: 90, semestral: 180, anual: 365 }[periodo];
+            dataLimite = dias ? agora - dias * 24 * 60 * 60 * 1000 : 0;
+        }
+
+        const filtrados = pagamentosMotoristaCache.filter((p) => {
+            if (!p.dataCompra) return false;
+            if (periodo === 'personalizado') return p.dataCompra >= dataInicialMs && p.dataCompra <= dataFinalMs;
+            return dataLimite === 0 || p.dataCompra >= dataLimite;
+        });
+
+        renderizarFinanceiro(filtrados, agora);
+    }
+
+    function renderizarFinanceiro(pagamentos, agora) {
+        let totalArrecadado = 0;
+        const motoristasUnicos = new Set();
+        pagamentos.forEach((p) => {
+            totalArrecadado += p.valor || 0;
+            if (p.usuarioId) motoristasUnicos.add(p.usuarioId);
+        });
+
+        document.getElementById('statTotalPagamentos').textContent = String(pagamentos.length);
+        document.getElementById('statMotoristasUnicos').textContent = String(motoristasUnicos.size);
+        document.getElementById('statTotalArrecadado').textContent = formatarReal(totalArrecadado);
+
+        const ordenados = [...pagamentos].sort((a, b) => (b.dataCompra || 0) - (a.dataCompra || 0));
+        const corpo = document.getElementById('corpoFinanceiro');
+        const vazio = document.getElementById('vazioFinanceiro');
+
+        if (ordenados.length === 0) {
+            corpo.innerHTML = '';
+            vazio.style.display = 'block';
+            return;
+        }
+        vazio.style.display = 'none';
+
+        const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        corpo.innerHTML = ordenados.map((p) => {
+            const ativo = p.expiraEm && p.expiraEm > agora;
+            return `
+                <tr>
+                    <td>${escapar(p.usuarioNome || 'Motorista')}</td>
+                    <td>${escapar(p.usuarioEmail || '-')}</td>
+                    <td>${formatarReal(p.valor || 0)}</td>
+                    <td>${p.dataCompra ? formatoData.format(new Date(p.dataCompra)) : '-'}</td>
+                    <td>${p.expiraEm ? formatoData.format(new Date(p.expiraEm)) : '-'}</td>
+                    <td style="color:${ativo ? '#4CAF50' : '#D32F2F'}; font-weight:600;">${ativo ? '✅ Ativo' : 'Expirado'}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function formatarReal(v) {
+        return 'R$ ' + v.toFixed(2).replace('.', ',');
+    }
+
+    // Relatório mensal em PDF (na prática, HTML imprimível — abre numa aba
+    // nova e chama print(), mesmo truque do painel do Match, sem precisar
+    // de biblioteca de PDF no navegador; "Salvar como PDF" na caixa de
+    // impressão do próprio navegador vira o export de verdade).
+    function mostrarModalGerarRelatorioFinanceiro() {
+        const agora = new Date();
+        const mes = prompt('Mês (1-12):', String(agora.getMonth() + 1));
+        if (!mes) return;
+        const ano = prompt('Ano:', String(agora.getFullYear()));
+        if (!ano) return;
+        gerarRelatorioMensalFinanceiro(parseInt(mes, 10) - 1, parseInt(ano, 10));
+    }
+
+    const MESES_FINANCEIRO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    function gerarRelatorioMensalFinanceiro(mes, ano) {
+        const inicio = new Date(ano, mes, 1).getTime();
+        const fim = new Date(ano, mes + 1, 1).getTime();
+
+        const linhas = pagamentosMotoristaCache
+            .filter((p) => p.dataCompra && p.dataCompra >= inicio && p.dataCompra < fim && (p.valor || 0) > 0)
+            .sort((a, b) => a.dataCompra - b.dataCompra);
+
+        if (linhas.length === 0) {
+            alert('Nenhum pagamento encontrado nesse período.');
+            return;
+        }
+
+        gerarHtmlRelatorioFinanceiro(linhas, mes, ano);
+    }
+
+    function gerarHtmlRelatorioFinanceiro(linhas, mes, ano) {
+        const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const periodoLabel = `${MESES_FINANCEIRO[mes]}/${ano}`;
+
+        const porValor = {};
+        linhas.forEach((l) => { porValor[l.valor] = (porValor[l.valor] || 0) + 1; });
+        const totalGeral = linhas.reduce((soma, l) => soma + l.valor, 0);
+
+        const linhasHtml = linhas.map((l) => `
+            <tr>
+                <td>${escapar(l.usuarioNome || 'Motorista')}</td>
+                <td>${escapar(l.usuarioEmail || '-')}</td>
+                <td>${formatarReal(l.valor)}</td>
+                <td>${formatoData.format(new Date(l.dataCompra))}</td>
+                <td>${l.expiraEm ? formatoData.format(new Date(l.expiraEm)) : '-'}</td>
+            </tr>
+        `).join('');
+
+        const resumoHtml = Object.entries(porValor).map(([valor, qtd]) => `
+            <tr>
+                <td>${formatarReal(parseFloat(valor))}</td>
+                <td>${qtd}</td>
+                <td>${formatarReal(parseFloat(valor) * qtd)}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+            <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+            <title>Relatório Financeiro — ${periodoLabel}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 30px; color: #222; }
+                h1 { color: #0D47A1; font-size: 20px; }
+                h2 { color: #0D47A1; font-size: 14px; margin-top: 24px; border-bottom: 2px solid #0D47A1; padding-bottom: 4px; }
+                p.sub { color: #666; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+                th { color: #666; font-size: 10px; text-transform: uppercase; }
+                .total { text-align: right; font-weight: 700; color: #0D47A1; font-size: 14px; margin-top: 10px; }
+            </style></head>
+            <body>
+                <h1>Relatório Financeiro — Acesso Motorista</h1>
+                <p class="sub">Período: ${periodoLabel}</p>
+                <h2>Pagamentos do período</h2>
+                <table><thead><tr><th>Nome</th><th>E-mail</th><th>Valor</th><th>Data</th><th>Expira em</th></tr></thead>
+                    <tbody>${linhasHtml}</tbody></table>
+                <h2>Resumo</h2>
+                <table><thead><tr><th>Valor</th><th>Qtd</th><th>Total</th></tr></thead>
+                    <tbody>${resumoHtml}</tbody></table>
+                <p class="total">Total geral: ${formatarReal(totalGeral)}</p>
+                <p class="sub" style="margin-top:30px;">Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}</p>
+            </body></html>
+        `;
+
+        const aba = window.open('', '_blank');
+        aba.document.write(html);
+        aba.document.close();
+        setTimeout(() => aba.print(), 300);
     }
 
     // Sessão já ativa (recarregou a página, etc.) — repete a mesma checagem

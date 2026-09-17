@@ -20,6 +20,11 @@ object ConfirmarSenhaMasterDialogUtil {
         context: Context,
         titulo: String,
         mensagem: String,
+        // Texto do botão positivo — "Excluir" por padrão (a maioria dos usos
+        // até aqui era ação destrutiva), mas outras ações também exigem
+        // senha master (ver DetalhesUsuarioAdminActivity.confirmarSalvar,
+        // que passa R.string.salvar).
+        textoBotaoConfirmar: Int = R.string.excluir,
         onConfirmar: (senhaMaster: String) -> Unit
     ) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_confirmar_senha_master, null)
@@ -30,7 +35,7 @@ object ConfirmarSenhaMasterDialogUtil {
         MaterialAlertDialogBuilder(context)
             .setTitle(titulo)
             .setView(view)
-            .setPositiveButton(R.string.excluir) { _, _ ->
+            .setPositiveButton(textoBotaoConfirmar) { _, _ ->
                 val senha = etSenha.text.toString()
                 if (senha.isEmpty()) {
                     Toast.makeText(context, R.string.admin_cadastro_erro_senha_autorizacao, Toast.LENGTH_SHORT).show()

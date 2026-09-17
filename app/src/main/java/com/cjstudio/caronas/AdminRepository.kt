@@ -6,6 +6,9 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import javax.inject.Inject
@@ -239,6 +242,31 @@ class AdminRepository @Inject constructor(
         }
     }
 
+    override suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, senhaAutorizacao: String): Result<Unit> {
+        return try {
+            val dados = mutableMapOf<String, Any?>(
+                "uid" to uid,
+                "nomeCompleto" to nomeCompleto,
+                "telefone" to telefone,
+                "senhaAutorizacao" to senhaAutorizacao
+            )
+            if (veiculo != null) {
+                dados["veiculo"] = mapOf(
+                    "marca" to (veiculo.marca ?: ""),
+                    "modelo" to (veiculo.modelo ?: ""),
+                    "cor" to (veiculo.cor ?: ""),
+                    "placa" to (veiculo.placa ?: "")
+                )
+            }
+            functions.getHttpsCallable("admAtualizarUsuario").call(dados).await()
+            Result.success(Unit)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(Exception(e.message ?: "Erro ao salvar."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun colecaoManifestacoes() = db.collection("manifestacoes")
 
     override suspend fun listarManifestacoes(): Result<List<Manifestacao>> {
@@ -311,6 +339,32 @@ class AdminRepository @Inject constructor(
             Result.success(Unit)
         } catch (e: FirebaseFunctionsException) {
             Result.failure(Exception(e.message ?: "Erro ao excluir."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun escutarContagemManifestacoesPendentes(): Flow<Int> = callbackFlow {
+        val registro = colecaoManifestacoes()
+            .whereEqualTo("arquivado", false)
+            .whereEqualTo("status", Manifestacao.STATUS_PENDENTE)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.size() ?: 0)
+            }
+        awaitClose { registro.remove() }
+    }
+
+    override suspend fun listarPagamentosMotorista(): Result<List<PagamentoMotorista>> {
+        return try {
+            val snapshot = db.collection("pagamentosMotorista").get().await()
+            val pagamentos = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(PagamentoMotorista::class.java)?.also { it.id = doc.id }
+            }
+            Result.success(pagamentos)
         } catch (e: Exception) {
             Result.failure(e)
         }

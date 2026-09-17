@@ -93,6 +93,20 @@
 
         </LinearLayout>
 
+        <!-- Soma de tudo que os passageiros CONFIRMADOS dessa oferta
+             pagaram (ver TelaCaronasActivity.carregarOfertas) — só aparece
+             quando há pelo menos 1 confirmado. -->
+        <TextView
+            android:id="@+id/tvTotalRecebidoOferta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#2E7D32"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            android:text="Total recebido: R$ 0,00" />
+
         <!-- Detalhes completos da rota (origem/paradas/destino, com
              endereço quando houver) — só aparece ao tocar no cabeçalho
              (ver MinhaOfertaAdapter, mesmo espírito de expandir/recolher

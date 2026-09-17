@@ -1,6 +1,7 @@
 package com.cjstudio.caronas
 
 import android.net.Uri
+import kotlinx.coroutines.flow.Flow
 
 interface IAdminRepository {
     // Checa se o uid tem entrada na coleção "admins" (ver firestore.rules,
@@ -123,4 +124,24 @@ interface IAdminRepository {
     // mesma trava de senha do administrador master das outras ações
     // destrutivas do painel (excluirAdmin/excluirUsuario).
     suspend fun excluirManifestacao(manifestacaoId: String, senhaAutorizacao: String): Result<Unit>
+
+    // Edita nome completo/telefone/veículo de um motorista ou passageiro —
+    // via Cloud Function "admAtualizarUsuario" (Admin SDK, o cliente não
+    // tem permissão de escrever no cadastro de outra pessoa — ver
+    // firestore.rules), mesma trava de senha do administrador master das
+    // outras ações do painel. "veiculo" nulo quando é edição de um
+    // passageiro (sem veículo pra editar).
+    suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, senhaAutorizacao: String): Result<Unit>
+
+    // Badge do botão "Sugestões" no dashboard (ver
+    // AdministracaoCaronasActivity) — total de manifestações ainda não
+    // respondidas e não arquivadas, em tempo real (mesmo padrão de
+    // ISolicitacaoRepository.escutarContagemPendentes).
+    fun escutarContagemManifestacoesPendentes(): Flow<Int>
+
+    // Histórico completo de cobranças dos R$15,99/30 dias do motorista
+    // (ver FinanceiroCaronasActivity), sem paginação — mesmo espírito "sem
+    // paginação" do resto do painel. Leitura direta, liberada pra qualquer
+    // admin (firestore.rules: pagamentosMotorista allow read: if ehAdmin()).
+    suspend fun listarPagamentosMotorista(): Result<List<PagamentoMotorista>>
 }

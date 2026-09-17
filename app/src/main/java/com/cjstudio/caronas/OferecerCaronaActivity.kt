@@ -2,6 +2,7 @@ package com.cjstudio.caronas
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,6 +33,9 @@ class OferecerCaronaActivity : AppCompatActivity() {
 
     @Inject
     lateinit var autocompleteRepository: IAutocompleteRepository
+
+    @Inject
+    lateinit var usuarioRepository: IUsuarioRepository
 
     private lateinit var etCidadeOrigem: EditText
     private lateinit var etEnderecoOrigem: EditText
@@ -331,6 +336,18 @@ class OferecerCaronaActivity : AppCompatActivity() {
         btnPublicar.isEnabled = false
 
         lifecycleScope.launch {
+            // Checagem amigável ANTES de tentar publicar — quem garante de
+            // verdade é firestore.rules:permiteOferecerCarona (ver
+            // AcessoMotoristaUtil), isso aqui só evita um erro genérico de
+            // permissão negada quando dá pra avisar com clareza antes.
+            val usuario = usuarioRepository.buscarUsuarioLogado().getOrNull()
+            if (usuario != null && !AcessoMotoristaUtil.permiteOferecerCarona(usuario)) {
+                progressBar.visibility = View.GONE
+                btnPublicar.isEnabled = true
+                mostrarBloqueioAcessoMotorista()
+                return@launch
+            }
+
             caronaRepository.publicarCarona(carona)
                 .onSuccess {
                     Toast.makeText(this@OferecerCaronaActivity, R.string.oferecer_sucesso, Toast.LENGTH_LONG).show()
@@ -350,4 +367,15 @@ class OferecerCaronaActivity : AppCompatActivity() {
 
     private fun formatarReais(valor: Double) = "R$ " + formatarValorEditavel(valor)
     private fun formatarValorEditavel(valor: Double) = String.format(Locale("pt", "BR"), "%.2f", valor)
+
+    private fun mostrarBloqueioAcessoMotorista() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.oferecer_bloqueado_titulo)
+            .setMessage(R.string.oferecer_bloqueado_mensagem)
+            .setPositiveButton(R.string.oferecer_bloqueado_botao_assinar) { _, _ ->
+                startActivity(Intent(this, AssinaturaMotoristaActivity::class.java))
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
 }

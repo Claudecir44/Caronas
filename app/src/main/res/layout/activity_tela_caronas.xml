@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -37,18 +38,50 @@
             android:focusable="true"
             android:contentDescription="@string/config_titulo" />
 
-        <Button
-            android:id="@+id/btnSair"
-            android:layout_width="76dp"
-            android:layout_height="40dp"
+        <LinearLayout
+            android:id="@+id/containerSairComContadores"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignTop="@id/tvTituloCaronas"
             android:layout_alignParentEnd="true"
-            android:text="@string/sair"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:background="@drawable/botao_azul_neon"
-            android:padding="4dp" />
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <!-- Só aparecem pra quem está logado como motorista (ver
+                 TelaCaronasActivity.carregarPerfil) — minúsculos de
+                 propósito, é só um lembrete, não compete visualmente com o
+                 resto do cabeçalho. -->
+            <TextView
+                android:id="@+id/tvContadorViagensGratis"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:textColor="#8899AA"
+                android:visibility="gone"
+                tools:text="Grátis: 7/10" />
+
+            <TextView
+                android:id="@+id/tvContadorViagensRealizadas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:textColor="#8899AA"
+                android:layout_marginBottom="2dp"
+                android:visibility="gone"
+                tools:text="Realizadas: 3" />
+
+            <Button
+                android:id="@+id/btnSair"
+                android:layout_width="76dp"
+                android:layout_height="40dp"
+                android:text="@string/sair"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/botao_azul_neon"
+                android:padding="4dp" />
+
+        </LinearLayout>
 
         <!-- Logo centralizada; Meu Perfil/Editar Perfil empilhados à
              esquerda, na mesma faixa (largura de um item por vez, não
@@ -176,6 +209,15 @@
                 android:id="@+id/btnOferecer"
                 style="@style/BotaoAcaoCaronasVertical"
                 android:text="@string/tela_botao_oferecer" />
+
+            <!-- Só pro motorista (mesmo toggle de btnOferecer/btnProcurar em
+                 TelaCaronasActivity.carregarPerfil) — configuração/conteúdo
+                 real ainda por vir, por enquanto abre a mesma tela de
+                 assinatura do acesso pago (ver AssinaturaMotoristaActivity). -->
+            <TextView
+                android:id="@+id/btnPagamentos"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:text="@string/tela_botao_pagamentos" />
 
             <FrameLayout
                 android:layout_width="wrap_content"

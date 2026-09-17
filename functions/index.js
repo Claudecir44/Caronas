@@ -5,6 +5,7 @@ const functions = require('firebase-functions');
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
+const mercadopago = require('mercadopago');
 
 admin.initializeApp();
 
@@ -48,6 +49,192 @@ if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
     console.error('   SUPPORT_EMAIL_PASSWORD=SENHA_DE_APP_DE_16_CARACTERES');
     console.error('   (crie uma conta Gmail dedicada + uma "senha de app" em myaccount.google.com/apppasswords)');
 }
+
+// ============================================================
+// Mercado Pago — acesso pago do motorista. Modelo: as 10 primeiras
+// caronas oferecidas são grátis (ver Usuario.caronasOferecidas,
+// firestore.rules:permiteOferecerCarona); da 11ª em diante, precisa pagar
+// R$15,99 pra liberar 30 dias de acesso — pagamento AVULSO, sem
+// renovação automática (mesmo modelo "pagamento único" já usado no
+// Premium do Match, só que aqui com um preço/prazo só, sem planos).
+// ============================================================
+const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+const ACESSO_MOTORISTA_VALOR = 15.99;
+const ACESSO_MOTORISTA_DIAS = 30;
+
+if (MERCADOPAGO_ACCESS_TOKEN) {
+    mercadopago.configure({ access_token: MERCADOPAGO_ACCESS_TOKEN });
+    console.log('✅ Mercado Pago configurado com sucesso!');
+} else {
+    console.error('❌ Token do Mercado Pago NÃO CONFIGURADO!');
+    console.error('👉 Crie/edite o arquivo .env na pasta functions com:');
+    console.error('   MERCADOPAGO_ACCESS_TOKEN=SEU_TOKEN');
+    console.error('   (Mercado Pago → Suas integrações → credenciais de produção)');
+    console.error('   Enquanto isso não estiver configurado, o motorista não consegue pagar pra continuar oferecendo caronas depois das 10 gratuitas.');
+}
+
+exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request) => {
+    if (!MERCADOPAGO_ACCESS_TOKEN) {
+        throw new functions.https.HttpsError('failed-precondition', 'Mercado Pago não configurado no servidor.');
+    }
+    if (!request.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    const uid = request.auth.uid;
+
+    const userDoc = await admin.firestore().collection('usuarios').doc(uid).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    const email = userData.email || `${uid}@caronasapp.com`;
+    const nome = userData.nomeCompleto || 'Motorista';
+
+    try {
+        const preference = {
+            items: [{
+                id: 'acesso_motorista_30_dias',
+                title: 'Acesso motorista Caronas — 30 dias',
+                description: 'Libera oferecer caronas por mais 30 dias',
+                quantity: 1,
+                currency_id: 'BRL',
+                unit_price: ACESSO_MOTORISTA_VALOR,
+            }],
+            payer: { email, name: nome },
+            // Mesmo formato do Match (usuarioId_timestamp) — só um
+            // fallback pra identificar o pagador (ver paymentWebhookMotorista,
+            // que prefere metadata.usuarioId, mais confiável quando o
+            // próprio uid contém "_").
+            external_reference: `${uid}_${Date.now()}`,
+            back_urls: {
+                success: 'caronasapp://payment_success',
+                failure: 'caronasapp://payment_failure',
+                pending: 'caronasapp://payment_pending',
+            },
+            auto_return: 'approved',
+            notification_url: `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/paymentWebhookMotorista`,
+            metadata: { usuarioId: uid },
+            statement_descriptor: 'CARONAS APP',
+        };
+
+        console.log('📦 Criando preferência de acesso motorista para:', uid);
+        const response = await mercadopago.preferences.create(preference);
+        console.log('✅ Preferência criada:', response.body.id);
+
+        return { preferenceId: response.body.id, initPoint: response.body.init_point };
+    } catch (error) {
+        console.error('❌ Erro ao criar preferência (motorista):', error);
+        throw new functions.https.HttpsError('internal', 'Erro ao criar pagamento: ' + error.message);
+    }
+});
+
+// Soma 30 dias à data de expiração atual (se ainda válida) ou a partir de
+// agora (se vencida/nunca pagou) — evita que pagar de novo ANTES de
+// vencer "perca" os dias que ainda restavam (mesmo raciocínio de
+// concederPremium no Match, extends em vez de sobrescrever).
+async function concederAcessoMotorista(usuarioId, paymentId) {
+    const usuarioRef = admin.firestore().collection('usuarios').doc(usuarioId);
+    const usuarioDoc = await usuarioRef.get();
+    const usuarioData = usuarioDoc.exists ? usuarioDoc.data() : {};
+    const atual = usuarioData.acessoMotoristaExpiraEm;
+    const agora = Date.now();
+    const baseMs = (atual && typeof atual.toMillis === 'function' && atual.toMillis() > agora) ? atual.toMillis() : agora;
+    const novaExpiracao = new Date(baseMs + ACESSO_MOTORISTA_DIAS * 24 * 60 * 60 * 1000);
+
+    await usuarioRef.update({
+        acessoMotoristaExpiraEm: admin.firestore.Timestamp.fromDate(novaExpiracao),
+    });
+
+    // Histórico de cobranças pra tela "Financeiro" do painel admin (ver
+    // FinanceiroCaronasActivity/public/index.html) — usuarios.
+    // acessoMotoristaExpiraEm só guarda a validade da ÚLTIMA compra, não dá
+    // pra montar um relatório de receita em cima dele sozinho. Mesmo padrão
+    // da coleção "pagamentos" do Match (concederPremium).
+    await admin.firestore().collection('pagamentosMotorista').add({
+        usuarioId,
+        usuarioNome: usuarioData.nomeCompleto || '',
+        usuarioEmail: usuarioData.email || '',
+        valor: ACESSO_MOTORISTA_VALOR,
+        dataCompra: agora,
+        expiraEm: novaExpiracao.getTime(),
+        mercadoPagoPaymentId: String(paymentId),
+    });
+
+    console.log(`✅ Acesso motorista concedido a ${usuarioId} até ${novaExpiracao.toISOString()} (pagamento ${paymentId})`);
+}
+
+exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => {
+    if (!MERCADOPAGO_ACCESS_TOKEN) {
+        console.error('❌ Token não configurado.');
+        res.status(500).send('Mercado Pago não configurado.');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.sendStatus(405);
+        return;
+    }
+
+    try {
+        const { id, topic } = req.query;
+        if (topic !== 'payment' || !id) {
+            res.sendStatus(200);
+            return;
+        }
+
+        const paymentResponse = await mercadopago.payment.findById(id);
+        const payment = paymentResponse.body;
+
+        let usuarioId = null;
+        if (payment.metadata && payment.metadata.usuarioId) {
+            usuarioId = payment.metadata.usuarioId;
+        } else if (payment.external_reference) {
+            usuarioId = payment.external_reference.split('_')[0];
+        }
+        if (!usuarioId) {
+            console.warn('⚠️ Não foi possível identificar o motorista no pagamento', id);
+            res.sendStatus(200);
+            return;
+        }
+
+        if (payment.status === 'approved') {
+            // Idempotência: cada payment.id do Mercado Pago só pode
+            // conceder acesso UMA vez — o MP reenvia a mesma notificação
+            // por retry, e esse endpoint é público. create() falha
+            // atomicamente se o documento já existir (mesmo padrão do
+            // paymentWebhook do Match).
+            const idempotenciaRef = admin.firestore().collection('pagamentosMotoristaProcessados').doc(String(payment.id));
+            try {
+                await idempotenciaRef.create({ usuarioId, processadoEm: Date.now() });
+            } catch (idempotenciaError) {
+                if (idempotenciaError.code === 6) { // ALREADY_EXISTS
+                    console.log('⚠️ Pagamento', payment.id, 'já processado — notificação repetida ignorada.');
+                    res.sendStatus(200);
+                    return;
+                }
+                throw idempotenciaError;
+            }
+
+            await concederAcessoMotorista(usuarioId, payment.id);
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('❌ Erro no webhook de pagamento (motorista):', error);
+        res.sendStatus(500);
+    }
+});
+
+// Chamado pela tela de checkout no app (ver AssinaturaMotoristaActivity)
+// enquanto espera a confirmação assíncrona do webhook — mesmo padrão de
+// checkPaymentStatus no Match (polling curto depois de voltar do
+// navegador de pagamento).
+exports.checkPaymentStatusMotorista = functions.https.onCall(async (request) => {
+    if (!request.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    const usuarioDoc = await admin.firestore().collection('usuarios').doc(request.auth.uid).get();
+    const dados = usuarioDoc.exists ? usuarioDoc.data() : {};
+    const expiraEm = dados.acessoMotoristaExpiraEm;
+    const valido = !!(expiraEm && typeof expiraEm.toMillis === 'function' && expiraEm.toMillis() > Date.now());
+    return { acessoValido: valido, expiraEm: expiraEm ? expiraEm.toMillis() : null };
+});
 
 // ============================================================
 // Proxy autenticado para o Autocomplete da LocationIQ
@@ -388,6 +575,58 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
 });
 
 // ============================================================
+// Edita nome completo/telefone/veículo de um motorista ou passageiro —
+// chamada por "ver cadastro completo" no painel admin (nativo e web).
+// Precisa ser Cloud Function (Admin SDK), não um update direto do
+// cliente: firestore.rules só deixa o PRÓPRIO dono escrever em
+// usuarios/{uid} (ver match /usuarios/{usuarioId}), um admin não é o
+// dono. Mesma trava de senha do administrador master das outras ações
+// administrativas sensíveis (excluirAdmin/excluirUsuario/atualizarAdmin).
+// Não mexe em email (login) nem fotoUrl (upload é fluxo separado) —
+// só os campos que fazem sentido editar por aqui. "veiculo" é opcional:
+// omitido/nulo pra passageiro, objeto completo (marca/modelo/cor/placa)
+// pra motorista.
+// ============================================================
+exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
+    if (!ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('failed-precondition', 'Edição de usuário não configurada no servidor.');
+    }
+
+    const dados = request.data || {};
+    const uid = (dados.uid || '').trim();
+    const nomeCompleto = (dados.nomeCompleto || '').trim();
+    const telefone = (dados.telefone || '').trim();
+    const veiculo = dados.veiculo;
+    const senhaAutorizacao = dados.senhaAutorizacao || '';
+
+    if (!uid || !nomeCompleto || !telefone) {
+        throw new functions.https.HttpsError('invalid-argument', 'Preencha nome completo e telefone.');
+    }
+    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    const ref = admin.firestore().collection('usuarios').doc(uid);
+    const doc = await ref.get();
+    if (!doc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Usuário não encontrado.');
+    }
+
+    const atualizacao = { nomeCompleto, telefone };
+    if (veiculo && typeof veiculo === 'object') {
+        atualizacao.veiculo = {
+            marca: (veiculo.marca || '').trim(),
+            modelo: (veiculo.modelo || '').trim(),
+            cor: (veiculo.cor || '').trim(),
+            placa: (veiculo.placa || '').trim(),
+        };
+    }
+
+    await ref.update(atualizacao);
+    return { ok: true };
+});
+
+// ============================================================
 // Responde uma reclamação/sugestão/denúncia (ver Manifestacao.kt,
 // "Ver Sugestões e Reclamações" no painel admin nativo/web) — manda a
 // resposta por e-mail pro autor e marca status="respondido" com
@@ -705,3 +944,50 @@ exports.notificarMensagemCaronas = onDocumentCreated(
         });
     }
 );
+
+// ============================================================
+// Nova reclamação/sugestão/denúncia -> avisa TODOS os admins (não um uid
+// específico como os gatilhos acima, já que qualquer admin pode
+// responder) — dispara ao criar o documento em manifestacoes/{id} (ver
+// Manifestacao.kt/EnviarManifestacaoActivity). Título fixo "Mensagem de
+// usuário" no app (ver CaronasFirebaseMessagingService, campo "tipo" =
+// "novaManifestacao"); o corpo aqui já vem pronto porque data-only não
+// tem "notification block" pro servidor escolher o título sozinho.
+// ============================================================
+exports.notificarNovaManifestacao = onDocumentCreated('manifestacoes/{manifestacaoId}', async (event) => {
+    const dados = event.data?.data();
+    if (!dados) return;
+
+    const db = admin.firestore();
+    const adminsSnap = await db.collection('admins').get();
+    const tokens = adminsSnap.docs
+        .map((doc) => doc.get('fcmToken'))
+        .filter((token) => typeof token === 'string' && token.length > 0);
+    if (tokens.length === 0) return;
+
+    const rotulos = { reclamacao: 'reclamação', sugestao: 'sugestão', denuncia: 'denúncia' };
+    const rotulo = rotulos[dados.tipo] || 'mensagem';
+    const nome = (dados.nomeCompleto || 'Um usuário').trim() || 'Um usuário';
+    const corpo = `Nova ${rotulo} de ${nome}`;
+
+    try {
+        const resposta = await admin.messaging().sendEachForMulticast({
+            tokens,
+            data: { tipo: 'novaManifestacao', corpo, id: event.params.manifestacaoId },
+            android: { priority: 'high' },
+        });
+
+        // Limpa tokens inválidos (conta removida, app desinstalado, etc.) —
+        // mesmo motivo de enviarNotificacaoCarona acima, só que aqui precisa
+        // mapear de volta qual admin tinha qual token, já que é um envio
+        // multicast pra vários destinatários de uma vez.
+        resposta.responses.forEach((r, i) => {
+            if (r.success) return;
+            if (r.error?.code !== 'messaging/registration-token-not-registered') return;
+            const adminDoc = adminsSnap.docs.find((doc) => doc.get('fcmToken') === tokens[i]);
+            if (adminDoc) adminDoc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() }).catch(() => {});
+        });
+    } catch (error) {
+        console.warn('⚠️ Erro ao enviar push de nova manifestação:', error.message);
+    }
+});

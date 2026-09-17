@@ -91,13 +91,16 @@ class SolicitacaoRecebidaAdapter(
         }
 
         // "Avaliar"/"Cancelar" dependem de já ter ocorrido ou não (mesmo
-        // critério de MinhaViagemAdapter, do lado do motorista) — calculado
-        // antes do "when" abaixo porque os dois dependem disso.
-        val jaOcorreu = (solicitacao.dataHoraPartida ?: 0L) < System.currentTimeMillis()
+        // critério de MinhaViagemAdapter, do lado do motorista, com a mesma
+        // tolerância de 10min — ver StatusViagemUtil) — calculado antes do
+        // "when" abaixo porque os dois dependem disso.
+        val jaOcorreu = StatusViagemUtil.jaConcluida(solicitacao.dataHoraPartida)
 
         when (solicitacao.status) {
             "confirmada" -> {
-                holder.tvStatus.text = context.getString(R.string.solicitacoes_status_confirmada)
+                holder.tvStatus.text = context.getString(
+                    if (jaOcorreu) R.string.minhas_viagens_status_concluida else R.string.solicitacoes_status_confirmada
+                )
                 holder.tvStatus.setBackgroundColor(0xFF2E7D32.toInt())
                 holder.btnConfirmar.visibility = View.GONE
                 // Só dá pra desistir de uma viagem confirmada ANTES dela

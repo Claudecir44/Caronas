@@ -8,12 +8,40 @@
     <string name="salvar">Salvar</string>
     <string name="cancelar">Cancelar</string>
     <string name="excluir">Excluir</string>
+    <string name="voltar">‹ Voltar</string>
 
     <!-- Configurações -->
     <string name="config_titulo">Configurações</string>
     <string name="config_botao_termos">Termos de Uso e Privacidade</string>
     <string name="config_botao_editar_perfil">Editar Perfil</string>
     <string name="config_botao_manifestacoes">Reclamações, Sugestões e Denúncias</string>
+
+    <!-- Acesso pago do motorista (10 caronas grátis, depois R$15,99/30 dias) -->
+    <string name="assinatura_motorista_titulo">Acesso de motorista</string>
+    <string name="assinatura_motorista_explicacao">Você já usou suas 10 caronas gratuitas como motorista. Para continuar oferecendo caronas, libere mais 30 dias de acesso.</string>
+    <string name="assinatura_motorista_preco">R$ 15,99</string>
+    <string name="assinatura_motorista_prazo">válido por 30 dias, pagamento único</string>
+    <string name="assinatura_motorista_botao_pagar">Pagar com Mercado Pago</string>
+    <string name="assinatura_motorista_aguardando">Aguardando confirmação do pagamento…</string>
+    <string name="assinatura_motorista_sucesso">Acesso liberado por 30 dias! Já pode continuar oferecendo caronas.</string>
+    <string name="assinatura_motorista_erro_checkout">Erro ao iniciar pagamento: %1$s</string>
+    <string name="assinatura_motorista_erro_abrir_checkout">Não foi possível abrir a página de pagamento.</string>
+    <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
+    <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, libere mais 30 dias de acesso por R$ 15,99.</string>
+    <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
+    <string name="tela_contador_viagens_gratis_formato">Grátis: %1$d/%2$d</string>
+    <string name="tela_contador_viagens_gratis_pago_formato">Acesso pago até %1$s</string>
+    <string name="tela_contador_viagens_realizadas_formato">Realizadas: %1$d</string>
+
+    <!-- Detalhes/edição de cadastro pelo admin -->
+    <string name="admin_detalhes_usuario_titulo">Cadastro completo</string>
+    <string name="admin_detalhes_cadastrado_em">Cadastrado em</string>
+    <string name="admin_detalhes_veiculo_titulo">Veículo</string>
+    <string name="admin_detalhes_salvar_titulo">Salvar alterações</string>
+    <string name="admin_detalhes_salvar_mensagem">Confirme a senha do administrador master para salvar as alterações no cadastro de %1$s.</string>
+    <string name="admin_detalhes_salvar_sucesso">Cadastro atualizado.</string>
+    <string name="admin_detalhes_salvar_erro">Erro ao salvar: %1$s</string>
+    <string name="admin_detalhes_erro_campos">Preencha nome completo e telefone.</string>
 
     <!-- Reclamações, Sugestões e Denúncias (envio pelo usuário) -->
     <string name="manifestacao_titulo">Reclamações, Sugestões e Denúncias</string>
@@ -53,10 +81,12 @@
     <string name="notificacao_titulo_aceita">Viagem Aceita</string>
     <string name="notificacao_titulo_cancelada">Viagem Cancelada</string>
     <string name="notificacao_titulo_mensagem">Mensagem Caronas</string>
+    <string name="notificacao_titulo_nova_manifestacao">Mensagem de usuário</string>
     <string name="notificacao_canal_solicitacao">Solicitações de viagem</string>
     <string name="notificacao_canal_aceita">Viagens aceitas</string>
     <string name="notificacao_canal_cancelada">Viagens canceladas</string>
     <string name="notificacao_canal_mensagem">Mensagens do chat</string>
+    <string name="notificacao_canal_manifestacao">Reclamações, sugestões e denúncias</string>
     <string name="login_entrar_como">Entrar como:</string>
     <string name="login_erro_selecionar_papel">Selecione se você vai entrar como motorista ou passageiro.</string>
     <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter um veículo cadastrado. Complete seu cadastro.</string>
@@ -91,6 +121,7 @@
     <string name="tela_papel_passageiro">Passageiro</string>
     <string name="tela_botao_procurar">Procurar</string>
     <string name="tela_botao_oferecer">Oferecer</string>
+    <string name="tela_botao_pagamentos">Pagamentos</string>
     <string name="tela_botao_chat">Chat</string>
     <string name="tela_botao_avaliacoes">Avaliações</string>
     <string name="tela_botao_minhas_ofertas">Minhas Ofertas</string>
@@ -163,6 +194,8 @@
     <string name="minhas_ofertas_erro_carregar">Erro ao carregar suas ofertas: %1$s</string>
     <string name="minhas_ofertas_status_ativa">ATIVA</string>
     <string name="minhas_ofertas_status_cancelada">EXCLUÍDA</string>
+    <string name="minhas_ofertas_status_concluida">CONCLUÍDA</string>
+    <string name="minhas_ofertas_total_recebido_formato">Total recebido: R$ %1$s</string>
     <string name="minhas_ofertas_botao_editar">Editar</string>
     <string name="minhas_ofertas_botao_excluir">Excluir</string>
     <string name="minhas_ofertas_botao_salvar">Salvar Alterações</string>
@@ -345,8 +378,8 @@
     <string name="admin_manifestacoes_arquivadas_vazio">Nenhuma mensagem arquivada.</string>
     <string name="admin_manifestacoes_botao_arquivados">🗄️ Arquivados</string>
     <string name="admin_manifestacoes_botao_voltar">← Voltar</string>
-    <string name="admin_manifestacoes_botao_responder">✉️ Responder</string>
-    <string name="admin_manifestacoes_botao_arquivar">🗄️ Arquivar</string>
+    <string name="admin_manifestacoes_botao_responder">Responder</string>
+    <string name="admin_manifestacoes_botao_arquivar">Arquivar</string>
     <string name="admin_manifestacoes_status_pendente">— Sem resposta</string>
     <string name="admin_manifestacoes_status_respondido_formato">✅ Respondido em %1$s</string>
     <string name="admin_manifestacoes_respondido_por_formato">Respondido por CPF: %1$s</string>
@@ -383,4 +416,51 @@
     <string name="admin_status_confirmada">CONFIRMADA</string>
     <string name="admin_status_solicitada">SOLICITADA</string>
     <string name="erro_generico">Ocorreu um erro: %1$s</string>
+
+    <!-- Financeiro (painel admin) — histórico de cobranças dos R$15,99/30
+         dias do motorista (ver FinanceiroCaronasActivity, adaptado do
+         RelatoriosFinanceirosActivity do Match). -->
+    <string name="admin_botao_financeiro">💰 Financeiro</string>
+    <string name="financeiro_titulo">Financeiro</string>
+    <string name="financeiro_periodo_label">Período:</string>
+    <string name="financeiro_botao_filtrar">Filtrar</string>
+    <string name="financeiro_data_inicial">De:</string>
+    <string name="financeiro_data_final">Até:</string>
+    <string name="financeiro_preencha_datas">Preencha as duas datas.</string>
+    <string name="financeiro_erro_data_invalida">Data inválida. Use o formato dd/MM/aaaa.</string>
+    <string name="financeiro_erro_data_maior">A data inicial não pode ser depois da data final.</string>
+    <string name="financeiro_total_pagamentos">Total de Pagamentos</string>
+    <string name="financeiro_motoristas_unicos">Motoristas Únicos</string>
+    <string name="financeiro_total_arrecadado">Total Arrecadado</string>
+    <string name="financeiro_detalhes_titulo">📋 Detalhes dos Pagamentos</string>
+    <string name="financeiro_sem_dados">Nenhum pagamento encontrado nesse período.</string>
+    <string name="financeiro_carregando_dados">Carregando dados…</string>
+    <string name="financeiro_erro_carregar">Erro ao carregar: %1$s</string>
+    <string name="financeiro_status_ativo">✅ Ativo</string>
+    <string name="financeiro_status_expirado">Expirado</string>
+    <string name="financeiro_valor_format">R$ %.2f</string>
+    <string name="financeiro_motorista_padrao">Motorista</string>
+
+    <!-- Relatório mensal em PDF (ver PdfUtil.kt) -->
+    <string name="financeiro_gerar_relatorio_btn">📄 Gerar Relatório</string>
+    <string name="financeiro_gerar_relatorio_opcao_mensal">Mensal</string>
+    <string name="financeiro_gerar_relatorio_gerar">Gerar</string>
+    <string name="financeiro_mes_label">Mês</string>
+    <string name="financeiro_ano_label">Ano</string>
+    <string name="financeiro_pdf_titulo">Relatório Financeiro — Acesso Motorista</string>
+    <string name="financeiro_periodo_prefixo">Período</string>
+    <string name="financeiro_pdf_secao_detalhes">Pagamentos do período</string>
+    <string name="financeiro_pdf_secao_resumo">Resumo</string>
+    <string name="financeiro_pdf_coluna_nome">Nome</string>
+    <string name="financeiro_pdf_coluna_email">E-mail</string>
+    <string name="financeiro_pdf_coluna_valor">Valor</string>
+    <string name="financeiro_pdf_coluna_data_compra">Data</string>
+    <string name="financeiro_pdf_coluna_data_expiracao">Expira em</string>
+    <string name="financeiro_pdf_coluna_qtd">Qtd</string>
+    <string name="financeiro_pdf_coluna_total">Total</string>
+    <string name="financeiro_pdf_total_geral">Total geral: %1$s</string>
+    <string name="financeiro_gerado_em">Gerado em %1$s</string>
+    <string name="financeiro_pdf_nome_arquivo">relatorio_financeiro</string>
+    <string name="pdf_abrir_com">Abrir PDF com</string>
+    <string name="pdf_erro_gerar">Erro ao gerar o PDF.</string>
 </resources>

@@ -26,7 +26,15 @@ class CaronasFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         val uid = FirebaseAuth.getInstance().currentUser?.uid
-        FcmTokenUtil.atualizarToken(uid)
+        // BuildConfig.TIPO distingue as duas flavors desse mesmo serviço
+        // compartilhado (ver SplashActivity) — o token do admin precisa ir
+        // pra admins/{uid}, não usuarios/{uid} (senão o push de
+        // notificarNovaManifestacao nunca acha destinatário).
+        if (BuildConfig.TIPO == "admin") {
+            FcmTokenUtil.atualizarTokenAdmin(uid)
+        } else {
+            FcmTokenUtil.atualizarToken(uid)
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -47,15 +55,23 @@ class CaronasFirebaseMessagingService : FirebaseMessagingService() {
             "mensagemCaronas" -> Triple(
                 getString(R.string.notificacao_titulo_mensagem), "mensagens_caronas", getString(R.string.notificacao_canal_mensagem)
             )
+            // Reclamação/sugestão/denúncia nova (ver
+            // functions/index.js:notificarNovaManifestacao) — só chega no
+            // aparelho de um admin (token salvo em admins/{uid}), por isso
+            // abre AdministracaoCaronasActivity, não a tela do usuário comum.
+            "novaManifestacao" -> Triple(
+                getString(R.string.notificacao_titulo_nova_manifestacao), "manifestacoes_caronas", getString(R.string.notificacao_canal_manifestacao)
+            )
             else -> return
         }
 
         val idNotificacao = dados["id"]?.hashCode() ?: System.currentTimeMillis().toInt()
-        mostrarNotificacao(canalId, canalNome, titulo, corpo, idNotificacao)
+        val destino = if (dados["tipo"] == "novaManifestacao") AdministracaoCaronasActivity::class.java else TelaCaronasActivity::class.java
+        mostrarNotificacao(canalId, canalNome, titulo, corpo, idNotificacao, destino)
     }
 
-    private fun mostrarNotificacao(canalId: String, canalNome: String, titulo: String, corpo: String, idNotificacao: Int) {
-        val intent = Intent(this, TelaCaronasActivity::class.java).apply {
+    private fun mostrarNotificacao(canalId: String, canalNome: String, titulo: String, corpo: String, idNotificacao: Int, destino: Class<*>) {
+        val intent = Intent(this, destino).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
