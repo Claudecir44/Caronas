@@ -238,13 +238,13 @@
     </div>
 
     <div class="aba-conteudo ativa" id="abaMotoristas">
-        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Veículo</th></tr></thead>
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Veículo</th><th>Viagens</th><th>Recebido</th></tr></thead>
             <tbody id="corpoMotoristas"></tbody></table>
         <div class="vazio" id="vazioMotoristas" style="display:none;">Nenhum motorista cadastrado.</div>
     </div>
 
     <div class="aba-conteudo" id="abaPassageiros">
-        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th></tr></thead>
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Viagens</th><th>Pago</th></tr></thead>
             <tbody id="corpoPassageiros"></tbody></table>
         <div class="vazio" id="vazioPassageiros" style="display:none;">Nenhum passageiro cadastrado.</div>
     </div>
@@ -456,6 +456,33 @@
         document.getElementById('contadorMotoristasTab').textContent = String(motoristas.length);
         document.getElementById('contadorPassageirosTab').textContent = String(passageiros.length);
 
+        // Viagens realizadas + total recebido/pago por usuário — mesma regra
+        // do app nativo (ver AdministracaoCaronasActivity.
+        // calcularEstatisticasMotorista/calcularEstatisticasPassageiro):
+        // "recebido" do motorista só conta solicitação CONFIRMADA; "pago" do
+        // passageiro conta tudo que não foi cancelado; "viagens" sempre
+        // exige confirmada E já concluída (jaConcluida, 10min de tolerância).
+        const viagensPorMotorista = {}, recebidoPorMotorista = {};
+        const viagensPorPassageiro = {}, pagoPorPassageiro = {};
+        solicitacoesSnap.forEach((doc) => {
+            const s = doc.data();
+            const valor = s.valorPago || 0;
+            if (s.motoristaId && s.status === 'confirmada') {
+                recebidoPorMotorista[s.motoristaId] = (recebidoPorMotorista[s.motoristaId] || 0) + valor;
+                if (jaConcluida(s.dataHoraPartida)) {
+                    viagensPorMotorista[s.motoristaId] = (viagensPorMotorista[s.motoristaId] || 0) + 1;
+                }
+            }
+            if (s.passageiroId) {
+                if (s.status !== 'cancelada') {
+                    pagoPorPassageiro[s.passageiroId] = (pagoPorPassageiro[s.passageiroId] || 0) + valor;
+                }
+                if (s.status === 'confirmada' && jaConcluida(s.dataHoraPartida)) {
+                    viagensPorPassageiro[s.passageiroId] = (viagensPorPassageiro[s.passageiroId] || 0) + 1;
+                }
+            }
+        });
+
         const corpoMotoristas = document.getElementById('corpoMotoristas');
         corpoMotoristas.innerHTML = motoristas.map((u) => `
             <tr class="linha-clicavel" onclick="abrirDetalhesUsuario('${escapar(u.id)}')">
@@ -467,6 +494,8 @@
                     <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="event.stopPropagation(); removerUsuario(this)">🗑️</button>
                 </td>
                 <td>${escapar(u.veiculo.marca)} ${escapar(u.veiculo.modelo)} — ${escapar(u.veiculo.cor)} — ${escapar(u.veiculo.placa)}</td>
+                <td>${viagensPorMotorista[u.id] || 0}</td>
+                <td>${formatarReal(recebidoPorMotorista[u.id] || 0)}</td>
             </tr>
         `).join('');
         document.getElementById('vazioMotoristas').style.display = motoristas.length ? 'none' : 'block';
@@ -481,6 +510,8 @@
                     ${escapar(u.telefone)}
                     <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="event.stopPropagation(); removerUsuario(this)">🗑️</button>
                 </td>
+                <td>${viagensPorPassageiro[u.id] || 0}</td>
+                <td>${formatarReal(pagoPorPassageiro[u.id] || 0)}</td>
             </tr>
         `).join('');
         document.getElementById('vazioPassageiros').style.display = passageiros.length ? 'none' : 'block';

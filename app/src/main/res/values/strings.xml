@@ -463,4 +463,9 @@
     <string name="financeiro_pdf_nome_arquivo">relatorio_financeiro</string>
     <string name="pdf_abrir_com">Abrir PDF com</string>
     <string name="pdf_erro_gerar">Erro ao gerar o PDF.</string>
+
+    <!-- Contador de viagens + valor no card de Motoristas/Passageiros do
+         painel admin (ver UsuarioAdminAdapter, item_usuario_admin.xml). -->
+    <string name="admin_usuario_viagens_formato">Viagens: %1$d</string>
+    <string name="admin_usuario_valor_formato">💰 R$ %.2f</string>
 </resources>

@@ -22,7 +22,15 @@ class UsuarioAdminAdapter(
     // Toque e segure — remove o cadastro por completo, com confirmação de
     // senha (ver AdministracaoCaronasActivity.confirmarRemoverUsuario). Só
     // preenchido na lista de Passageiros.
-    private val onLongClick: ((Usuario) -> Unit)? = null
+    private val onLongClick: ((Usuario) -> Unit)? = null,
+    // Viagens realizadas + total recebido/pago (ver
+    // AdministracaoCaronasActivity.mostrarMotoristas/mostrarPassageiros),
+    // por uid — só preenchidos/exibidos nas listas de Motoristas/
+    // Passageiros, escondidos na seleção de usuário da busca de Mensagens
+    // (mostrarEstatisticas = false lá, sem relação com viagens/dinheiro).
+    private val mostrarEstatisticas: Boolean = false,
+    private val viagensPorUsuario: Map<String, Int> = emptyMap(),
+    private val valorPorUsuario: Map<String, Double> = emptyMap()
 ) : RecyclerView.Adapter<UsuarioAdminAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -31,6 +39,8 @@ class UsuarioAdminAdapter(
         val tvEmail: TextView = view.findViewById(R.id.tvEmailUsuarioAdmin)
         val tvTelefone: TextView = view.findViewById(R.id.tvTelefoneUsuarioAdmin)
         val tvVeiculo: TextView = view.findViewById(R.id.tvVeiculoUsuarioAdmin)
+        val tvViagens: TextView = view.findViewById(R.id.tvViagensUsuarioAdmin)
+        val tvValor: TextView = view.findViewById(R.id.tvValorUsuarioAdmin)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -54,6 +64,17 @@ class UsuarioAdminAdapter(
             )
         } else {
             holder.tvVeiculo.visibility = View.GONE
+        }
+
+        if (mostrarEstatisticas) {
+            holder.tvViagens.visibility = View.VISIBLE
+            holder.tvValor.visibility = View.VISIBLE
+            val uid = usuario.id
+            holder.tvViagens.text = context.getString(R.string.admin_usuario_viagens_formato, uid?.let { viagensPorUsuario[it] } ?: 0)
+            holder.tvValor.text = context.getString(R.string.admin_usuario_valor_formato, uid?.let { valorPorUsuario[it] } ?: 0.0)
+        } else {
+            holder.tvViagens.visibility = View.GONE
+            holder.tvValor.visibility = View.GONE
         }
 
         if (!usuario.fotoUrl.isNullOrEmpty()) {

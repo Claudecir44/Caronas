@@ -227,11 +227,20 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                 .onSuccess { usuarios ->
                     val motoristas = usuarios.filter { it.veiculo?.estaPreenchido() == true }
                     exibirContadorSecao(motoristas.size)
+                    // Viagens realizadas + total recebido de cada motorista —
+                    // sempre recalculado nesta busca (não em tempo real), então
+                    // atualiza a cada corrida nova toda vez que o admin abre
+                    // essa lista (ver UsuarioAdminAdapter).
+                    val solicitacoes = adminRepository.listarTodasSolicitacoes().getOrDefault(emptyList())
+                    val (viagensPorMotorista, recebidoPorMotorista) = calcularEstatisticasMotorista(solicitacoes)
                     exibirResultadoSecao(motoristas) { lista ->
                         UsuarioAdminAdapter(
                             lista,
                             onClick = { usuario -> abrirDetalhesUsuario(usuario) },
-                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarMotoristas() } }
+                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarMotoristas() } },
+                            mostrarEstatisticas = true,
+                            viagensPorUsuario = viagensPorMotorista,
+                            valorPorUsuario = recebidoPorMotorista
                         )
                     }
                 }
@@ -244,17 +253,62 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.listarTodosUsuarios()
                 .onSuccess { usuarios ->
-                    exibirContadorSecao(usuarios.count { it.veiculo?.estaPreenchido() != true })
-                    exibirResultadoSecao(usuarios.filter { it.veiculo?.estaPreenchido() != true }) { lista ->
+                    val passageiros = usuarios.filter { it.veiculo?.estaPreenchido() != true }
+                    exibirContadorSecao(passageiros.size)
+                    // Viagens realizadas + total pago de cada passageiro (ver
+                    // comentário equivalente em mostrarMotoristas acima).
+                    val solicitacoes = adminRepository.listarTodasSolicitacoes().getOrDefault(emptyList())
+                    val (viagensPorPassageiro, pagoPorPassageiro) = calcularEstatisticasPassageiro(solicitacoes)
+                    exibirResultadoSecao(passageiros) { lista ->
                         UsuarioAdminAdapter(
                             lista,
                             onClick = { usuario -> abrirDetalhesUsuario(usuario) },
-                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarPassageiros() } }
+                            onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarPassageiros() } },
+                            mostrarEstatisticas = true,
+                            viagensPorUsuario = viagensPorPassageiro,
+                            valorPorUsuario = pagoPorPassageiro
                         )
                     }
                 }
                 .onFailure { mostrarErroSecao(it) }
         }
+    }
+
+    // "Recebido" só conta solicitações CONFIRMADAS (mesma regra do "total
+    // recebido por oferta" em TelaCaronasActivity/MinhaOfertaAdapter — uma
+    // solicitação ainda "solicitada" não é dinheiro que o motorista já tem
+    // garantido). "Viagens" exige confirmada E já concluída (StatusViagemUtil,
+    // mesma tolerância de 10min usada em todo o resto do app).
+    private fun calcularEstatisticasMotorista(solicitacoes: List<Solicitacao>): Pair<Map<String, Int>, Map<String, Double>> {
+        val viagens = HashMap<String, Int>()
+        val recebido = HashMap<String, Double>()
+        for (s in solicitacoes) {
+            val motoristaId = s.motoristaId ?: continue
+            if (s.status != "confirmada") continue
+            recebido[motoristaId] = (recebido[motoristaId] ?: 0.0) + (s.valorPago ?: 0.0)
+            if (StatusViagemUtil.jaConcluida(s.dataHoraPartida)) {
+                viagens[motoristaId] = (viagens[motoristaId] ?: 0) + 1
+            }
+        }
+        return viagens to recebido
+    }
+
+    // "Pago" conta tudo que não foi cancelado (mesma regra do resumo
+    // "Minhas Viagens" em TelaCaronasActivity — inclui pedidos ainda
+    // "solicitada", aguardando o motorista confirmar).
+    private fun calcularEstatisticasPassageiro(solicitacoes: List<Solicitacao>): Pair<Map<String, Int>, Map<String, Double>> {
+        val viagens = HashMap<String, Int>()
+        val pago = HashMap<String, Double>()
+        for (s in solicitacoes) {
+            val passageiroId = s.passageiroId ?: continue
+            if (s.status != "cancelada") {
+                pago[passageiroId] = (pago[passageiroId] ?: 0.0) + (s.valorPago ?: 0.0)
+            }
+            if (s.status == "confirmada" && StatusViagemUtil.jaConcluida(s.dataHoraPartida)) {
+                viagens[passageiroId] = (viagens[passageiroId] ?: 0) + 1
+            }
+        }
+        return viagens to pago
     }
 
     // Toque e segure num motorista ou passageiro — remove o cadastro dele
@@ -812,7 +866,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                             tvTituloSecao.text = getString(R.string.admin_mensagens_selecionar_titulo)
                             tvTituloSecao.visibility = View.VISIBLE
                             rvSecao.visibility = View.VISIBLE
-                            rvSecao.adapter = UsuarioAdminAdapter(usuarios) { usuario -> carregarMensagensDoUsuario(usuario) }
+                            rvSecao.adapter = UsuarioAdminAdapter(usuarios, onClick = { usuario -> carregarMensagensDoUsuario(usuario) })
                         }
                     }
                 }

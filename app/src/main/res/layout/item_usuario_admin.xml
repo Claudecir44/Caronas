@@ -11,62 +11,107 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:orientation="vertical"
         android:padding="14dp">
 
-        <ImageView
-            android:id="@+id/ivFotoUsuarioAdmin"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_person_default"
-            android:contentDescription="@null" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/tvNomeUsuarioAdmin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/grafite"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:text="Nome completo" />
+            <ImageView
+                android:id="@+id/ivFotoUsuarioAdmin"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_person_default"
+                android:contentDescription="@null" />
 
-            <TextView
-                android:id="@+id/tvEmailUsuarioAdmin"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="#555555"
-                android:textSize="12sp"
-                android:layout_marginTop="2dp"
-                android:text="email@exemplo.com" />
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvTelefoneUsuarioAdmin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#555555"
-                android:textSize="12sp"
-                android:text="(00) 00000-0000" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/tvVeiculoUsuarioAdmin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/grafite"
-                android:textSize="12sp"
-                android:layout_marginTop="4dp"
-                android:visibility="gone"
-                android:text="Marca Modelo — Cor — Placa AAA0A00" />
+                    <TextView
+                        android:id="@+id/tvNomeUsuarioAdmin"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/grafite"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:text="Nome completo" />
+
+                    <!-- Viagens já realizadas por esse motorista/passageiro
+                         (ver AdministracaoCaronasActivity.mostrarMotoristas/
+                         mostrarPassageiros) — solicitações confirmadas cuja
+                         data já passou. -->
+                    <TextView
+                        android:id="@+id/tvViagensUsuarioAdmin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/azul_neon_escuro"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:text="Viagens: 0" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvEmailUsuarioAdmin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#555555"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"
+                    android:text="email@exemplo.com" />
+
+                <TextView
+                    android:id="@+id/tvTelefoneUsuarioAdmin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#555555"
+                    android:textSize="12sp"
+                    android:text="(00) 00000-0000" />
+
+                <TextView
+                    android:id="@+id/tvVeiculoUsuarioAdmin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/grafite"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone"
+                    android:text="Marca Modelo — Cor — Placa AAA0A00" />
+
+            </LinearLayout>
 
         </LinearLayout>
+
+        <!-- Total recebido (motorista) ou pago (passageiro) — soma de
+             Solicitacao.valorPago, sempre recalculado ao abrir a lista (ver
+             AdministracaoCaronasActivity.mostrarMotoristas/
+             mostrarPassageiros), então atualiza a cada corrida nova. -->
+        <TextView
+            android:id="@+id/tvValorUsuarioAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="end"
+            android:textColor="#2E7D32"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="💰 R$ 0,00" />
 
     </LinearLayout>
 
