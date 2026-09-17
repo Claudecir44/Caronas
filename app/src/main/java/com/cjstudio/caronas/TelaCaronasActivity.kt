@@ -1128,9 +1128,13 @@ class TelaCaronasActivity : AppCompatActivity() {
             tvContadorViagensGratis.text = if (acessoPagoValido) {
                 getString(R.string.tela_contador_viagens_gratis_pago_formato, formatoDataOferta.format(usuario.acessoMotoristaExpiraEm!!))
             } else {
+                // Mostra quantas AINDA RESTAM (não quantas já usou) — pedido
+                // explícito do usuário: "1/10" (já usou 1) confundia, "09/10"
+                // (restam 9) deixa claro quanto ainda dá pra oferecer grátis.
+                val usadas = minOf(usuario.caronasOferecidas, AcessoMotoristaUtil.CARONAS_GRATUITAS)
                 getString(
                     R.string.tela_contador_viagens_gratis_formato,
-                    minOf(usuario.caronasOferecidas, AcessoMotoristaUtil.CARONAS_GRATUITAS),
+                    AcessoMotoristaUtil.CARONAS_GRATUITAS - usadas,
                     AcessoMotoristaUtil.CARONAS_GRATUITAS
                 )
             }

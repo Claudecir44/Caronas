@@ -29,7 +29,7 @@
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
     <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, libere mais 30 dias de acesso por R$ 15,99.</string>
     <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
-    <string name="tela_contador_viagens_gratis_formato">Grátis: %1$d/%2$d</string>
+    <string name="tela_contador_viagens_gratis_formato">Grátis: %1$02d/%2$02d</string>
     <string name="tela_contador_viagens_gratis_pago_formato">Acesso pago até %1$s</string>
     <string name="tela_contador_viagens_realizadas_formato">Realizadas: %1$d</string>
 
