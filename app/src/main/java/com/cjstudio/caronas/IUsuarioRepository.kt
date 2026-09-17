@@ -49,4 +49,11 @@ interface IUsuarioRepository {
     // "reenviarVerificacaoEmail" (ver functions/index.js) — usado pela
     // caixa "Suporte" da tela de login (opção "Reenviar e-mail de validação").
     suspend fun reenviarEmailVerificacao(email: String): Result<Unit>
+
+    // Envia uma reclamação, sugestão ou denúncia (ver Manifestacao.kt,
+    // EnviarManifestacaoActivity) — grava direto no Firestore (sem Cloud
+    // Function, mesmo espírito de "criar é livre, só responder/excluir é
+    // sensível"), gated por firestore.rules pra exigir usuarioId == uid de
+    // quem está enviando.
+    suspend fun enviarManifestacao(tipo: String, nomeCompleto: String, email: String, telefone: String, mensagem: String): Result<Unit>
 }

@@ -22,5 +22,8 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnConfigEditarPerfil).setOnClickListener {
             startActivity(Intent(this, EditarCadastroCaronasActivity::class.java))
         }
+        findViewById<Button>(R.id.btnConfigManifestacoes).setOnClickListener {
+            startActivity(Intent(this, EnviarManifestacaoActivity::class.java))
+        }
     }
 }

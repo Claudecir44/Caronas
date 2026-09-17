@@ -15,7 +15,8 @@
   "dependencies": {
     "dotenv": "17.3.1",
     "firebase-admin": "^11.11.1",
-    "firebase-functions": "^6.3.1"
+    "firebase-functions": "^6.3.1",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0"

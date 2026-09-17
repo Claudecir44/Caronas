@@ -55,6 +55,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private lateinit var rvSecao: RecyclerView
     private lateinit var containerBuscaMensagens: LinearLayout
     private lateinit var etBuscaMensagens: EditText
+    private lateinit var btnArquivadosManifestacoes: Button
+    private var mostrandoArquivadas = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +71,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         rvSecao.layoutManager = LinearLayoutManager(this)
         containerBuscaMensagens = findViewById(R.id.containerBuscaMensagens)
         etBuscaMensagens = findViewById(R.id.etBuscaMensagens)
+        btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
 
         findViewById<TextView>(R.id.tvEditarPerfilAdmin).setOnClickListener {
             startActivity(Intent(this, BuscarAdminActivity::class.java))
@@ -77,6 +80,14 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnPassageiros).setOnClickListener { mostrarPassageiros() }
         findViewById<TextView>(R.id.btnViagens).setOnClickListener { abrirDialogEscolherViagens() }
         findViewById<TextView>(R.id.btnMensagens).setOnClickListener { abrirBuscaMensagens() }
+        findViewById<TextView>(R.id.btnManifestacoes).setOnClickListener {
+            mostrandoArquivadas = false
+            mostrarManifestacoes()
+        }
+        btnArquivadosManifestacoes.setOnClickListener {
+            mostrandoArquivadas = !mostrandoArquivadas
+            if (mostrandoArquivadas) mostrarManifestacoesArquivadas() else mostrarManifestacoes()
+        }
         findViewById<Button>(R.id.btnBuscarMensagens).setOnClickListener { buscarMensagens() }
         etBuscaMensagens.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
@@ -227,9 +238,12 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     }
 
     // Só a seção "Mensagens" usa a caixa de busca — as outras (Motoristas/
-    // Passageiros/Viagens) escondem ela de novo ao trocar de seção.
-    private fun prepararSecao(titulo: String, textoVazio: String, mostrarBusca: Boolean = false) {
+    // Passageiros/Viagens/Sugestões) escondem ela de novo ao trocar de
+    // seção. "mostrarArquivados" só liga pra seção "Sugestões" (ver
+    // mostrarManifestacoes/mostrarManifestacoesArquivadas).
+    private fun prepararSecao(titulo: String, textoVazio: String, mostrarBusca: Boolean = false, mostrarArquivados: Boolean = false) {
         containerBuscaMensagens.visibility = if (mostrarBusca) View.VISIBLE else View.GONE
+        btnArquivadosManifestacoes.visibility = if (mostrarArquivados) View.VISIBLE else View.GONE
         tvTituloSecao.text = titulo
         tvTituloSecao.visibility = if (titulo.isEmpty()) View.GONE else View.VISIBLE
         tvVazioSecao.text = textoVazio
@@ -242,10 +256,127 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     // nada (precisa do admin digitar e tocar em Buscar/Enter primeiro).
     private fun abrirBuscaMensagens() {
         containerBuscaMensagens.visibility = View.VISIBLE
+        btnArquivadosManifestacoes.visibility = View.GONE
         tvTituloSecao.visibility = View.GONE
         tvVazioSecao.visibility = View.GONE
         rvSecao.visibility = View.GONE
         progressBarSecao.visibility = View.GONE
+    }
+
+    private fun mostrarManifestacoes() {
+        btnArquivadosManifestacoes.text = getString(R.string.admin_manifestacoes_botao_arquivados)
+        prepararSecao(
+            getString(R.string.admin_manifestacoes_titulo),
+            getString(R.string.admin_manifestacoes_vazio),
+            mostrarArquivados = true
+        )
+        lifecycleScope.launch {
+            adminRepository.listarManifestacoes()
+                .onSuccess { itens -> exibirResultadoSecao(itens) { lista -> criarAdapterManifestacoes(lista, mostrarBotoes = true) } }
+                .onFailure { mostrarErroSecao(it) }
+        }
+    }
+
+    private fun mostrarManifestacoesArquivadas() {
+        btnArquivadosManifestacoes.text = getString(R.string.admin_manifestacoes_botao_voltar)
+        prepararSecao(
+            getString(R.string.admin_manifestacoes_arquivadas_titulo),
+            getString(R.string.admin_manifestacoes_arquivadas_vazio),
+            mostrarArquivados = true
+        )
+        lifecycleScope.launch {
+            adminRepository.listarManifestacoesArquivadas()
+                .onSuccess { itens -> exibirResultadoSecao(itens) { lista -> criarAdapterManifestacoes(lista, mostrarBotoes = false) } }
+                .onFailure { mostrarErroSecao(it) }
+        }
+    }
+
+    private fun criarAdapterManifestacoes(itens: List<Manifestacao>, mostrarBotoes: Boolean): ManifestacaoAdminAdapter {
+        return ManifestacaoAdminAdapter(
+            itens,
+            mostrarBotoes = mostrarBotoes,
+            onResponderClick = { item -> abrirDialogResponderManifestacao(item) },
+            onArquivarClick = { item -> confirmarArquivarManifestacao(item) },
+            onExcluirClick = { item -> confirmarExcluirManifestacao(item) }
+        )
+    }
+
+    private fun abrirDialogResponderManifestacao(item: Manifestacao) {
+        val id = item.id ?: return
+        val view = layoutInflater.inflate(R.layout.dialog_responder_manifestacao, null)
+        view.findViewById<TextView>(R.id.tvMensagemOriginalResponder).text = item.mensagem
+        val etResposta = view.findViewById<EditText>(R.id.etRespostaManifestacao)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.admin_manifestacoes_responder_titulo)
+            .setView(view)
+            .setPositiveButton(R.string.admin_manifestacoes_botao_responder) { _, _ ->
+                val resposta = etResposta.text.toString().trim()
+                if (resposta.isEmpty()) {
+                    Toast.makeText(this, R.string.admin_manifestacoes_responder_erro_vazio, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    adminRepository.responderManifestacao(id, resposta)
+                        .onSuccess {
+                            Toast.makeText(this@AdministracaoCaronasActivity, R.string.admin_manifestacoes_responder_sucesso, Toast.LENGTH_LONG).show()
+                            mostrarManifestacoes()
+                        }
+                        .onFailure { e ->
+                            Toast.makeText(this@AdministracaoCaronasActivity, getString(R.string.admin_manifestacoes_responder_erro, e.message), Toast.LENGTH_LONG).show()
+                        }
+                }
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
+
+    // Só arquiva depois de respondida — ver Manifestacao.STATUS_RESPONDIDO
+    // (mesma trava reforçada em AdminRepository.arquivarManifestacao e em
+    // firestore.rules).
+    private fun confirmarArquivarManifestacao(item: Manifestacao) {
+        val id = item.id ?: return
+        if (item.status != Manifestacao.STATUS_RESPONDIDO) {
+            Toast.makeText(this, R.string.admin_manifestacoes_arquivar_erro_nao_respondida, Toast.LENGTH_LONG).show()
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.admin_manifestacoes_arquivar_titulo)
+            .setMessage(R.string.admin_manifestacoes_arquivar_mensagem)
+            .setPositiveButton(R.string.admin_manifestacoes_botao_arquivar) { _, _ ->
+                lifecycleScope.launch {
+                    adminRepository.arquivarManifestacao(id)
+                        .onSuccess {
+                            Toast.makeText(this@AdministracaoCaronasActivity, R.string.admin_manifestacoes_arquivar_sucesso, Toast.LENGTH_SHORT).show()
+                            mostrarManifestacoes()
+                        }
+                        .onFailure { e ->
+                            Toast.makeText(this@AdministracaoCaronasActivity, getString(R.string.admin_manifestacoes_arquivar_erro, e.message), Toast.LENGTH_LONG).show()
+                        }
+                }
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
+
+    private fun confirmarExcluirManifestacao(item: Manifestacao) {
+        val id = item.id ?: return
+        ConfirmarSenhaMasterDialogUtil.mostrar(
+            this,
+            getString(R.string.admin_manifestacoes_excluir_titulo),
+            getString(R.string.admin_manifestacoes_excluir_mensagem)
+        ) { senhaMaster ->
+            lifecycleScope.launch {
+                adminRepository.excluirManifestacao(id, senhaMaster)
+                    .onSuccess {
+                        Toast.makeText(this@AdministracaoCaronasActivity, R.string.admin_manifestacoes_excluir_sucesso, Toast.LENGTH_SHORT).show()
+                        if (mostrandoArquivadas) mostrarManifestacoesArquivadas() else mostrarManifestacoes()
+                    }
+                    .onFailure { e ->
+                        Toast.makeText(this@AdministracaoCaronasActivity, getString(R.string.admin_manifestacoes_excluir_erro, e.message), Toast.LENGTH_LONG).show()
+                    }
+            }
+        }
     }
 
     private fun buscarMensagens() {

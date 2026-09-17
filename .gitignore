@@ -16,3 +16,4 @@ local.properties
 /.firebase
 /.claude
 firestore-debug.log
+firebase-debug.log

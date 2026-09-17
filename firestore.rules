@@ -220,5 +220,30 @@ service cloud.firestore {
            get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
       }
     }
+
+    // Reclamações, sugestões e denúncias (ver Manifestacao.kt,
+    // EnviarManifestacaoActivity, "Ver Sugestões e Reclamações" no painel
+    // admin nativo/web). Qualquer usuário logado pode criar a sua; só admin
+    // lê. resposta/status/respondidoEm/respondidoPorCpf só são gravados
+    // pela Cloud Function responderManifestacao (Admin SDK, fora destas
+    // regras) — nunca por um update direto do cliente. O único update
+    // liberado ao cliente é arquivar, e só depois que já foi respondida
+    // (status == 'respondido' já tem que estar valendo ANTES do update,
+    // por isso checa em resource.data, não em request.resource.data) —
+    // reforça em regra a mesma trava que AdminRepository.arquivarManifestacao
+    // já checa no app, defesa em profundidade. Exclusão sempre "false":
+    // só via admExcluirManifestacao (Admin SDK), com a senha do
+    // administrador master, mesmo padrão de excluirAdmin/excluirUsuario.
+    match /manifestacoes/{manifestacaoId} {
+      allow read: if ehAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.tipo in ['reclamacao', 'sugestao', 'denuncia']
+        && request.resource.data.mensagem is string && request.resource.data.mensagem.size() > 0;
+      allow update: if ehAdmin()
+        && resource.data.status == 'respondido'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arquivado', 'arquivadoEm']);
+      allow delete: if false;
+    }
   }
 }

@@ -97,4 +97,30 @@ interface IAdminRepository {
     // firestore.rules: admins/{adminId} allow update só no campo fotoUrl,
     // só pelo dono). Sobe a foto pro Storage e grava a URL.
     suspend fun atualizarFotoAdmin(uid: String, uri: Uri): Result<String>
+
+    // "Ver Sugestões e Reclamações" — reclamações/sugestões/denúncias ainda
+    // NÃO arquivadas, mais recentes primeiro (ver Manifestacao.kt). Leitura
+    // direta, liberada pra qualquer admin (firestore.rules: allow read: if
+    // ehAdmin()), mesmo espírito de listarTodosUsuarios/listarTodasCaronas.
+    suspend fun listarManifestacoes(): Result<List<Manifestacao>>
+
+    // Só as arquivadas (botão "Arquivados" no fim da lista acima).
+    suspend fun listarManifestacoesArquivadas(): Result<List<Manifestacao>>
+
+    // Envia a resposta por e-mail pro autor (Cloud Function
+    // "responderManifestacao" — precisa do servidor pra mandar o e-mail e
+    // pra gravar o CPF de quem respondeu sem confiar no que o cliente
+    // manda) e marca status="respondido" + data/hora + CPF do admin.
+    suspend fun responderManifestacao(manifestacaoId: String, resposta: String): Result<Unit>
+
+    // Só pode arquivar depois de já respondida (checado aqui E de novo em
+    // firestore.rules, defesa em profundidade) — update direto do cliente,
+    // não precisa de Cloud Function (não é uma ação "perigosa" como
+    // excluir, só organiza a lista).
+    suspend fun arquivarManifestacao(manifestacaoId: String): Result<Unit>
+
+    // Exclusão definitiva — via Cloud Function "admExcluirManifestacao",
+    // mesma trava de senha do administrador master das outras ações
+    // destrutivas do painel (excluirAdmin/excluirUsuario).
+    suspend fun excluirManifestacao(manifestacaoId: String, senhaAutorizacao: String): Result<Unit>
 }

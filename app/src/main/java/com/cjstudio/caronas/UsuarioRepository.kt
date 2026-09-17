@@ -213,4 +213,22 @@ class UsuarioRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun enviarManifestacao(tipo: String, nomeCompleto: String, email: String, telefone: String, mensagem: String): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
+            val manifestacao = Manifestacao(
+                tipo = tipo,
+                nomeCompleto = nomeCompleto,
+                email = email,
+                telefone = telefone,
+                mensagem = mensagem,
+                usuarioId = uid
+            )
+            db.collection("manifestacoes").add(manifestacao).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

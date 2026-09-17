@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp">
+
+    <TextView
+        android:id="@+id/tvMensagemOriginalResponder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        android:background="#F2F2F7"
+        android:padding="8dp"
+        android:layout_marginBottom="14dp" />
+
+    <EditText
+        android:id="@+id/etRespostaManifestacao"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:hint="@string/admin_manifestacoes_responder_hint"
+        android:inputType="textMultiLine|textCapSentences"
+        android:gravity="top|start"
+        android:background="@android:drawable/edit_text"
+        android:padding="8dp" />
+
+</LinearLayout>

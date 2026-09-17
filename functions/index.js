@@ -4,8 +4,50 @@ require('dotenv').config();
 const functions = require('firebase-functions');
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
+
+function escapeHtml(valor) {
+    if (valor === null || valor === undefined) return '';
+    return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ============================================================
+// E-mail de suporte (resposta às reclamações/sugestões/denúncias — ver
+// responderManifestacao mais abaixo) — mesmo padrão do Match
+// (SUPPORT_EMAIL_USER/SUPPORT_EMAIL_PASSWORD, senha de app do Gmail, não a
+// senha normal da conta). Sem essas credenciais, o app ainda aceita novas
+// manifestações normalmente (isso é um create direto do cliente, ver
+// firestore.rules) — só a resposta por e-mail fica bloqueada.
+// ============================================================
+const SUPPORT_EMAIL_TO = process.env.SUPPORT_EMAIL_TO || '';
+const SUPPORT_EMAIL_USER = process.env.SUPPORT_EMAIL_USER || '';
+const SUPPORT_EMAIL_PASSWORD = process.env.SUPPORT_EMAIL_PASSWORD || '';
+
+let supportMailTransporter = null;
+if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
+    supportMailTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: SUPPORT_EMAIL_USER,
+            pass: SUPPORT_EMAIL_PASSWORD,
+        },
+    });
+    console.log('✅ Transporte de e-mail de suporte configurado com sucesso!');
+} else {
+    console.error('❌ Credenciais de e-mail de suporte NÃO CONFIGURADAS!');
+    console.error('👉 Crie/edite o arquivo .env na pasta functions com:');
+    console.error('   SUPPORT_EMAIL_TO=caronasappsuporte@gmail.com');
+    console.error('   SUPPORT_EMAIL_USER=caronasappsuporte@gmail.com');
+    console.error('   SUPPORT_EMAIL_PASSWORD=SENHA_DE_APP_DE_16_CARACTERES');
+    console.error('   (crie uma conta Gmail dedicada + uma "senha de app" em myaccount.google.com/apppasswords)');
+}
 
 // ============================================================
 // Proxy autenticado para o Autocomplete da LocationIQ
@@ -340,6 +382,125 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
         await admin.auth().deleteUser(uid);
     } catch (e) {
         if (e.code !== 'auth/user-not-found') throw e;
+    }
+
+    return { ok: true };
+});
+
+// ============================================================
+// Responde uma reclamação/sugestão/denúncia (ver Manifestacao.kt,
+// "Ver Sugestões e Reclamações" no painel admin nativo/web) — manda a
+// resposta por e-mail pro autor e marca status="respondido" com
+// data/hora + CPF de quem respondeu. Precisa ser Cloud Function (não um
+// update direto do cliente) por dois motivos: só o servidor pode mandar
+// e-mail de verdade, e o CPF de quem respondeu é buscado AQUI no
+// documento admins/{uid} do chamador — nunca confiando num campo que o
+// app poderia mandar errado/forjado.
+//
+// Gate mais leve que cadastrarAdmin/excluirAdmin/excluirUsuario: aqui
+// não é preciso a senha do administrador master, só que quem está
+// chamando seja mesmo um admin logado (não é uma ação destrutiva, é só
+// responder) — mesmo espírito do admResponderSugestao do Match.
+// ============================================================
+exports.responderManifestacao = functions.https.onCall(async (request) => {
+    const uid = request.auth && request.auth.uid;
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    if (!supportMailTransporter) {
+        throw new functions.https.HttpsError('failed-precondition', 'E-mail de suporte não configurado no servidor.');
+    }
+
+    const db = admin.firestore();
+    const adminDoc = await db.collection('admins').doc(uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Só administradores podem responder.');
+    }
+    const cpfAdmin = adminDoc.get('cpf') || null;
+
+    const { manifestacaoId, resposta } = request.data || {};
+    if (!manifestacaoId) {
+        throw new functions.https.HttpsError('invalid-argument', 'manifestacaoId é obrigatório.');
+    }
+    if (typeof resposta !== 'string' || !resposta.trim()) {
+        throw new functions.https.HttpsError('invalid-argument', 'resposta é obrigatória.');
+    }
+
+    const manifestacaoRef = db.collection('manifestacoes').doc(manifestacaoId);
+    const manifestacaoDoc = await manifestacaoRef.get();
+    if (!manifestacaoDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Mensagem não encontrada.');
+    }
+    const manifestacao = manifestacaoDoc.data();
+    if (!manifestacao.email) {
+        throw new functions.https.HttpsError('failed-precondition', 'Esta mensagem não tem e-mail associado para resposta.');
+    }
+
+    const rotulos = { reclamacao: 'reclamação', sugestao: 'sugestão', denuncia: 'denúncia' };
+    const rotulo = rotulos[manifestacao.tipo] || 'mensagem';
+    const nomeAutor = manifestacao.nomeCompleto || 'Usuário';
+    const dataFormatada = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+    const corpoEmail = `
+        <h2>Olá, ${escapeHtml(nomeAutor)}!</h2>
+        <p>Sua ${rotulo} enviada pelo app Caronas foi respondida:</p>
+        <blockquote style="border-left:3px solid #ccc;margin:12px 0;padding-left:12px;color:#333;">
+            ${escapeHtml(resposta).replace(/\n/g, '<br>')}
+        </blockquote>
+        <hr>
+        <p style="color:#888;font-size:12px;"><strong>Mensagem original:</strong><br>${escapeHtml(manifestacao.mensagem || '')}</p>
+        <p style="color:#888;font-size:12px;">Enviado em ${dataFormatada}</p>
+    `;
+
+    try {
+        await supportMailTransporter.sendMail({
+            from: `"Caronas - Suporte" <${SUPPORT_EMAIL_USER}>`,
+            to: manifestacao.email,
+            replyTo: SUPPORT_EMAIL_TO || SUPPORT_EMAIL_USER,
+            subject: `Resposta à sua ${rotulo} — Caronas`,
+            html: corpoEmail,
+        });
+
+        await manifestacaoRef.update({
+            resposta,
+            status: 'respondido',
+            respondidoEm: admin.firestore.FieldValue.serverTimestamp(),
+            respondidoPorAdminId: uid,
+            respondidoPorCpf: cpfAdmin,
+        });
+
+        console.log('📨 Resposta de manifestação enviada com sucesso para:', manifestacao.email);
+        return { ok: true };
+    } catch (error) {
+        console.error('❌ Erro ao enviar resposta de manifestação:', error);
+        throw new functions.https.HttpsError('internal', 'Erro ao enviar e-mail: ' + error.message);
+    }
+});
+
+// ============================================================
+// Exclui em definitivo uma reclamação/sugestão/denúncia (arquivada ou
+// não) — só com a senha do administrador master, mesma trava de
+// excluirAdmin/excluirUsuario. firestore.rules bloqueia delete direto do
+// cliente (allow delete: if false), só o Admin SDK aqui consegue.
+// ============================================================
+exports.admExcluirManifestacao = functions.https.onCall(async (request) => {
+    if (!ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('failed-precondition', 'Exclusão não configurada no servidor.');
+    }
+
+    const { manifestacaoId, senhaAutorizacao } = request.data || {};
+    if (!manifestacaoId) {
+        throw new functions.https.HttpsError('invalid-argument', 'manifestacaoId é obrigatório.');
+    }
+    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    try {
+        await admin.firestore().collection('manifestacoes').doc(manifestacaoId).delete();
+    } catch (error) {
+        console.error('❌ Erro ao excluir manifestação:', error);
+        throw new functions.https.HttpsError('internal', 'Erro ao excluir: ' + error.message);
     }
 
     return { ok: true };

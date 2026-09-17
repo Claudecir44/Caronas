@@ -238,4 +238,81 @@ class AdminRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    private fun colecaoManifestacoes() = db.collection("manifestacoes")
+
+    override suspend fun listarManifestacoes(): Result<List<Manifestacao>> {
+        return try {
+            val snapshot = colecaoManifestacoes()
+                .whereEqualTo("arquivado", false)
+                .orderBy("criadoEm", Query.Direction.DESCENDING)
+                .get().await()
+            val itens = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Manifestacao::class.java)?.also { it.id = doc.id }
+            }
+            Result.success(itens)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun listarManifestacoesArquivadas(): Result<List<Manifestacao>> {
+        return try {
+            val snapshot = colecaoManifestacoes()
+                .whereEqualTo("arquivado", true)
+                .orderBy("arquivadoEm", Query.Direction.DESCENDING)
+                .get().await()
+            val itens = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Manifestacao::class.java)?.also { it.id = doc.id }
+            }
+            Result.success(itens)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun responderManifestacao(manifestacaoId: String, resposta: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("responderManifestacao")
+                .call(mapOf("manifestacaoId" to manifestacaoId, "resposta" to resposta))
+                .await()
+            Result.success(Unit)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(Exception(e.message ?: "Erro ao enviar resposta."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun arquivarManifestacao(manifestacaoId: String): Result<Unit> {
+        return try {
+            val ref = colecaoManifestacoes().document(manifestacaoId)
+            val status = ref.get().await().getString("status")
+            if (status != Manifestacao.STATUS_RESPONDIDO) {
+                throw IllegalStateException("Só é possível arquivar depois de responder.")
+            }
+            ref.update(
+                mapOf(
+                    "arquivado" to true,
+                    "arquivadoEm" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun excluirManifestacao(manifestacaoId: String, senhaAutorizacao: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("admExcluirManifestacao")
+                .call(mapOf("manifestacaoId" to manifestacaoId, "senhaAutorizacao" to senhaAutorizacao))
+                .await()
+            Result.success(Unit)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(Exception(e.message ?: "Erro ao excluir."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

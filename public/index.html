@@ -138,6 +138,15 @@
             margin-left: 6px;
         }
         .btn-remover:hover { background: rgba(211,47,47,0.1); }
+        .btn-acao {
+            border: none;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 2px 0;
+        }
     </style>
 </head>
 <body>
@@ -167,6 +176,7 @@
         <button class="aba-botao" data-aba="passageiros" onclick="mostrarAba('passageiros')">Passageiros</button>
         <button class="aba-botao" data-aba="viagensMotorista" onclick="mostrarAba('viagensMotorista')">Viagens (Motoristas)</button>
         <button class="aba-botao" data-aba="viagensPassageiro" onclick="mostrarAba('viagensPassageiro')">Viagens (Passageiros)</button>
+        <button class="aba-botao" data-aba="manifestacoes" onclick="mostrarAba('manifestacoes'); carregarManifestacoes();">📝 Sugestões e Reclamações</button>
     </div>
 
     <div class="aba-conteudo ativa" id="abaMotoristas">
@@ -191,6 +201,14 @@
         <table><thead><tr><th>Rota</th><th>Passageiro</th><th>Motorista</th><th>Data/Hora</th><th>Valor</th><th>Status</th></tr></thead>
             <tbody id="corpoViagensPassageiro"></tbody></table>
         <div class="vazio" id="vazioViagensPassageiro" style="display:none;">Nenhuma solicitação de viagem ainda.</div>
+    </div>
+
+    <div class="aba-conteudo" id="abaManifestacoes">
+        <h3 id="tituloManifestacoes" style="color:#0D47A1; margin-bottom:12px;">📝 Reclamações, Sugestões e Denúncias</h3>
+        <button class="aba-botao" id="btnArquivadosManifestacoes" style="background:#455A64; color:#fff; margin-bottom:14px;" onclick="alternarArquivadosManifestacoes()">🗄️ Arquivados</button>
+        <table><thead><tr><th>Tipo</th><th>Nome / Contato</th><th>Mensagem</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="corpoManifestacoes"></tbody></table>
+        <div class="vazio" id="vazioManifestacoes" style="display:none;">Nada recebido ainda.</div>
     </div>
 </div>
 
@@ -415,6 +433,126 @@
             alert('Erro ao remover: ' + e.message);
             botao.disabled = false;
         }
+    }
+
+    // ===== Reclamações, Sugestões e Denúncias (ver Manifestacao.kt no app,
+    // AdministracaoCaronasActivity "Ver Sugestões e Reclamações") =====
+    let mostrandoArquivadasManifestacoes = false;
+
+    function alternarArquivadosManifestacoes() {
+        mostrandoArquivadasManifestacoes = !mostrandoArquivadasManifestacoes;
+        carregarManifestacoes();
+    }
+
+    const ROTULOS_TIPO_MANIFESTACAO = {
+        reclamacao: '📝 Reclamação',
+        sugestao: '💡 Sugestão',
+        denuncia: '🚩 Denúncia',
+    };
+
+    async function carregarManifestacoes() {
+        const btnArquivados = document.getElementById('btnArquivadosManifestacoes');
+        const titulo = document.getElementById('tituloManifestacoes');
+        btnArquivados.textContent = mostrandoArquivadasManifestacoes ? '← Voltar' : '🗄️ Arquivados';
+        titulo.textContent = mostrandoArquivadasManifestacoes
+            ? '🗄️ Arquivados'
+            : '📝 Reclamações, Sugestões e Denúncias';
+
+        const corpo = document.getElementById('corpoManifestacoes');
+        const vazio = document.getElementById('vazioManifestacoes');
+        corpo.innerHTML = '';
+        vazio.style.display = 'none';
+
+        const snap = await db.collection('manifestacoes')
+            .where('arquivado', '==', mostrandoArquivadasManifestacoes)
+            .get();
+        const itens = [];
+        snap.forEach((doc) => { const m = doc.data(); m.id = doc.id; itens.push(m); });
+        itens.sort((a, b) => {
+            const campo = mostrandoArquivadasManifestacoes ? 'arquivadoEm' : 'criadoEm';
+            const ta = a[campo] ? a[campo].toMillis() : 0;
+            const tb = b[campo] ? b[campo].toMillis() : 0;
+            return tb - ta;
+        });
+
+        if (itens.length === 0) {
+            vazio.textContent = mostrandoArquivadasManifestacoes ? 'Nenhuma mensagem arquivada.' : 'Nada recebido ainda.';
+            vazio.style.display = 'block';
+            return;
+        }
+
+        const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        corpo.innerHTML = itens.map((m) => {
+            const tipoTag = ROTULOS_TIPO_MANIFESTACAO[m.tipo] || m.tipo;
+            const data = m.criadoEm ? formatoData.format(m.criadoEm.toDate()) : '-';
+            const respondida = m.status === 'respondido';
+
+            let status;
+            if (respondida) {
+                const dataResp = m.respondidoEm ? formatoData.format(m.respondidoEm.toDate()) : '-';
+                status = `✅ Respondido em ${dataResp}<br><span style="color:#888;font-size:11px;">CPF: ${escapar(m.respondidoPorCpf || 'não disponível')}</span>`;
+            } else {
+                status = '— Sem resposta';
+            }
+
+            let acoes = '';
+            if (!mostrandoArquivadasManifestacoes) {
+                acoes += `<button class="btn-acao" style="background:#00897B;color:#fff;" onclick="abrirRespostaManifestacao('${m.id}')">✉️ Responder</button> `;
+                acoes += `<button class="btn-acao" style="background:#455A64;color:#fff;" onclick="arquivarManifestacao('${m.id}')">🗄️ Arquivar</button> `;
+            }
+            acoes += `<button class="btn-remover" title="Excluir" onclick="excluirManifestacao('${m.id}')">🗑️</button>`;
+
+            return `
+                <tr>
+                    <td>${tipoTag}</td>
+                    <td><strong>${escapar(m.nomeCompleto || 'Anônimo')}</strong><br><span style="color:#999;font-size:11px;">${escapar(m.email || '-')} — ${escapar(m.telefone || '-')}</span></td>
+                    <td style="max-width:320px; white-space:pre-wrap;">${escapar(m.mensagem)}${m.resposta ? `<hr style="margin:6px 0;border-color:#eee;"><span style="color:#00897B;font-size:11px;"><strong>Resposta:</strong> ${escapar(m.resposta)}</span>` : ''}</td>
+                    <td>${data}</td>
+                    <td>${status}</td>
+                    <td style="white-space:nowrap;">${acoes}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function abrirRespostaManifestacao(id) {
+        const resposta = prompt('Digite sua resposta (será enviada por e-mail):');
+        if (!resposta || !resposta.trim()) return;
+
+        const responder = funcoes.httpsCallable('responderManifestacao');
+        responder({ manifestacaoId: id, resposta: resposta.trim() })
+            .then(() => { alert('Resposta enviada por e-mail!'); carregarManifestacoes(); })
+            .catch((e) => alert('Erro ao responder: ' + e.message));
+    }
+
+    // Só arquiva depois de respondida — mesma trava do app nativo, reforçada
+    // em firestore.rules (allow update exige status == 'respondido').
+    async function arquivarManifestacao(id) {
+        const doc = await db.collection('manifestacoes').doc(id).get();
+        if (doc.data()?.status !== 'respondido') {
+            alert('Só é possível arquivar depois de responder.');
+            return;
+        }
+        if (!confirm('Arquivar esta mensagem? Ela sai da lista principal e fica guardada em Arquivados.')) return;
+
+        db.collection('manifestacoes').doc(id).update({
+            arquivado: true,
+            arquivadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        })
+            .then(() => carregarManifestacoes())
+            .catch((e) => alert('Erro ao arquivar: ' + e.message));
+    }
+
+    function excluirManifestacao(id) {
+        if (!confirm('Excluir esta mensagem permanentemente? Essa ação não pode ser desfeita.')) return;
+        const senha = prompt('Senha do administrador master:');
+        if (!senha) return;
+
+        const excluir = funcoes.httpsCallable('admExcluirManifestacao');
+        excluir({ manifestacaoId: id, senhaAutorizacao: senha })
+            .then(() => { alert('Excluído.'); carregarManifestacoes(); })
+            .catch((e) => alert('Erro ao excluir: ' + e.message));
     }
 
     // Sessão já ativa (recarregou a página, etc.) — repete a mesma checagem

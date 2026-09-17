@@ -13,6 +13,21 @@
     <string name="config_titulo">Configurações</string>
     <string name="config_botao_termos">Termos de Uso e Privacidade</string>
     <string name="config_botao_editar_perfil">Editar Perfil</string>
+    <string name="config_botao_manifestacoes">Reclamações, Sugestões e Denúncias</string>
+
+    <!-- Reclamações, Sugestões e Denúncias (envio pelo usuário) -->
+    <string name="manifestacao_titulo">Reclamações, Sugestões e Denúncias</string>
+    <string name="manifestacao_explicacao">Conte pra gente o que aconteceu. Sua mensagem vai direto pra nossa equipe, e a resposta chega no seu e-mail.</string>
+    <string name="manifestacao_tipo_titulo">Tipo</string>
+    <string name="manifestacao_tipo_reclamacao">Reclamação</string>
+    <string name="manifestacao_tipo_sugestao">Sugestão</string>
+    <string name="manifestacao_tipo_denuncia">Denúncia</string>
+    <string name="manifestacao_mensagem_hint">Descreva aqui o que você quer nos contar…</string>
+    <string name="manifestacao_botao_enviar">Enviar</string>
+    <string name="manifestacao_erro_campos">Preencha nome, e-mail, telefone e a mensagem.</string>
+    <string name="manifestacao_erro_tipo">Selecione o tipo (reclamação, sugestão ou denúncia).</string>
+    <string name="manifestacao_sucesso">Enviado! Nossa equipe vai analisar e responder no seu e-mail.</string>
+    <string name="manifestacao_erro_generico">Erro ao enviar: %1$s</string>
 
     <!-- Login -->
     <string name="login_titulo">Caronas</string>
@@ -317,6 +332,41 @@
     <string name="admin_remover_usuario_mensagem">Tem certeza que deseja remover %1$s? Isso apaga TODOS os dados dele do Firebase (cadastro, viagens, conversas, avaliações e a conta de login) e não pode ser desfeito. O e-mail fica livre para um novo cadastro.</string>
     <string name="admin_remover_usuario_sucesso">Cadastro removido.</string>
     <string name="admin_remover_usuario_erro">Erro ao remover: %1$s</string>
+
+    <!-- Reclamações, Sugestões e Denúncias (painel admin) -->
+    <!-- Rótulo curto pro botão do dashboard (mesmo tamanho fixo 108dp dos
+         outros botões — "Motoristas"/"Passageiros"/etc.); o texto completo
+         "Ver Sugestões e Reclamações" pedido vira o título da seção
+         (admin_manifestacoes_titulo) quando a lista abre. -->
+    <string name="admin_botao_manifestacoes">Sugestões</string>
+    <string name="admin_manifestacoes_titulo">Reclamações, Sugestões e Denúncias</string>
+    <string name="admin_manifestacoes_vazio">Nada recebido ainda.</string>
+    <string name="admin_manifestacoes_arquivadas_titulo">Arquivados</string>
+    <string name="admin_manifestacoes_arquivadas_vazio">Nenhuma mensagem arquivada.</string>
+    <string name="admin_manifestacoes_botao_arquivados">🗄️ Arquivados</string>
+    <string name="admin_manifestacoes_botao_voltar">← Voltar</string>
+    <string name="admin_manifestacoes_botao_responder">✉️ Responder</string>
+    <string name="admin_manifestacoes_botao_arquivar">🗄️ Arquivar</string>
+    <string name="admin_manifestacoes_status_pendente">— Sem resposta</string>
+    <string name="admin_manifestacoes_status_respondido_formato">✅ Respondido em %1$s</string>
+    <string name="admin_manifestacoes_respondido_por_formato">Respondido por CPF: %1$s</string>
+    <string name="admin_manifestacoes_tipo_reclamacao">📝 Reclamação</string>
+    <string name="admin_manifestacoes_tipo_sugestao">💡 Sugestão</string>
+    <string name="admin_manifestacoes_tipo_denuncia">🚩 Denúncia</string>
+    <string name="admin_manifestacoes_responder_titulo">Responder</string>
+    <string name="admin_manifestacoes_responder_hint">Digite sua resposta…</string>
+    <string name="admin_manifestacoes_responder_erro_vazio">Digite uma resposta.</string>
+    <string name="admin_manifestacoes_responder_sucesso">Resposta enviada por e-mail!</string>
+    <string name="admin_manifestacoes_responder_erro">Erro ao responder: %1$s</string>
+    <string name="admin_manifestacoes_arquivar_titulo">Arquivar</string>
+    <string name="admin_manifestacoes_arquivar_mensagem">Arquivar esta mensagem? Ela sai da lista principal e fica guardada em Arquivados.</string>
+    <string name="admin_manifestacoes_arquivar_erro_nao_respondida">Só é possível arquivar depois de responder.</string>
+    <string name="admin_manifestacoes_arquivar_sucesso">Arquivado.</string>
+    <string name="admin_manifestacoes_arquivar_erro">Erro ao arquivar: %1$s</string>
+    <string name="admin_manifestacoes_excluir_titulo">Excluir</string>
+    <string name="admin_manifestacoes_excluir_mensagem">Excluir esta mensagem permanentemente? Essa ação não pode ser desfeita. Confirme a senha do administrador master para continuar.</string>
+    <string name="admin_manifestacoes_excluir_sucesso">Excluído.</string>
+    <string name="admin_manifestacoes_excluir_erro">Erro ao excluir: %1$s</string>
 
     <!-- Mensagens (painel admin) -->
     <string name="admin_botao_mensagens">Mensagens</string>

@@ -66,6 +66,10 @@
         <activity
             android:name=".PerfilPublicoActivity"
             android:exported="false" />
+        <activity
+            android:name=".EnviarManifestacaoActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name=".CaronasFirebaseMessagingService"

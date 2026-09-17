@@ -73,63 +73,97 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:background="#141E90FF"
         android:padding="10dp">
 
+        <!-- Linha de cima: foto+nome (mesmo espaço de sempre) e Motoristas/
+             Passageiros empilhados — igual era antes de existir a seção
+             Sugestões, pra foto/nome não ficarem espremidos. -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="start">
+            android:orientation="horizontal">
 
-            <ImageView
-                android:id="@+id/ivFotoAdminLogado"
-                android:layout_width="55dp"
-                android:layout_height="55dp"
-                android:src="@drawable/ic_person_default"
-                android:scaleType="centerCrop"
-                android:background="@drawable/borda_circular_azul"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="start">
 
-            <TextView
-                android:id="@+id/tvAdminNome"
+                <ImageView
+                    android:id="@+id/ivFotoAdminLogado"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:src="@drawable/ic_person_default"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/borda_circular_azul"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/tvAdminNome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/carregando"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#222222" />
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/carregando"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#222222" />
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/btnMotoristas"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:text="@string/admin_botao_motoristas" />
+
+                <TextView
+                    android:id="@+id/btnPassageiros"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:text="@string/admin_botao_passageiros" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
+        <!-- Linha de baixo: Sugestões/Mensagens/Viagens ocupando a largura
+             inteira da tela (peso igual pros três) — fora da linha de cima
+             de propósito, senão volta a espremer a foto/nome. -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:orientation="horizontal"
+            android:layout_marginTop="6dp">
 
             <TextView
-                android:id="@+id/btnMotoristas"
+                android:id="@+id/btnManifestacoes"
                 style="@style/BotaoAcaoCaronasVertical"
-                android:text="@string/admin_botao_motoristas" />
-
-            <TextView
-                android:id="@+id/btnPassageiros"
-                style="@style/BotaoAcaoCaronasVertical"
-                android:text="@string/admin_botao_passageiros" />
-
-            <TextView
-                android:id="@+id/btnViagens"
-                style="@style/BotaoAcaoCaronasVertical"
-                android:text="@string/admin_botao_viagens" />
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="@string/admin_botao_manifestacoes" />
 
             <TextView
                 android:id="@+id/btnMensagens"
                 style="@style/BotaoAcaoCaronasVertical"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
                 android:text="@string/admin_botao_mensagens" />
+
+            <TextView
+                android:id="@+id/btnViagens"
+                style="@style/BotaoAcaoCaronasVertical"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/admin_botao_viagens" />
 
         </LinearLayout>
 
@@ -217,6 +251,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+            <!-- Só aparece na seção "Sugestões" (Reclamações/Sugestões/
+                 Denúncias) — alterna entre a lista ativa e a de arquivados
+                 (ver AdministracaoCaronasActivity.mostrarManifestacoes/
+                 mostrarManifestacoesArquivadas). -->
+            <Button
+                android:id="@+id/btnArquivadosManifestacoes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:text="@string/admin_manifestacoes_botao_arquivados"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:background="@color/grafite"
                 android:visibility="gone" />
 
         </LinearLayout>
