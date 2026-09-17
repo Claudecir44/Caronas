@@ -1,0 +1,95 @@
+TERMOS DE USO E POLÍTICA DE PRIVACIDADE — CARONAS
+Última atualização: setembro de 2026
+
+═══════════════════════════════════
+PARTE 1 — TERMOS DE USO
+═══════════════════════════════════
+
+1. SOBRE O CARONAS
+O Caronas é uma plataforma que conecta motoristas e passageiros interessados em compartilhar uma mesma viagem, dividindo os custos do trajeto. O Caronas não é uma empresa de transporte, não possui frota própria e não emprega os motoristas que utilizam o aplicativo — atua apenas como intermediário entre pessoas que já pretendiam fazer o mesmo trajeto.
+
+2. NATUREZA DO SERVIÇO — CARONA SOLIDÁRIA, NÃO TRANSPORTE REMUNERADO
+Os valores sugeridos e cobrados nas caronas oferecidas através do app representam o RATEIO das despesas da viagem (combustível, desgaste do veículo, pedágio) entre o motorista e os passageiros — nunca uma tarifa comercial de transporte. O motorista não pode utilizar o Caronas como fonte de renda ou atividade profissional de transporte remunerado de passageiros; o uso do aplicativo para esse fim é proibido e pode resultar na suspensão da conta.
+
+3. CADASTRO E CONTA
+3.1. É necessário ter no mínimo 18 anos para se cadastrar no Caronas.
+3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, dados do veículo) devem ser verdadeiras e atualizadas.
+3.3. O cadastro é validado por e-mail — a conta só pode ser usada normalmente depois da confirmação do endereço de e-mail informado.
+3.4. Cada usuário é responsável por manter a confidencialidade da própria senha e por toda atividade realizada através da sua conta.
+3.5. Ao oferecer caronas, o motorista declara possuir habilitação válida, o veículo em condições seguras de uso e toda a documentação exigida por lei para conduzir o veículo informado.
+
+4. REGRAS DE CONDUTA
+Ao usar o Caronas, o usuário concorda em:
+4.1. Fornecer informações verdadeiras sobre si e sobre a viagem oferecida ou solicitada.
+4.2. Tratar os demais usuários com respeito, sem discriminação de qualquer natureza.
+4.3. Não usar o aplicativo para fins ilícitos, fraudulentos ou para assediar, ameaçar ou prejudicar outro usuário.
+4.4. Comparecer aos horários e locais combinados para embarque/desembarque, ou cancelar com antecedência quando não puder comparecer.
+4.5. Não publicar conteúdo ofensivo, falso ou que viole direitos de terceiros no aplicativo (nome, foto de perfil, mensagens do chat).
+
+5. PUBLICAÇÃO E SOLICITAÇÃO DE CARONAS
+5.1. O motorista é responsável pelas informações da carona que publica (rota, paradas, data/horário, vagas e valor sugerido).
+5.2. O passageiro que solicita uma vaga se compromete a comparecer no local e horário combinados e a pagar o valor combinado com o motorista.
+5.3. A confirmação de uma solicitação de vaga é sempre uma decisão do motorista — o Caronas não garante que uma solicitação será aceita.
+5.4. Qualquer uma das partes pode cancelar uma viagem antes do embarque; recomenda-se avisar a outra parte pelo chat do aplicativo assim que possível.
+
+6. AVALIAÇÕES
+Depois de uma viagem confirmada e concluída, motorista e passageiro podem avaliar um ao outro (nota de 1 a 5 e comentário opcional). As avaliações são públicas para os demais usuários do aplicativo e não podem ser editadas ou removidas pelo autor depois de enviadas, para preservar a confiabilidade do sistema de reputação.
+
+7. SEGURANÇA NAS CARONAS
+7.1. O Caronas facilita o contato entre motorista e passageiro, mas não acompanha nem supervisiona as viagens realizadas.
+7.2. Recomendamos: conferir a identidade e a avaliação de quem vai pegar a carona antes de embarcar, combinar o trajeto e compartilhar a viagem com alguém de confiança, e confiar no seu julgamento — se algo parecer errado, não embarque.
+7.3. Qualquer comportamento inadequado ou inseguro pode e deve ser reportado através dos canais de suporte do aplicativo.
+
+8. RESPONSABILIDADES E LIMITAÇÕES
+8.1. O Caronas não é parte na relação entre motorista e passageiro — a viagem, seus riscos e o cumprimento dos combinados são de responsabilidade exclusiva dos usuários envolvidos.
+8.2. O Caronas não se responsabiliza por acidentes, danos, atrasos, cancelamentos ou qualquer prejuízo decorrente da viagem em si, nem por informações falsas fornecidas por um usuário sobre si mesmo ou sobre o veículo.
+8.3. O Caronas envida esforços razoáveis para manter o aplicativo disponível e funcionando corretamente, mas não garante operação ininterrupta ou livre de falhas.
+
+9. SUSPENSÃO E ENCERRAMENTO DE CONTA
+O Caronas pode suspender ou encerrar contas que violem estes Termos, mediante aviso quando possível. O usuário pode encerrar a própria conta a qualquer momento pela opção "Excluir minha conta", disponível na tela de edição de perfil.
+
+10. PROPRIEDADE INTELECTUAL
+A marca, o logotipo e o código do aplicativo Caronas pertencem aos seus desenvolvedores. O conteúdo que cada usuário publica (fotos, mensagens, avaliações) continua de propriedade do próprio usuário, que concede ao Caronas a licença necessária para exibi-lo dentro do aplicativo, aos demais usuários envolvidos na mesma viagem/conversa.
+
+11. ALTERAÇÕES DESTES TERMOS
+Estes Termos podem ser atualizados periodicamente. Mudanças relevantes serão comunicadas dentro do aplicativo. O uso continuado do Caronas após uma atualização representa a aceitação dos novos termos.
+
+12. LEI APLICÁVEL
+Estes Termos são regidos pelas leis da República Federativa do Brasil.
+
+13. CONTATO
+Dúvidas sobre estes Termos podem ser enviadas para: suporte@caronasapp.com.br
+
+
+═══════════════════════════════════
+PARTE 2 — POLÍTICA DE PRIVACIDADE
+═══════════════════════════════════
+
+1. DADOS QUE COLETAMOS
+• Dados de cadastro: nome completo, e-mail, telefone e foto de perfil.
+• Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.
+• Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.
+• Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014).
+
+2. FINALIDADE DO TRATAMENTO
+Usamos esses dados para: viabilizar o cadastro e login; conectar motoristas e passageiros interessados na mesma rota; exibir as informações necessárias (nome, foto, veículo) aos participantes de uma mesma viagem, para que possam se identificar; calcular sugestões de valor de rateio com base na distância da rota; e manter o histórico de avaliações entre usuários.
+
+3. COMPARTILHAMENTO DE DADOS
+3.1. Nome, foto de perfil e (quando aplicável) dados do veículo são exibidos aos demais usuários dentro do fluxo normal do aplicativo (resultado de busca de carona, tela de solicitação, chat de uma viagem) — é assim que motorista e passageiro se identificam antes de embarcar juntos.
+3.2. Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins de publicidade.
+3.3. Usamos o Firebase (Google) como infraestrutura de armazenamento e autenticação, e o LocationIQ como serviço de busca de endereços — ambos processam dados estritamente como operadores, dentro da finalidade descrita aqui.
+
+4. SEGURANÇA DA INFORMAÇÃO
+Adotamos medidas técnicas para proteger os dados armazenados, incluindo controle de acesso por regras de segurança no banco de dados e conexões criptografadas entre o aplicativo e os servidores.
+
+5. RETENÇÃO E EXCLUSÃO
+Os dados são mantidos enquanto a conta estiver ativa. Ao excluir a conta pela opção disponível no aplicativo, o cadastro, a foto de perfil e o veículo associado são removidos permanentemente. Mensagens de chat e avaliações já enviadas podem ser mantidas de forma anonimizada, para preservar o histórico de viagens dos outros participantes.
+
+6. SEUS DIREITOS
+Conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD), você tem direito a: confirmar a existência de tratamento, acessar seus dados, corrigir dados incompletos ou desatualizados, solicitar a exclusão dos seus dados, e revogar o consentimento dado. A maioria dessas ações já está disponível diretamente na tela "Editar Perfil" do aplicativo; para as demais, use o contato abaixo.
+
+7. ALTERAÇÕES DESTA POLÍTICA
+Esta Política pode ser atualizada periodicamente, com aviso dentro do aplicativo quando a mudança for relevante.
+
+8. CONTATO
+Dúvidas sobre esta Política ou solicitações relacionadas aos seus dados podem ser enviadas para: suporte@caronasapp.com.br

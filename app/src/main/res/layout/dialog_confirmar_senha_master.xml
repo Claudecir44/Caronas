@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/tvMensagemConfirmarSenha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/grafite"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp"
+        android:text="Mensagem de confirmação" />
+
+    <EditText
+        android:id="@+id/etSenhaMasterConfirmar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/admin_cadastro_senha_autorizacao_hint"
+        android:inputType="textPassword"
+        android:textColor="@color/grafite" />
+
+</LinearLayout>

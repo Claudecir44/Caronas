@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo Caronas</title>
+    <!-- Firebase SDKs (compat) — mesma versão usada no painel web do Match -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: #F2F2F7;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            background: #ffffff;
+            padding: 25px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+            margin-top: 20px;
+        }
+        h1 { color: #0D47A1; font-weight: 700; font-size: 26px; }
+
+        #login {
+            display: flex;
+            justify-content: center;
+            margin: 60px auto;
+        }
+        .login-box {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 100%;
+            max-width: 360px;
+            background: #fafafa;
+            padding: 30px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .login-box h2 { text-align: center; color: #333; margin-bottom: 10px; }
+        .login-box input {
+            padding: 12px 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .login-box input:focus { border-color: #1E90FF; outline: none; }
+        .login-box button {
+            padding: 12px;
+            background: #1E90FF;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .login-box button:hover { background: #0D47A1; }
+        .login-erro { color: #d32f2f; font-size: 13px; text-align: center; min-height: 16px; }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .admin-info { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .admin-info img {
+            width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+            background: #E8E8E8;
+        }
+        .admin-info span { font-weight: 600; color: #333; font-size: 13px; }
+        #logout {
+            background: #455A64;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        #logout:hover { background: #37474F; }
+
+        .abas { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .aba-botao {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #F2F2F7;
+            color: #455A64;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .aba-botao.ativa { background: #1E90FF; color: #fff; }
+
+        .aba-conteudo { display: none; }
+        .aba-conteudo.ativa { display: block; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        th { color: #455A64; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+        tr:hover { background: #FAFBFC; }
+        td img.foto-linha {
+            width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #E8E8E8;
+        }
+        .vazio { color: #8899AA; text-align: center; padding: 24px; font-size: 13px; }
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(69,90,100,0.08);
+            color: #455A64;
+        }
+        .btn-remover {
+            border: none;
+            background: transparent;
+            color: #D32F2F;
+            cursor: pointer;
+            font-size: 15px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-left: 6px;
+        }
+        .btn-remover:hover { background: rgba(211,47,47,0.1); }
+    </style>
+</head>
+<body>
+
+<div id="login">
+    <div class="login-box">
+        <h2>Painel Administrativo Caronas</h2>
+        <input type="email" id="loginEmail" placeholder="E-mail" autocomplete="username">
+        <input type="password" id="loginSenha" placeholder="Senha" autocomplete="current-password">
+        <button onclick="fazerLogin()">Entrar</button>
+        <div class="login-erro" id="loginErro"></div>
+    </div>
+</div>
+
+<div class="container" id="painel" style="display:none;">
+    <div class="top-bar">
+        <div class="admin-info">
+            <img id="adminFoto" src="" alt="">
+            <span id="adminNome"></span>
+        </div>
+        <h1>Painel Administrativo Caronas</h1>
+        <button id="logout" onclick="fazerLogout()">Sair</button>
+    </div>
+
+    <div class="abas">
+        <button class="aba-botao ativa" data-aba="motoristas" onclick="mostrarAba('motoristas')">Motoristas</button>
+        <button class="aba-botao" data-aba="passageiros" onclick="mostrarAba('passageiros')">Passageiros</button>
+        <button class="aba-botao" data-aba="viagensMotorista" onclick="mostrarAba('viagensMotorista')">Viagens (Motoristas)</button>
+        <button class="aba-botao" data-aba="viagensPassageiro" onclick="mostrarAba('viagensPassageiro')">Viagens (Passageiros)</button>
+    </div>
+
+    <div class="aba-conteudo ativa" id="abaMotoristas">
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Veículo</th></tr></thead>
+            <tbody id="corpoMotoristas"></tbody></table>
+        <div class="vazio" id="vazioMotoristas" style="display:none;">Nenhum motorista cadastrado.</div>
+    </div>
+
+    <div class="aba-conteudo" id="abaPassageiros">
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th></tr></thead>
+            <tbody id="corpoPassageiros"></tbody></table>
+        <div class="vazio" id="vazioPassageiros" style="display:none;">Nenhum passageiro cadastrado.</div>
+    </div>
+
+    <div class="aba-conteudo" id="abaViagensMotorista">
+        <table><thead><tr><th>Rota</th><th>Motorista</th><th>Data/Hora</th><th>Vagas</th><th>Status</th></tr></thead>
+            <tbody id="corpoViagensMotorista"></tbody></table>
+        <div class="vazio" id="vazioViagensMotorista" style="display:none;">Nenhuma viagem cadastrada.</div>
+    </div>
+
+    <div class="aba-conteudo" id="abaViagensPassageiro">
+        <table><thead><tr><th>Rota</th><th>Passageiro</th><th>Motorista</th><th>Data/Hora</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody id="corpoViagensPassageiro"></tbody></table>
+        <div class="vazio" id="vazioViagensPassageiro" style="display:none;">Nenhuma solicitação de viagem ainda.</div>
+    </div>
+</div>
+
+<script>
+    // Chave web não é secreta — só identifica o projeto Firebase, o acesso
+    // de verdade é controlado pelas regras do Firestore (ver firestore.rules,
+    // função ehAdmin()).
+    const firebaseConfig = {
+        projectId: "caronas-6b0c4",
+        appId: "1:1032163427813:web:fa17bdbfb87afd211c5b0c",
+        storageBucket: "caronas-6b0c4.firebasestorage.app",
+        apiKey: "AIzaSyAmSHLNxTZVsxcKJX-ZCE2Y6dmhzE7HWJw",
+        authDomain: "caronas-6b0c4.firebaseapp.com",
+        messagingSenderId: "1032163427813"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const funcoes = firebase.functions();
+
+    const FOTO_PADRAO = "data:image/svg+xml;utf8," + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23B0BEC5"><path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.5c-3.3 0-9.8 1.6-9.8 4.9v2.4h19.6v-2.4c0-3.3-6.5-4.9-9.8-4.9z"/></svg>'
+    );
+
+    function fazerLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const senha = document.getElementById('loginSenha').value;
+        const erroEl = document.getElementById('loginErro');
+        erroEl.textContent = '';
+        if (!email || !senha) {
+            erroEl.textContent = 'Preencha e-mail e senha.';
+            return;
+        }
+        auth.signInWithEmailAndPassword(email, senha)
+            .then((cred) => autenticarComoAdmin(cred.user))
+            .catch((e) => { erroEl.textContent = 'Erro: ' + e.message; });
+    }
+
+    async function autenticarComoAdmin(user) {
+        const erroEl = document.getElementById('loginErro');
+
+        // Mesma checagem do login nativo (ver LoginAdminCaronasActivity):
+        // e-mail verificado + entrada em admins/{uid}.
+        if (!user.emailVerified) {
+            await user.sendEmailVerification().catch(() => {});
+            await auth.signOut();
+            erroEl.textContent = 'Valide seu cadastro pelo e-mail antes de entrar. Reenviamos o e-mail de verificação.';
+            return;
+        }
+
+        try {
+            const adminDoc = await db.collection('admins').doc(user.uid).get();
+            if (!adminDoc.exists) {
+                await auth.signOut();
+                erroEl.textContent = 'Acesso restrito a administradores.';
+                return;
+            }
+        } catch (e) {
+            await auth.signOut();
+            erroEl.textContent = 'Acesso restrito a administradores.';
+            return;
+        }
+
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('painel').style.display = 'block';
+        carregarAdminLogado(user.uid);
+        carregarDados();
+    }
+
+    function fazerLogout() {
+        auth.signOut().then(() => {
+            document.getElementById('painel').style.display = 'none';
+            document.getElementById('login').style.display = 'flex';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginSenha').value = '';
+        });
+    }
+
+    async function carregarAdminLogado(uid) {
+        const doc = await db.collection('admins').doc(uid).get();
+        const dados = doc.data() || {};
+        // Só o primeiro nome aqui embaixo da foto — o sobrenome completo
+        // não cabe bem nesse espaço pequeno do topo.
+        document.getElementById('adminNome').textContent = dados.nome || dados.email || '';
+        document.getElementById('adminFoto').src = dados.fotoUrl || FOTO_PADRAO;
+    }
+
+    function mostrarAba(nome) {
+        document.querySelectorAll('.aba-botao').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === nome));
+        document.querySelectorAll('.aba-conteudo').forEach((c) => c.classList.remove('ativa'));
+        document.getElementById('aba' + nome.charAt(0).toUpperCase() + nome.slice(1)).classList.add('ativa');
+    }
+
+    function veiculoEstaPreenchido(v) {
+        return !!(v && v.modelo && v.marca && v.cor && v.placa);
+    }
+
+    function escapar(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto || '';
+        return div.innerHTML;
+    }
+
+    async function carregarDados() {
+        // Sem paginação — mesmo padrão já usado nas tabelas do painel do
+        // Match, adequado ao volume atual do Caronas (ver plano).
+        const [usuariosSnap, caronasSnap, solicitacoesSnap] = await Promise.all([
+            db.collection('usuarios').orderBy('criadoEm', 'desc').get(),
+            db.collection('caronas').orderBy('dataHoraPartida', 'desc').get(),
+            db.collection('solicitacoes').orderBy('dataHoraPartida', 'desc').get()
+        ]);
+
+        const motoristas = [];
+        const passageiros = [];
+        usuariosSnap.forEach((doc) => {
+            const u = doc.data();
+            u.id = doc.id;
+            if (veiculoEstaPreenchido(u.veiculo)) motoristas.push(u); else passageiros.push(u);
+        });
+
+        const corpoMotoristas = document.getElementById('corpoMotoristas');
+        corpoMotoristas.innerHTML = motoristas.map((u) => `
+            <tr>
+                <td><img class="foto-linha" src="${u.fotoUrl || FOTO_PADRAO}" alt=""></td>
+                <td>${escapar(u.nomeCompleto)}</td>
+                <td>${escapar(u.email)}</td>
+                <td>
+                    ${escapar(u.telefone)}
+                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="removerUsuario(this)">🗑️</button>
+                </td>
+                <td>${escapar(u.veiculo.marca)} ${escapar(u.veiculo.modelo)} — ${escapar(u.veiculo.cor)} — ${escapar(u.veiculo.placa)}</td>
+            </tr>
+        `).join('');
+        document.getElementById('vazioMotoristas').style.display = motoristas.length ? 'none' : 'block';
+
+        const corpoPassageiros = document.getElementById('corpoPassageiros');
+        corpoPassageiros.innerHTML = passageiros.map((u) => `
+            <tr>
+                <td><img class="foto-linha" src="${u.fotoUrl || FOTO_PADRAO}" alt=""></td>
+                <td>${escapar(u.nomeCompleto)}</td>
+                <td>${escapar(u.email)}</td>
+                <td>
+                    ${escapar(u.telefone)}
+                    <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="removerUsuario(this)">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('vazioPassageiros').style.display = passageiros.length ? 'none' : 'block';
+
+        const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        const corpoViagensMotorista = document.getElementById('corpoViagensMotorista');
+        const viagensMotorista = [];
+        caronasSnap.forEach((doc) => viagensMotorista.push(doc.data()));
+        corpoViagensMotorista.innerHTML = viagensMotorista.map((c) => {
+            const rota = (c.paradas && c.paradas.length > 2)
+                ? c.paradas.map((p) => escapar(p.cidade)).join(' → ')
+                : `${escapar(c.cidadeOrigem)} → ${escapar(c.cidadeDestino)}`;
+            const dataHora = c.dataHoraPartida ? formatoData.format(new Date(c.dataHoraPartida)) : '';
+            return `
+                <tr>
+                    <td>${rota}</td>
+                    <td>${escapar(c.motoristaNome)}</td>
+                    <td>${dataHora}</td>
+                    <td>${c.vagas ?? 0}</td>
+                    <td><span class="badge">${c.status === 'cancelada' ? 'CANCELADA' : 'ATIVA'}</span></td>
+                </tr>
+            `;
+        }).join('');
+        document.getElementById('vazioViagensMotorista').style.display = viagensMotorista.length ? 'none' : 'block';
+
+        // Viagens do lado do PASSAGEIRO (solicitações) — separado das
+        // caronas oferecidas acima, mesma rota pode aparecer nas duas
+        // tabelas (uma vez como oferta, outra como pedido de vaga).
+        const corpoViagensPassageiro = document.getElementById('corpoViagensPassageiro');
+        const viagensPassageiro = [];
+        solicitacoesSnap.forEach((doc) => viagensPassageiro.push(doc.data()));
+        corpoViagensPassageiro.innerHTML = viagensPassageiro.map((s) => {
+            const rota = `${escapar(s.cidadeOrigem)} → ${escapar(s.cidadeDestino)}`;
+            const dataHora = s.dataHoraPartida ? formatoData.format(new Date(s.dataHoraPartida)) : '';
+            const valor = (s.valorPago ?? 0).toFixed(2).replace('.', ',');
+            const statusTexto = s.status === 'confirmada' ? 'CONFIRMADA' : (s.status === 'cancelada' ? 'CANCELADA' : 'SOLICITADA');
+            return `
+                <tr>
+                    <td>${rota}</td>
+                    <td>${escapar(s.passageiroNome)}</td>
+                    <td>${escapar(s.motoristaNome)}</td>
+                    <td>${dataHora}</td>
+                    <td>R$ ${valor}</td>
+                    <td><span class="badge">${statusTexto}</span></td>
+                </tr>
+            `;
+        }).join('');
+        document.getElementById('vazioViagensPassageiro').style.display = viagensPassageiro.length ? 'none' : 'block';
+    }
+
+    // Remove um motorista ou passageiro POR COMPLETO (cadastro, conta de
+    // login, viagens, conversas, avaliações — ver Cloud Function
+    // excluirUsuario) — mesma ação e mesma trava de senha do administrador
+    // master do toque-e-segure equivalente no app nativo, usada nas duas
+    // tabelas (Motoristas e Passageiros). data-uid/data-nome (em vez de
+    // embutir os valores direto na string do onclick) evita quebrar o HTML
+    // se o nome tiver aspas ou caracteres especiais.
+    async function removerUsuario(botao) {
+        const uid = botao.dataset.uid;
+        const nome = botao.dataset.nome || 'esse usuário';
+        if (!uid) return;
+
+        if (!confirm(`Tem certeza que deseja remover ${nome}? Isso apaga TODOS os dados dele do Firebase (cadastro, viagens, conversas, avaliações e a conta de login) e não pode ser desfeito. O e-mail fica livre para um novo cadastro.`)) {
+            return;
+        }
+        const senha = prompt('Senha do administrador master:');
+        if (!senha) return;
+
+        botao.disabled = true;
+        try {
+            const excluirUsuario = funcoes.httpsCallable('excluirUsuario');
+            await excluirUsuario({ uid, senhaAutorizacao: senha });
+            alert('Cadastro removido.');
+            carregarDados();
+        } catch (e) {
+            alert('Erro ao remover: ' + e.message);
+            botao.disabled = false;
+        }
+    }
+
+    // Sessão já ativa (recarregou a página, etc.) — repete a mesma checagem
+    // de admin antes de mostrar qualquer dado.
+    auth.onAuthStateChanged((user) => {
+        if (user && document.getElementById('painel').style.display === 'none') {
+            autenticarComoAdmin(user);
+        }
+    });
+</script>
+
+</body>
+</html>
