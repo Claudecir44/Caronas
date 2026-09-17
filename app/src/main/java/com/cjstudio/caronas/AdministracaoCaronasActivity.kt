@@ -1,20 +1,27 @@
 package com.cjstudio.caronas
 
 import android.Manifest
+import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextUtils
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +42,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 // Dashboard do admin — mostra a foto/nome de quem está logado (mesma ideia
@@ -69,6 +81,21 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private var mostrandoArquivadas = false
     private var badgeManifestacoesIniciado = false
 
+    // ===== Seção "Financeiro" (ver mostrarFinanceiro) =====
+    private lateinit var containerFiltroFinanceiro: LinearLayout
+    private lateinit var spinnerPeriodoFinanceiro: Spinner
+    private lateinit var btnFiltrarFinanceiro: Button
+    private lateinit var layoutDataPersonalizadaFinanceiro: LinearLayout
+    private lateinit var etDataInicialFinanceiro: EditText
+    private lateinit var etDataFinalFinanceiro: EditText
+    private lateinit var tvTotalPagamentosFinanceiro: TextView
+    private lateinit var tvMotoristasUnicosFinanceiro: TextView
+    private lateinit var tvTotalArrecadadoFinanceiro: TextView
+    private lateinit var btnGerarRelatorioFinanceiro: Button
+    private var pagamentosMotoristaCache: List<PagamentoMotorista> = emptyList()
+    private val sdfFinanceiro = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+    private val sdfFinanceiroCompleto = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR"))
+
     // Mesmo padrão de TelaCaronasActivity — pede a permissão de notificação
     // em runtime (Android 13+) pra o push de notificarNovaManifestacao
     // conseguir de fato aparecer na tela do admin, não só chegar no app.
@@ -91,6 +118,17 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         etBuscaMensagens = findViewById(R.id.etBuscaMensagens)
         btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
         badgeManifestacoes = findViewById(R.id.badgeManifestacoes)
+        containerFiltroFinanceiro = findViewById(R.id.containerFiltroFinanceiro)
+        spinnerPeriodoFinanceiro = findViewById(R.id.spinnerPeriodoFinanceiro)
+        btnFiltrarFinanceiro = findViewById(R.id.btnFiltrarFinanceiro)
+        layoutDataPersonalizadaFinanceiro = findViewById(R.id.layoutDataPersonalizadaFinanceiro)
+        etDataInicialFinanceiro = findViewById(R.id.etDataInicialFinanceiro)
+        etDataFinalFinanceiro = findViewById(R.id.etDataFinalFinanceiro)
+        tvTotalPagamentosFinanceiro = findViewById(R.id.tvTotalPagamentosFinanceiro)
+        tvMotoristasUnicosFinanceiro = findViewById(R.id.tvMotoristasUnicosFinanceiro)
+        tvTotalArrecadadoFinanceiro = findViewById(R.id.tvTotalArrecadadoFinanceiro)
+        btnGerarRelatorioFinanceiro = findViewById(R.id.btnGerarRelatorioFinanceiro)
+        configurarFiltroFinanceiro()
 
         findViewById<TextView>(R.id.tvEditarPerfilAdmin).setOnClickListener {
             startActivity(Intent(this, BuscarAdminActivity::class.java))
@@ -98,9 +136,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnMotoristas).setOnClickListener { mostrarMotoristas() }
         findViewById<TextView>(R.id.btnPassageiros).setOnClickListener { mostrarPassageiros() }
         findViewById<TextView>(R.id.btnViagens).setOnClickListener { abrirDialogEscolherViagens() }
-        findViewById<TextView>(R.id.btnFinanceiro).setOnClickListener {
-            startActivity(Intent(this, FinanceiroCaronasActivity::class.java))
-        }
+        findViewById<TextView>(R.id.btnFinanceiro).setOnClickListener { mostrarFinanceiro() }
         findViewById<TextView>(R.id.btnMensagens).setOnClickListener { abrirBuscaMensagens() }
         findViewById<TextView>(R.id.btnManifestacoes).setOnClickListener {
             mostrandoArquivadas = false
@@ -313,13 +349,301 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         }
     }
 
+    // ===================== FINANCEIRO =====================
+    // Histórico de cobranças dos R$15,99/30 dias do motorista (ver
+    // PagamentoMotorista.kt, concederAcessoMotorista em functions/index.js)
+    // — igual às outras seções, carregada na MESMA TELA, logo abaixo do box
+    // azul (containerFiltroFinanceiro em activity_administracao_caronas.xml).
+    // Adaptado do RelatoriosFinanceirosActivity do Match: mesmo filtro de
+    // período + relatório mensal em PDF, sem os cards por "plano" (aqui é um
+    // valor fixo só) e sem CPF no PDF (Caronas não coleta CPF de motorista/
+    // passageiro comum).
+
+    private fun configurarFiltroFinanceiro() {
+        val spinnerAdapter = ArrayAdapter.createFromResource(
+            this, R.array.periodos_array, android.R.layout.simple_spinner_item
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerPeriodoFinanceiro.adapter = spinnerAdapter
+        spinnerPeriodoFinanceiro.setSelection(PERIODO_FINANCEIRO_TODOS)
+
+        spinnerPeriodoFinanceiro.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                layoutDataPersonalizadaFinanceiro.visibility = if (position == PERIODO_FINANCEIRO_PERSONALIZADO) View.VISIBLE else View.GONE
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                layoutDataPersonalizadaFinanceiro.visibility = View.GONE
+            }
+        }
+
+        aplicarMascaraDataFinanceiro(etDataInicialFinanceiro)
+        aplicarMascaraDataFinanceiro(etDataFinalFinanceiro)
+
+        btnFiltrarFinanceiro.setOnClickListener { aplicarFiltroFinanceiro() }
+        btnGerarRelatorioFinanceiro.setOnClickListener { mostrarDialogMesAnoFinanceiro() }
+    }
+
+    private fun mostrarFinanceiro() {
+        prepararSecao(
+            getString(R.string.financeiro_titulo),
+            getString(R.string.financeiro_sem_dados),
+            mostrarFiltroFinanceiro = true
+        )
+        lifecycleScope.launch {
+            adminRepository.listarPagamentosMotorista()
+                .onSuccess { pagamentos ->
+                    pagamentosMotoristaCache = pagamentos
+                    aplicarFiltroFinanceiro()
+                }
+                .onFailure { mostrarErroSecao(it) }
+        }
+    }
+
+    private fun aplicarFiltroFinanceiro() {
+        val periodoSelecionado = spinnerPeriodoFinanceiro.selectedItemPosition
+        val agora = System.currentTimeMillis()
+        var dataInicialMillis = 0L
+        var dataFinalMillis = Long.MAX_VALUE
+        var dataLimite = 0L
+
+        if (periodoSelecionado == PERIODO_FINANCEIRO_PERSONALIZADO) {
+            val dataInicialStr = etDataInicialFinanceiro.text.toString().trim()
+            val dataFinalStr = etDataFinalFinanceiro.text.toString().trim()
+
+            if (TextUtils.isEmpty(dataInicialStr) || TextUtils.isEmpty(dataFinalStr)) {
+                Toast.makeText(this, R.string.financeiro_preencha_datas, Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            try {
+                val dataInicial = sdfFinanceiro.parse(dataInicialStr)
+                val dataFinal = sdfFinanceiro.parse(dataFinalStr)
+
+                if (dataInicial == null || dataFinal == null) {
+                    Toast.makeText(this, R.string.financeiro_erro_data_invalida, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                if (dataInicial.after(dataFinal)) {
+                    Toast.makeText(this, R.string.financeiro_erro_data_maior, Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                dataInicialMillis = dataInicial.time
+                dataFinalMillis = dataFinal.time + 24 * 60 * 60 * 1000 - 1
+            } catch (e: ParseException) {
+                Toast.makeText(this, R.string.financeiro_erro_data_invalida, Toast.LENGTH_SHORT).show()
+                return
+            }
+        } else {
+            dataLimite = when (periodoSelecionado) {
+                PERIODO_FINANCEIRO_DIARIO -> agora - 1L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_SEMANAL -> agora - 7L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_MENSAL -> agora - 30L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_TRIMESTRAL -> agora - 90L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_SEMESTRAL -> agora - 180L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_ANUAL -> agora - 365L * 24 * 60 * 60 * 1000
+                else -> 0L
+            }
+        }
+
+        val filtrados = pagamentosMotoristaCache.filter { p ->
+            val dataCompra = p.dataCompra ?: return@filter false
+            if (periodoSelecionado == PERIODO_FINANCEIRO_PERSONALIZADO) {
+                dataCompra in dataInicialMillis..dataFinalMillis
+            } else {
+                dataLimite == 0L || dataCompra >= dataLimite
+            }
+        }
+
+        var totalArrecadado = 0.0
+        val motoristasUnicos = HashSet<String>()
+        filtrados.forEach { p ->
+            totalArrecadado += p.valor
+            p.usuarioId?.let { if (it.isNotEmpty()) motoristasUnicos.add(it) }
+        }
+        tvTotalPagamentosFinanceiro.text = filtrados.size.toString()
+        tvMotoristasUnicosFinanceiro.text = motoristasUnicos.size.toString()
+        tvTotalArrecadadoFinanceiro.text = getString(R.string.financeiro_valor_format, totalArrecadado)
+
+        val ordenados = filtrados.sortedByDescending { it.dataCompra }
+        progressBarSecao.visibility = View.GONE
+        exibirResultadoSecao(ordenados) { lista -> PagamentoMotoristaAdminAdapter(lista) }
+    }
+
+    private fun aplicarMascaraDataFinanceiro(editText: EditText) {
+        editText.addTextChangedListener(object : TextWatcher {
+            private var isUpdating = false
+
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable) {
+                if (isUpdating) return
+
+                var text = s.toString().replace(Regex("[^0-9]"), "")
+                if (text.length > 8) text = text.substring(0, 8)
+
+                val formatted = StringBuilder()
+                for (i in text.indices) {
+                    if (i == 2 || i == 4) formatted.append("/")
+                    formatted.append(text[i])
+                }
+
+                isUpdating = true
+                editText.setText(formatted.toString())
+                editText.setSelection(formatted.length)
+                isUpdating = false
+            }
+        })
+    }
+
+    // ----- Relatório mensal em PDF (ver PdfUtil.kt) -----
+
+    private fun mostrarDialogMesAnoFinanceiro() {
+        val meses = resources.getStringArray(R.array.meses_array)
+        val calendarAgora = Calendar.getInstance()
+        val anoAtual = calendarAgora.get(Calendar.YEAR)
+        val anos = (anoAtual downTo anoAtual - 5).map { it.toString() }.toTypedArray()
+
+        val spinnerMes = Spinner(this).apply {
+            adapter = ArrayAdapter(this@AdministracaoCaronasActivity, android.R.layout.simple_spinner_item, meses).also {
+                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            setSelection(calendarAgora.get(Calendar.MONTH))
+        }
+        val spinnerAno = Spinner(this).apply {
+            adapter = ArrayAdapter(this@AdministracaoCaronasActivity, android.R.layout.simple_spinner_item, anos).also {
+                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            setSelection(0)
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 8)
+            addView(TextView(this@AdministracaoCaronasActivity).apply { text = getString(R.string.financeiro_mes_label) })
+            addView(spinnerMes)
+            addView(TextView(this@AdministracaoCaronasActivity).apply {
+                text = getString(R.string.financeiro_ano_label)
+                setPadding(0, 24, 0, 0)
+            })
+            addView(spinnerAno)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.financeiro_gerar_relatorio_opcao_mensal)
+            .setView(container)
+            .setPositiveButton(R.string.financeiro_gerar_relatorio_gerar) { _, _ ->
+                val mes = spinnerMes.selectedItemPosition
+                val ano = anos[spinnerAno.selectedItemPosition].toInt()
+                gerarRelatorioMensalFinanceiro(mes, ano)
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
+
+    private fun gerarRelatorioMensalFinanceiro(mes: Int, ano: Int) {
+        val progress = ProgressDialog(this)
+        progress.setMessage(getString(R.string.financeiro_carregando_dados))
+        progress.setCancelable(false)
+        progress.show()
+
+        val calInicio = Calendar.getInstance().apply { clear(); set(ano, mes, 1) }
+        val inicioMillis = calInicio.timeInMillis
+        val fimMillis = (calInicio.clone() as Calendar).apply { add(Calendar.MONTH, 1) }.timeInMillis
+
+        val linhas = pagamentosMotoristaCache.mapNotNull { p ->
+            val dataCompra = p.dataCompra ?: return@mapNotNull null
+            if (dataCompra < inicioMillis || dataCompra >= fimMillis) return@mapNotNull null
+            if (p.valor <= 0.0) return@mapNotNull null
+            LinhaRelatorioFinanceiro(
+                nome = p.usuarioNome?.ifEmpty { null } ?: getString(R.string.financeiro_motorista_padrao),
+                email = p.usuarioEmail ?: "-",
+                valor = p.valor,
+                dataCompra = Date(dataCompra),
+                expiraEm = p.expiraEm?.let { Date(it) }
+            )
+        }.sortedBy { it.dataCompra }
+
+        progress.dismiss()
+
+        if (linhas.isEmpty()) {
+            Toast.makeText(this, R.string.financeiro_sem_dados, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        gerarPdfRelatorioMensalFinanceiro(linhas, mes, ano)
+    }
+
+    private fun gerarPdfRelatorioMensalFinanceiro(linhas: List<LinhaRelatorioFinanceiro>, mes: Int, ano: Int) {
+        val nomesMeses = resources.getStringArray(R.array.meses_array)
+        val periodoLabel = "${nomesMeses[mes]}/$ano"
+
+        val pdf = PdfBuilder(this)
+        pdf.titulo(getString(R.string.financeiro_pdf_titulo))
+        pdf.subtitulo("${getString(R.string.financeiro_periodo_prefixo)}: $periodoLabel")
+
+        pdf.secao(getString(R.string.financeiro_pdf_secao_detalhes))
+        pdf.tabela(
+            cabecalhos = listOf(
+                getString(R.string.financeiro_pdf_coluna_nome),
+                getString(R.string.financeiro_pdf_coluna_email),
+                getString(R.string.financeiro_pdf_coluna_valor),
+                getString(R.string.financeiro_pdf_coluna_data_compra),
+                getString(R.string.financeiro_pdf_coluna_data_expiracao)
+            ),
+            linhas = linhas.map { l ->
+                listOf(l.nome, l.email, formatarValorFinanceiro(l.valor), sdfFinanceiro.format(l.dataCompra), l.expiraEm?.let { sdfFinanceiro.format(it) } ?: "-")
+            },
+            pesos = listOf(0.28f, 0.27f, 0.15f, 0.15f, 0.15f)
+        )
+
+        // Agrupado pelo VALOR pago — mesmo raciocínio plano-agnóstico do
+        // Match, mesmo que hoje só exista um valor fixo (R$15,99).
+        pdf.secao(getString(R.string.financeiro_pdf_secao_resumo))
+        val porValor = linhas.groupBy { it.valor }.toSortedMap()
+        pdf.tabela(
+            cabecalhos = listOf(
+                getString(R.string.financeiro_pdf_coluna_valor),
+                getString(R.string.financeiro_pdf_coluna_qtd),
+                getString(R.string.financeiro_pdf_coluna_total)
+            ),
+            linhas = porValor.entries.map { (valor, itens) ->
+                listOf(formatarValorFinanceiro(valor), itens.size.toString(), formatarValorFinanceiro(valor * itens.size))
+            },
+            pesos = listOf(0.34f, 0.33f, 0.33f)
+        )
+        val totalGeral = linhas.sumOf { it.valor }
+        pdf.linhaDestaque(getString(R.string.financeiro_pdf_total_geral, formatarValorFinanceiro(totalGeral)))
+
+        pdf.rodape(getString(R.string.financeiro_gerado_em, sdfFinanceiroCompleto.format(Date())))
+        pdf.gerarEAbrir(getString(R.string.financeiro_pdf_nome_arquivo))
+    }
+
+    private fun formatarValorFinanceiro(v: Double): String = getString(R.string.financeiro_valor_format, v)
+
+    private data class LinhaRelatorioFinanceiro(
+        val nome: String,
+        val email: String,
+        val valor: Double,
+        val dataCompra: Date,
+        val expiraEm: Date?
+    )
+
     // Só a seção "Mensagens" usa a caixa de busca — as outras (Motoristas/
     // Passageiros/Viagens/Sugestões) escondem ela de novo ao trocar de
     // seção. "mostrarArquivados" só liga pra seção "Sugestões" (ver
     // mostrarManifestacoes/mostrarManifestacoesArquivadas).
-    private fun prepararSecao(titulo: String, textoVazio: String, mostrarBusca: Boolean = false, mostrarArquivados: Boolean = false) {
+    private fun prepararSecao(
+        titulo: String,
+        textoVazio: String,
+        mostrarBusca: Boolean = false,
+        mostrarArquivados: Boolean = false,
+        mostrarFiltroFinanceiro: Boolean = false
+    ) {
         containerBuscaMensagens.visibility = if (mostrarBusca) View.VISIBLE else View.GONE
         btnArquivadosManifestacoes.visibility = if (mostrarArquivados) View.VISIBLE else View.GONE
+        containerFiltroFinanceiro.visibility = if (mostrarFiltroFinanceiro) View.VISIBLE else View.GONE
         tvTituloSecao.text = titulo
         tvTituloSecao.visibility = if (titulo.isEmpty()) View.GONE else View.VISIBLE
         // Só Motoristas/Passageiros preenchem isso (ver exibirContadorSecao) —
@@ -343,6 +667,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private fun abrirBuscaMensagens() {
         containerBuscaMensagens.visibility = View.VISIBLE
         btnArquivadosManifestacoes.visibility = View.GONE
+        containerFiltroFinanceiro.visibility = View.GONE
         tvTituloSecao.visibility = View.GONE
         tvVazioSecao.visibility = View.GONE
         rvSecao.visibility = View.GONE
@@ -541,5 +866,16 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private fun mostrarErroSecao(e: Throwable) {
         progressBarSecao.visibility = View.GONE
         Toast.makeText(this, getString(R.string.admin_erro_carregar, e.message), Toast.LENGTH_LONG).show()
+    }
+
+    companion object {
+        private const val PERIODO_FINANCEIRO_TODOS = 0
+        private const val PERIODO_FINANCEIRO_DIARIO = 1
+        private const val PERIODO_FINANCEIRO_SEMANAL = 2
+        private const val PERIODO_FINANCEIRO_MENSAL = 3
+        private const val PERIODO_FINANCEIRO_TRIMESTRAL = 4
+        private const val PERIODO_FINANCEIRO_SEMESTRAL = 5
+        private const val PERIODO_FINANCEIRO_ANUAL = 6
+        private const val PERIODO_FINANCEIRO_PERSONALIZADO = 7
     }
 }

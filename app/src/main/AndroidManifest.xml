@@ -114,9 +114,6 @@
         <activity
             android:name=".DetalhesUsuarioAdminActivity"
             android:exported="false" />
-        <activity
-            android:name=".FinanceiroCaronasActivity"
-            android:exported="false" />
 
         <!-- Usado só pelo relatório em PDF do "Financeiro" (ver PdfUtil.kt/
              FinanceiroCaronasActivity) pra abrir o arquivo gerado no

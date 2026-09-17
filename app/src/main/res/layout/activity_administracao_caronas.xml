@@ -129,6 +129,15 @@
                     style="@style/BotaoAcaoCaronasVertical"
                     android:text="@string/admin_botao_passageiros" />
 
+                <!-- Histórico de cobranças dos R$15,99/30 dias do motorista
+                     (ver AdministracaoCaronasActivity.mostrarFinanceiro) —
+                     mesmo tamanho/estilo de Motoristas/Passageiros, empilhado
+                     logo abaixo do Passageiros. -->
+                <TextView
+                    android:id="@+id/btnFinanceiro"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:text="@string/admin_botao_financeiro" />
+
             </LinearLayout>
 
         </LinearLayout>
@@ -197,17 +206,6 @@
 
         </LinearLayout>
 
-        <!-- Histórico de cobranças dos R$15,99/30 dias do motorista (ver
-             FinanceiroCaronasActivity) — linha própria, largura inteira,
-             mesmo espírito do botão "Financeiro" do dashboard do Match. -->
-        <TextView
-            android:id="@+id/btnFinanceiro"
-            style="@style/BotaoAcaoCaronasVertical"
-            android:layout_width="match_parent"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="0dp"
-            android:text="@string/admin_botao_financeiro" />
-
     </LinearLayout>
 
     <!-- ========== LISTA DA SEÇÃO SELECIONADA (mesma tela, sem abrir outra
@@ -256,6 +254,183 @@
                     android:text="@string/admin_mensagens_busca_botao"
                     android:textColor="#FFFFFF"
                     android:background="@drawable/botao_azul_neon" />
+
+            </LinearLayout>
+
+            <!-- Só aparece na seção "Financeiro" (ver
+                 AdministracaoCaronasActivity.mostrarFinanceiro) — filtro de
+                 período + resumo, acima da lista de pagamentos que usa o
+                 mesmo rvSecaoAdmin/tvVazioSecaoAdmin de sempre. -->
+            <LinearLayout
+                android:id="@+id/containerFiltroFinanceiro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <Spinner
+                        android:id="@+id/spinnerPeriodoFinanceiro"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:entries="@array/periodos_array"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="8dp" />
+
+                    <Button
+                        android:id="@+id/btnFiltrarFinanceiro"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/financeiro_botao_filtrar"
+                        android:background="@drawable/botao_azul_neon"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:paddingHorizontal="14dp"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutDataPersonalizadaFinanceiro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/etDataInicialFinanceiro"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/financeiro_data_inicial"
+                        android:inputType="number"
+                        android:maxLength="10"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="10dp"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="6dp" />
+
+                    <EditText
+                        android:id="@+id/etDataFinalFinanceiro"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/financeiro_data_final"
+                        android:inputType="number"
+                        android:maxLength="10"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="10dp"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="3"
+                    android:layout_marginTop="10dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="@drawable/card_relatorio"
+                        android:padding="10dp"
+                        android:layout_marginEnd="4dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/financeiro_total_pagamentos"
+                            android:textSize="10sp"
+                            android:textColor="#555" />
+
+                        <TextView
+                            android:id="@+id/tvTotalPagamentosFinanceiro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/azul_neon_escuro" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="@drawable/card_relatorio"
+                        android:padding="10dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/financeiro_motoristas_unicos"
+                            android:textSize="10sp"
+                            android:textColor="#555" />
+
+                        <TextView
+                            android:id="@+id/tvMotoristasUnicosFinanceiro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/azul_neon_escuro" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="@drawable/card_relatorio"
+                        android:padding="10dp"
+                        android:layout_marginStart="4dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/financeiro_total_arrecadado"
+                            android:textSize="10sp"
+                            android:textColor="#555" />
+
+                        <TextView
+                            android:id="@+id/tvTotalArrecadadoFinanceiro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="R$ 0,00"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/azul_neon_escuro" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnGerarRelatorioFinanceiro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/financeiro_gerar_relatorio_btn"
+                    android:background="@drawable/botao_verde_agua"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:padding="10dp"
+                    android:layout_marginTop="10dp" />
 
             </LinearLayout>
 
