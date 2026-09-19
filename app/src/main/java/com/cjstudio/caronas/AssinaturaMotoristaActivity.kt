@@ -12,10 +12,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,7 +49,7 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     private lateinit var tvSemPagamentos: TextView
     private lateinit var containerPagamentos: LinearLayout
     private val formatoData = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
-    private var listenerConfirmacao: ListenerRegistration? = null
+    private var jobConfirmacao: Job? = null
     private var expiraEmAntesDaCompra: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,9 +88,9 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     private fun aplicarRegraDeRenovacao(usuario: Usuario) {
         if (AcessoMotoristaUtil.podePagarNovamente(usuario)) {
             // Se um checkout foi aberto e ainda estamos esperando a confirmação
-            // (listenerConfirmacao ativo), o botão continua desabilitado — senão
+            // (jobConfirmacao ativo), o botão continua desabilitado — senão
             // a volta do navegador reabilitaria e daria pra pagar em dobro.
-            btnPagar.isEnabled = listenerConfirmacao == null
+            btnPagar.isEnabled = jobConfirmacao == null
             tvAvisoRenovacao.visibility = View.GONE
         } else {
             val libera = AcessoMotoristaUtil.liberaRenovacaoEm(usuario) ?: return
@@ -141,28 +141,24 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     }
 
     private fun iniciarEscutaDeConfirmacao() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         layoutAguardando.visibility = View.VISIBLE
 
-        listenerConfirmacao?.remove()
-        listenerConfirmacao = FirebaseFirestore.getInstance().collection("usuarios").document(uid)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e(TAG, "Erro ao escutar confirmação de pagamento", error)
-                    return@addSnapshotListener
-                }
-                val expiraEm = snapshot?.getTimestamp("acessoMotoristaExpiraEm")?.toDate()?.time ?: return@addSnapshotListener
-                val agora = System.currentTimeMillis()
-                if (expiraEm > agora && expiraEm != expiraEmAntesDaCompra) {
-                    listenerConfirmacao?.remove()
-                    listenerConfirmacao = null
-                    layoutAguardando.visibility = View.GONE
+        jobConfirmacao?.cancel()
+        jobConfirmacao = lifecycleScope.launch {
+            // Espera o webhook mudar a validade do acesso pra uma data futura
+            // diferente da de antes da compra — só isso confirma o pagamento.
+            usuarioRepository.escutarAcessoMotorista()
+                .catch { Log.e(TAG, "Erro ao escutar confirmação de pagamento", it) }
+                .firstOrNull { expiraEm -> expiraEm > System.currentTimeMillis() && expiraEm != expiraEmAntesDaCompra }
+                ?: return@launch
 
-                    Toast.makeText(this, R.string.assinatura_motorista_sucesso, Toast.LENGTH_LONG).show()
-                    setResult(RESULT_OK)
-                    finish()
-                }
-            }
+            jobConfirmacao = null
+            layoutAguardando.visibility = View.GONE
+
+            Toast.makeText(this@AssinaturaMotoristaActivity, R.string.assinatura_motorista_sucesso, Toast.LENGTH_LONG).show()
+            setResult(RESULT_OK)
+            finish()
+        }
     }
 
     // Retorno do checkout via deep link (caronasapp://payment_success/...,
@@ -176,7 +172,7 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        listenerConfirmacao?.remove()
+        jobConfirmacao?.cancel()
     }
 
     companion object {

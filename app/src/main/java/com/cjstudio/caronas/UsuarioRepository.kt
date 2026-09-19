@@ -10,6 +10,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import javax.inject.Inject
@@ -259,5 +262,25 @@ class UsuarioRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun uidLogado(): String? = auth.currentUser?.uid
+
+    override fun estaLogado(): Boolean = auth.currentUser != null
+
+    override fun escutarAcessoMotorista(): Flow<Long> = callbackFlow {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            close(IllegalStateException("Não há sessão ativa."))
+            return@callbackFlow
+        }
+        val registro = colecaoUsuarios().document(uid).addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            snapshot?.getTimestamp("acessoMotoristaExpiraEm")?.toDate()?.time?.let { trySend(it) }
+        }
+        awaitClose { registro.remove() }
     }
 }

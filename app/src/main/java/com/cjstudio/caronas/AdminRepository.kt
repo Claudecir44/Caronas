@@ -1,6 +1,10 @@
 package com.cjstudio.caronas
 
 import android.net.Uri
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.functions.FirebaseFunctions
@@ -16,9 +20,11 @@ import javax.inject.Singleton
 
 @Singleton
 class AdminRepository @Inject constructor(
+    private val auth: FirebaseAuth,
     private val db: FirebaseFirestore,
     private val functions: FirebaseFunctions,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val prefs: DataStore<Preferences>
 ) : IAdminRepository {
 
     override suspend fun souAdmin(uid: String): Result<Boolean> {
@@ -365,6 +371,54 @@ class AdminRepository @Inject constructor(
                 doc.toObject(PagamentoMotorista::class.java)?.also { it.id = doc.id }
             }
             Result.success(pagamentos)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun uidLogado(): String? = auth.currentUser?.uid
+
+    override suspend fun loginAdmin(email: String, senha: String): Result<String> {
+        return try {
+            val firebaseUser = auth.signInWithEmailAndPassword(email, senha).await().user
+                ?: throw IllegalStateException("Falha ao entrar.")
+
+            // reload() antes de checar isEmailVerified — mesmo motivo do
+            // UsuarioRepository.login: sem isso o valor pode vir desatualizado
+            // mesmo já tendo validado o e-mail.
+            firebaseUser.reload().await()
+
+            // Mesma trava do login de usuário comum, com cooldown no reenvio (ver
+            // reenviarVerificacaoComCooldown).
+            if (!firebaseUser.isEmailVerified) {
+                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs)
+                auth.signOut()
+                throw EmailNaoVerificadoException(mensagem)
+            }
+
+            // Autenticar no mesmo Firebase Auth dos usuários comuns não basta pra
+            // entrar como admin — precisa também ter entrada em admins/{uid} (ver
+            // firestore.rules, função ehAdmin()).
+            val uid = firebaseUser.uid
+            if (!souAdmin(uid).getOrDefault(false)) {
+                auth.signOut()
+                throw AcessoAdminRestritoException()
+            }
+
+            prefs.edit { it[KEY_USUARIO_ID] = uid }
+            Result.success(uid)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun finalizarCadastroAdmin(uid: String, email: String, senha: String, foto: Uri?): Result<Unit> {
+        return try {
+            auth.signInWithEmailAndPassword(email, senha).await()
+            if (foto != null) atualizarFotoAdmin(uid, foto)
+            auth.currentUser?.sendEmailVerification()?.await()
+            auth.signOut()
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

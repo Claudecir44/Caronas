@@ -15,7 +15,8 @@
         android:gravity="center"
         android:paddingTop="36dp"
         android:paddingBottom="16dp"
-        android:paddingHorizontal="12dp" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp" />
 
     <ProgressBar
         android:id="@+id/progressBarPerfilPublico"
@@ -36,7 +37,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="12dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="16dp">
 
             <LinearLayout
@@ -49,6 +51,7 @@
                 android:layout_marginBottom="16dp">
 
                 <ImageView
+                    android:contentDescription="@string/cd_foto_perfil"
                     android:id="@+id/ivFotoPerfilPublico"
                     android:layout_width="88dp"
                     android:layout_height="88dp"

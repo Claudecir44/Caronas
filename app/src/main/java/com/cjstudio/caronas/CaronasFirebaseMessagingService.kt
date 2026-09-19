@@ -8,9 +8,10 @@ import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 // Mesmo padrão do MatchFirebaseMessagingService: mensagens SEMPRE
 // data-only (nunca um bloco "notification" mandado pelo servidor) — é
@@ -21,19 +22,26 @@ import com.google.firebase.messaging.RemoteMessage
 // Application.onCreate). Tocar na notificação sempre abre a tela principal
 // — sem deep-link pra tela específica (mesma simplificação do Match: abre
 // a lista, não o item exato).
+@AndroidEntryPoint
 class CaronasFirebaseMessagingService : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var usuarioRepository: IUsuarioRepository
+
+    @Inject
+    lateinit var notificacaoRepository: INotificacaoRepository
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        val uid = usuarioRepository.uidLogado()
         // BuildConfig.TIPO distingue as duas flavors desse mesmo serviço
         // compartilhado (ver SplashActivity) — o token do admin precisa ir
         // pra admins/{uid}, não usuarios/{uid} (senão o push de
         // notificarNovaManifestacao nunca acha destinatário).
         if (BuildConfig.TIPO == "admin") {
-            FcmTokenUtil.atualizarTokenAdmin(uid)
+            notificacaoRepository.atualizarTokenAdmin(uid)
         } else {
-            FcmTokenUtil.atualizarToken(uid)
+            notificacaoRepository.atualizarTokenUsuario(uid)
         }
     }
 

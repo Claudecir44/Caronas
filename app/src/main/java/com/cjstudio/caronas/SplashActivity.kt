@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.lifecycleScope
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -23,13 +22,16 @@ class SplashActivity : AppCompatActivity() {
     @Inject
     lateinit var prefs: DataStore<Preferences>
 
+    @Inject
+    lateinit var usuarioRepository: IUsuarioRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
         lifecycleScope.launch {
             try {
-                val logado = FirebaseAuth.getInstance().currentUser != null &&
+                val logado = usuarioRepository.estaLogado() &&
                     !prefs.data.first()[KEY_USUARIO_ID].isNullOrEmpty()
 
                 val destino = if (BuildConfig.TIPO == "admin") {

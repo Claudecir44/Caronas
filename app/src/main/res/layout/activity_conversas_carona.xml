@@ -15,7 +15,8 @@
         android:gravity="center"
         android:paddingTop="36dp"
         android:paddingBottom="16dp"
-        android:paddingHorizontal="12dp" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp" />
 
     <TextView
         android:id="@+id/tvSemConversas"

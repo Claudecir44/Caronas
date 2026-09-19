@@ -5,8 +5,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/fundo_cinza_claro"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="8dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- ========== TÍTULO + LOGO + MEU PERFIL/EDITAR PERFIL ========== -->
     <RelativeLayout
@@ -135,6 +137,7 @@
             android:gravity="start">
 
             <ImageView
+                android:contentDescription="@string/cd_foto_perfil"
                 android:id="@+id/ivFotoPerfil"
                 android:layout_width="55dp"
                 android:layout_height="55dp"
@@ -186,7 +189,8 @@
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
                     android:background="#D32F2F"
-                    android:paddingHorizontal="3dp"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:visibility="gone"
                     android:elevation="4dp" />
 
@@ -243,7 +247,8 @@
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
                     android:background="#D32F2F"
-                    android:paddingHorizontal="3dp"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:visibility="gone"
                     android:elevation="4dp" />
 
@@ -323,7 +328,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="#455A64"
                     android:textSize="13sp"
-                    android:paddingVertical="2dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="⭐⭐⭐⭐⭐  —  0" />
 
                 <TextView
@@ -332,7 +338,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="#455A64"
                     android:textSize="13sp"
-                    android:paddingVertical="2dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="⭐⭐⭐⭐  —  0" />
 
                 <TextView
@@ -341,7 +348,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="#455A64"
                     android:textSize="13sp"
-                    android:paddingVertical="2dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="⭐⭐⭐  —  0" />
 
                 <TextView
@@ -350,7 +358,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="#455A64"
                     android:textSize="13sp"
-                    android:paddingVertical="2dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="⭐⭐  —  0" />
 
                 <TextView
@@ -359,7 +368,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="#455A64"
                     android:textSize="13sp"
-                    android:paddingVertical="2dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="⭐  —  0" />
 
             </LinearLayout>

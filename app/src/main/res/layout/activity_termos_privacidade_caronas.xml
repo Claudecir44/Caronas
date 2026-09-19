@@ -15,13 +15,15 @@
         android:gravity="center"
         android:paddingTop="36dp"
         android:paddingBottom="16dp"
-        android:paddingHorizontal="16dp" />
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingHorizontal="16dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
         <TextView
             android:id="@+id/tvConteudoTermos"

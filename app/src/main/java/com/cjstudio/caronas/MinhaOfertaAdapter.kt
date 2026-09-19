@@ -117,6 +117,10 @@ class MinhaOfertaAdapter(
             if (posicaoAberta != -1) notifyItemChanged(posicaoAberta)
         }
 
+        // Viagem concluída não pode mais ser editada (o servidor também recusa, ver
+        // firestore.rules: viagemJaConcluida) — só sobra o Excluir. Visibilidade
+        // definida em todo bind, porque a view é reaproveitada pelo RecyclerView.
+        holder.btnEditar.visibility = if (StatusViagemUtil.jaConcluida(oferta.dataHoraPartida)) View.GONE else View.VISIBLE
         holder.btnEditar.setOnClickListener { onEditarClick(oferta) }
         holder.btnExcluir.setOnClickListener { onExcluirClick(oferta) }
     }

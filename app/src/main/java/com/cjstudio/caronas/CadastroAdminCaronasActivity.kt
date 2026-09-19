@@ -19,10 +19,8 @@ import coil3.request.error
 import coil3.request.placeholder
 import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 // Cria uma conta de admin nova (nome/sobrenome/email/telefone/cpf/foto,
@@ -100,7 +98,7 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
 
             // Foto de outro admin (não o logado) não é editável aqui — ver
             // comentário da classe.
-            val souEuMesmo = uidEditando == FirebaseAuth.getInstance().currentUser?.uid
+            val souEuMesmo = uidEditando == adminRepository.uidLogado()
             if (!souEuMesmo) {
                 ivFoto.isClickable = false
                 tvSelecionarFoto.visibility = View.GONE
@@ -214,20 +212,11 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.cadastrarAdmin(nome, sobrenome, email, telefone, cpf, senha, senhaMaster)
                 .onSuccess { uid ->
-                    // Sobe a foto: precisa de uma sessão autenticada como o
-                    // próprio uid (ver storage.rules), então loga com a
-                    // senha recém-criada só pra isso.
-                    try {
-                        val auth = FirebaseAuth.getInstance()
-                        auth.signInWithEmailAndPassword(email, senha).await()
-                        adminRepository.atualizarFotoAdmin(uid, fotoUriSelecionada!!)
-                        auth.currentUser?.sendEmailVerification()?.await()
-                        auth.signOut()
-                    } catch (_: Exception) {
-                        // A conta e o Firestore já foram criados com sucesso —
-                        // a foto pode ser adicionada depois; não desfaz o
-                        // cadastro por causa disso, só avisa.
-                    }
+                    // Foto + e-mail de verificação (precisa entrar como o novo admin, ver
+                    // AdminRepository.finalizarCadastroAdmin). A conta e o Firestore já
+                    // foram criados com sucesso — se isso falhar, não desfaz o cadastro;
+                    // a foto pode ser adicionada depois.
+                    adminRepository.finalizarCadastroAdmin(uid, email, senha, fotoUriSelecionada)
 
                     progressBar.visibility = View.GONE
                     Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_cadastro_sucesso, Toast.LENGTH_LONG).show()

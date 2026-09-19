@@ -36,7 +36,6 @@ import coil3.request.placeholder
 import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -67,6 +66,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var adminRepository: IAdminRepository
 
+    @Inject
+    lateinit var notificacaoRepository: INotificacaoRepository
+
     private lateinit var ivFoto: ImageView
     private lateinit var tvNome: TextView
     private lateinit var tvTituloSecao: TextView
@@ -79,7 +81,6 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private lateinit var badgeManifestacoes: TextView
     private lateinit var tvContadorSecao: TextView
     private var mostrandoArquivadas = false
-    private var badgeManifestacoesIniciado = false
 
     // ===== Seção "Financeiro" (ver mostrarFinanceiro) =====
     private lateinit var containerFiltroFinanceiro: LinearLayout
@@ -118,6 +119,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         etBuscaMensagens = findViewById(R.id.etBuscaMensagens)
         btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
         badgeManifestacoes = findViewById(R.id.badgeManifestacoes)
+        escutarBadgeManifestacoes()
         containerFiltroFinanceiro = findViewById(R.id.containerFiltroFinanceiro)
         spinnerPeriodoFinanceiro = findViewById(R.id.spinnerPeriodoFinanceiro)
         btnFiltrarFinanceiro = findViewById(R.id.btnFiltrarFinanceiro)
@@ -179,15 +181,11 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         // Recarrega sempre (não só no onCreate) — cobre a volta da tela de
         // Editar Perfil, caso o admin tenha editado o PRÓPRIO cadastro.
         carregarAdminLogado(ivFoto, tvNome)
-        if (!badgeManifestacoesIniciado) {
-            badgeManifestacoesIniciado = true
-            escutarBadgeManifestacoes()
-        }
     }
 
     private fun carregarAdminLogado(ivFoto: ImageView, tvNome: TextView) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FcmTokenUtil.atualizarTokenAdmin(uid)
+        val uid = adminRepository.uidLogado() ?: return
+        notificacaoRepository.atualizarTokenAdmin(uid)
         lifecycleScope.launch {
             adminRepository.buscarAdminLogado(uid).onSuccess { admin ->
                 tvNome.text = admin.nome?.ifEmpty { null } ?: admin.email ?: ""

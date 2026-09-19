@@ -1,6 +1,7 @@
 package com.cjstudio.caronas
 
 import android.net.Uri
+import kotlinx.coroutines.flow.Flow
 
 interface IUsuarioRepository {
     // Cria a conta (Auth + doc Firestore) e devolve o uid criado. Em
@@ -67,4 +68,14 @@ interface IUsuarioRepository {
     // pagamentosMotorista, gravada só pela Cloud Function), do mais recente
     // pro mais antigo — alimenta a lista "Meus pagamentos" da tela de acesso pago.
     suspend fun buscarMeusPagamentosMotorista(): Result<List<PagamentoMotorista>>
+
+    // Sessão atual (Firebase Auth) — as telas nunca falam com o FirebaseAuth
+    // direto, sempre por aqui.
+    fun uidLogado(): String?
+    fun estaLogado(): Boolean
+
+    // Validade do acesso pago do motorista em tempo real (millis; não emite
+    // enquanto o campo não existir) — a tela de pagamento escuta isso pra saber
+    // que o webhook confirmou a compra (ver AssinaturaMotoristaActivity).
+    fun escutarAcessoMotorista(): Flow<Long>
 }

@@ -62,7 +62,7 @@ class TelaCaronasActivity : AppCompatActivity() {
     lateinit var autocompleteRepository: IAutocompleteRepository
 
     @Inject
-    lateinit var auth: com.google.firebase.auth.FirebaseAuth
+    lateinit var notificacaoRepository: INotificacaoRepository
 
     private lateinit var ivFotoPerfil: ImageView
     private lateinit var tvPapelUsuario: TextView
@@ -797,6 +797,10 @@ class TelaCaronasActivity : AppCompatActivity() {
     // preenchidos com o que a oferta tem hoje. Antes só dava pra editar
     // data/hora/vagas/valor; rota era fixa depois de publicada.
     private fun abrirDialogEditarOferta(oferta: Carona) {
+        if (StatusViagemUtil.jaConcluida(oferta.dataHoraPartida)) {
+            Toast.makeText(this, R.string.minhas_ofertas_erro_editar_concluida, Toast.LENGTH_LONG).show()
+            return
+        }
         val view = layoutInflater.inflate(R.layout.dialog_editar_oferta, null)
         val etCidadeOrigem = view.findViewById<EditText>(R.id.etCidadeOrigemEditar)
         val etEnderecoOrigem = view.findViewById<EditText>(R.id.etEnderecoOrigemEditar)
@@ -1047,7 +1051,7 @@ class TelaCaronasActivity : AppCompatActivity() {
     // ou passageiro) pra mostrar no badge do botão Chat — mesmo espírito
     // do badgeMensagensNaoLidas do Match.
     private fun escutarBadgeChat() {
-        val meuId = auth.currentUser?.uid ?: return
+        val meuId = usuarioRepository.uidLogado() ?: return
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 // .catch evita que um erro do listener (ex.: permissão
@@ -1095,6 +1099,10 @@ class TelaCaronasActivity : AppCompatActivity() {
     // ISolicitacaoRepository.escutarContagemPendentes/
     // escutarContagemConfirmacoesNaoVistas). Chamado de dentro de
     // carregarPerfil, depois que o papel já é conhecido.
+    // Guardado por badgeMinhasOfertasIniciado (só roda uma vez, depois de o papel
+    // ser conhecido em carregarPerfil) — o aviso RepeatOnLifecycleWrongUsage do
+    // lint vem só de carregarPerfil ser chamado no onResume.
+    @Suppress("RepeatOnLifecycleWrongUsage")
     private fun escutarBadgeMinhasOfertasOuViagens(motorista: Boolean) {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -1162,7 +1170,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
                 usuarioAtual = usuario
-                FcmTokenUtil.atualizarToken(usuario.id)
+                notificacaoRepository.atualizarTokenUsuario(usuario.id)
                 if (!badgeMinhasOfertasIniciado) {
                     badgeMinhasOfertasIniciado = true
                     escutarBadgeMinhasOfertasOuViagens(usuario.motorista)

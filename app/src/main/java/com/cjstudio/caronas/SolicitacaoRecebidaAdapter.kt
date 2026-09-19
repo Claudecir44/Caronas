@@ -61,10 +61,11 @@ class SolicitacaoRecebidaAdapter(
         val solicitacao = solicitacoes[position]
         val context = holder.itemView.context
 
-        holder.tvRota.text = context.getString(
-            R.string.procurar_rota_formato,
-            solicitacao.cidadeOrigem ?: "",
-            solicitacao.cidadeDestino ?: ""
+        holder.tvRota.text = RotaTextoUtil.formatar(
+            context,
+            solicitacao.cidadeOrigem,
+            solicitacao.cidadeDestino,
+            corDestino = RotaTextoUtil.COR_DESTINO_VERMELHO
         )
         holder.tvDataHora.text = solicitacao.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
 

@@ -36,7 +36,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:textColor="#1E90FF"
+                    android:textColor="#000000"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:text="Origem → Destino" />
@@ -49,8 +49,10 @@
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
                     android:background="#1E90FF"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="3dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
                     android:layout_marginEnd="8dp"
                     android:text="SOLICITADA" />
 
@@ -80,7 +82,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="14dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:paddingBottom="14dp"
             android:visibility="gone">
 
@@ -98,6 +101,7 @@
                 android:layout_marginBottom="12dp">
 
                 <ImageView
+                    android:contentDescription="@string/cd_foto_perfil"
                     android:id="@+id/ivFotoPassageiro"
                     android:layout_width="48dp"
                     android:layout_height="48dp"

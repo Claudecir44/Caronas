@@ -14,7 +14,8 @@
         android:textColor="#B0BEC5"
         android:textSize="14sp"
         android:gravity="center"
-        android:layout_marginVertical="12dp" />
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp" />
 
     <TextView
         android:id="@+id/tvComentarioAvaliacao"

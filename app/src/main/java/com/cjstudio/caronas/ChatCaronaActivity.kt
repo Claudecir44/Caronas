@@ -12,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -25,7 +24,7 @@ class ChatCaronaActivity : AppCompatActivity() {
     lateinit var chatCaronaRepository: IChatCaronaRepository
 
     @Inject
-    lateinit var auth: FirebaseAuth
+    lateinit var usuarioRepository: IUsuarioRepository
 
     private lateinit var tvNomeOutro: TextView
     private lateinit var tvRota: TextView
@@ -76,7 +75,7 @@ class ChatCaronaActivity : AppCompatActivity() {
 
     private fun abrirConversa(conversa: ConversaCarona) {
         conversaAtual = conversa
-        val meuId = auth.currentUser?.uid
+        val meuId = usuarioRepository.uidLogado()
         tvNomeOutro.text = conversa.nomeOutroUsuario(meuId) ?: getString(R.string.procurar_motorista_desconhecido)
         tvRota.text = getString(R.string.procurar_rota_formato, conversa.cidadeOrigem ?: "", conversa.cidadeDestino ?: "")
 
@@ -85,7 +84,7 @@ class ChatCaronaActivity : AppCompatActivity() {
     }
 
     private fun escutarMensagens(conversaId: String) {
-        val meuId = auth.currentUser?.uid ?: return
+        val meuId = usuarioRepository.uidLogado() ?: return
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 chatCaronaRepository.escutarMensagens(conversaId).catch { }.collect { mensagens ->
@@ -118,7 +117,7 @@ class ChatCaronaActivity : AppCompatActivity() {
     // todos". Mensagem do outro: só "apagar só pra mim" — não posso apagar
     // pra todos uma mensagem que não é minha (mesmo padrão do Match).
     private fun mostrarDialogApagar(mensagem: MensagemCarona) {
-        val meuId = auth.currentUser?.uid
+        val meuId = usuarioRepository.uidLogado()
         val souRemetente = mensagem.remetenteId == meuId
 
         if (souRemetente) {

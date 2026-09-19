@@ -4,8 +4,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/fundo_cinza_claro"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="8dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- ========== TÍTULO + SAIR (mesmo formato da tela do usuário) ========== -->
     <RelativeLayout
@@ -183,7 +185,8 @@
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
                     android:background="#D32F2F"
-                    android:paddingHorizontal="3dp"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:visibility="gone"
                     android:elevation="4dp" />
 
@@ -292,7 +295,8 @@
                         android:background="@drawable/botao_azul_neon"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
-                        android:paddingHorizontal="14dp"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:layout_marginStart="8dp" />
 
                 </LinearLayout>
@@ -463,8 +467,10 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:background="@color/azul_neon_escuro"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="3dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
                     android:visibility="gone" />
 
             </LinearLayout>

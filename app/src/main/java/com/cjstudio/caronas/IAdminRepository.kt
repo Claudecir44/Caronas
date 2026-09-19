@@ -3,6 +3,11 @@ package com.cjstudio.caronas
 import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 
+// Falhas de negócio do login de admin — a tela troca cada uma pela mensagem
+// certa (as outras caem no erro genérico).
+class EmailNaoVerificadoException(mensagem: String) : Exception(mensagem)
+class AcessoAdminRestritoException : Exception("Acesso restrito a administradores.")
+
 interface IAdminRepository {
     // Checa se o uid tem entrada na coleção "admins" (ver firestore.rules,
     // função ehAdmin()) — chamado logo após o login na flavor admin, pra
@@ -144,4 +149,18 @@ interface IAdminRepository {
     // paginação" do resto do painel. Leitura direta, liberada pra qualquer
     // admin (firestore.rules: pagamentosMotorista allow read: if ehAdmin()).
     suspend fun listarPagamentosMotorista(): Result<List<PagamentoMotorista>>
+
+    // Sessão atual (Firebase Auth) — as telas nunca falam com o FirebaseAuth direto.
+    fun uidLogado(): String?
+
+    // Login completo da flavor admin: Auth + e-mail verificado (reenvia com
+    // cooldown) + entrada em admins/{uid}; guarda o uid no DataStore. Devolve o
+    // uid. Falhas: EmailNaoVerificadoException, AcessoAdminRestritoException ou
+    // qualquer outra (rede, senha errada).
+    suspend fun loginAdmin(email: String, senha: String): Result<String>
+
+    // Depois de criar um admin (Cloud Function cadastrarAdmin): entra com a senha
+    // recém-criada pra poder subir a foto (storage.rules exige o próprio uid) e
+    // mandar o e-mail de verificação, e sai em seguida.
+    suspend fun finalizarCadastroAdmin(uid: String, email: String, senha: String, foto: Uri?): Result<Unit>
 }

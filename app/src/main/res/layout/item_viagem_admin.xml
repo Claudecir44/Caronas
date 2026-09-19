@@ -38,8 +38,10 @@
                 android:textStyle="bold"
                 android:textColor="@color/grafite"
                 android:background="#14455A64"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:text="ATIVA" />
 
         </LinearLayout>

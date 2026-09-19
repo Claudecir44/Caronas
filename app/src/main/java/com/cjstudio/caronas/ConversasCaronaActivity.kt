@@ -12,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -25,7 +24,7 @@ class ConversasCaronaActivity : AppCompatActivity() {
     lateinit var chatCaronaRepository: IChatCaronaRepository
 
     @Inject
-    lateinit var auth: FirebaseAuth
+    lateinit var usuarioRepository: IUsuarioRepository
 
     private lateinit var rvConversas: RecyclerView
     private lateinit var tvSemConversas: TextView
@@ -38,7 +37,7 @@ class ConversasCaronaActivity : AppCompatActivity() {
         tvSemConversas = findViewById(R.id.tvSemConversas)
         rvConversas.layoutManager = LinearLayoutManager(this)
 
-        val meuId = auth.currentUser?.uid ?: return
+        val meuId = usuarioRepository.uidLogado() ?: return
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {

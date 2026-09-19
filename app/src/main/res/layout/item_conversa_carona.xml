@@ -13,10 +13,13 @@
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="12dp">
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
 
         <ImageView
+            android:contentDescription="@string/cd_foto_perfil"
             android:id="@+id/ivFotoConversa"
             android:layout_width="50dp"
             android:layout_height="50dp"
@@ -86,7 +89,8 @@
                 android:textColor="#FFFFFF"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                android:paddingHorizontal="4dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:layout_marginTop="4dp"
                 android:background="@drawable/botao_azul_neon"
                 android:visibility="gone"

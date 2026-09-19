@@ -80,7 +80,6 @@
     <string name="login_suporte_botao_enviar">Enviar</string>
     <string name="login_suporte_erro_campos_obrigatorios">Preencha nome completo, e-mail e telefone.</string>
     <string name="login_suporte_reenvio_enviado">E-mail de validação reenviado — confira também a caixa de spam.</string>
-    <string name="login_suporte_reenvio_ja_verificado">Esse cadastro já está verificado. Você já pode entrar normalmente.</string>
     <string name="login_suporte_erro_generico">Erro: %1$s</string>
 
     <!-- Notificações push -->
@@ -134,7 +133,6 @@
     <string name="tela_botao_minhas_ofertas">Minhas Ofertas</string>
     <string name="tela_botao_minhas_viagens">Minhas Viagens</string>
     <string name="tela_botao_meu_perfil">Meu Perfil</string>
-    <string name="tela_botao_editar_perfil">Editar Perfil</string>
     <string name="tela_oferecer_precisa_ser_motorista">Para oferecer uma carona você precisa estar cadastrado como motorista, com veículo. Complete seu cadastro em Meu Perfil.</string>
 
     <!-- Oferecer carona -->
@@ -196,7 +194,6 @@
     <string name="procurar_erro_solicitar">Erro ao solicitar vaga: %1$s</string>
 
     <!-- Minhas Ofertas (motorista) -->
-    <string name="minhas_ofertas_titulo">Minhas Ofertas</string>
     <string name="minhas_ofertas_secao_titulo">Viagens Ofertadas</string>
     <string name="minhas_ofertas_vazio">Você ainda não publicou nenhuma carona.</string>
     <string name="minhas_ofertas_erro_carregar">Erro ao carregar suas ofertas: %1$s</string>
@@ -206,6 +203,7 @@
     <string name="minhas_ofertas_total_recebido_formato">Total recebido: R$ %1$s</string>
     <string name="minhas_ofertas_botao_editar">Editar</string>
     <string name="minhas_ofertas_botao_excluir">Excluir</string>
+    <string name="minhas_ofertas_erro_editar_concluida">Viagens concluídas não podem mais ser editadas.</string>
     <string name="minhas_ofertas_botao_salvar">Salvar Alterações</string>
     <string name="minhas_ofertas_editar_titulo">✏️ Editar Oferta</string>
     <string name="minhas_ofertas_salva_sucesso">Oferta atualizada com sucesso!</string>
@@ -220,7 +218,6 @@
     <string name="minhas_ofertas_detalhe_com_endereco">%1$s — %2$s</string>
 
     <!-- Minhas Viagens (passageiro) -->
-    <string name="minhas_viagens_titulo">Minhas Viagens</string>
     <string name="minhas_viagens_vazio">Você ainda não solicitou nenhuma vaga.</string>
     <string name="minhas_viagens_erro_carregar">Erro ao carregar suas viagens: %1$s</string>
     <string name="minhas_viagens_total_pago_formato">Total pago: R$ %1$s</string>
@@ -279,7 +276,6 @@
 
     <!-- Perfil público -->
     <string name="perfil_publico_titulo">Perfil</string>
-    <string name="perfil_publico_carregando">Carregando perfil…</string>
     <string name="perfil_publico_erro_carregar">Erro ao carregar perfil: %1$s</string>
     <string name="perfil_publico_sem_avaliacoes">Ainda sem avaliações.</string>
     <string name="perfil_publico_media_formato">%1$.1f de 5 (%2$d avaliações)</string>
@@ -322,12 +318,9 @@
     <!-- Admin -->
     <string name="admin_login_titulo">Admin Caronas</string>
     <string name="admin_titulo_dashboard">Administração</string>
-    <string name="admin_painel_em_construcao">Painel administrativo em construção — em breve.</string>
     <string name="login_erro_acesso_restrito_admin">Acesso restrito a administradores.</string>
     <string name="admin_botao_motoristas">Motoristas</string>
     <string name="admin_botao_passageiros">Passageiros</string>
-    <string name="admin_botao_viagens_motorista">Viagens (Motoristas)</string>
-    <string name="admin_botao_viagens_passageiro">Viagens (Passageiros)</string>
     <string name="admin_botao_viagens">Viagens</string>
     <string name="admin_viagens_escolher_titulo">Ver viagens de:</string>
     <string name="admin_botao_editar_perfil">Editar Perfil</string>
@@ -430,7 +423,6 @@
          RelatoriosFinanceirosActivity do Match). -->
     <string name="admin_botao_financeiro">💰 Financeiro</string>
     <string name="financeiro_titulo">Financeiro</string>
-    <string name="financeiro_periodo_label">Período:</string>
     <string name="financeiro_botao_filtrar">Filtrar</string>
     <string name="financeiro_data_inicial">De:</string>
     <string name="financeiro_data_final">Até:</string>
@@ -440,10 +432,8 @@
     <string name="financeiro_total_pagamentos">Total de Pagamentos</string>
     <string name="financeiro_motoristas_unicos">Motoristas Únicos</string>
     <string name="financeiro_total_arrecadado">Total Arrecadado</string>
-    <string name="financeiro_detalhes_titulo">📋 Detalhes dos Pagamentos</string>
     <string name="financeiro_sem_dados">Nenhum pagamento encontrado nesse período.</string>
     <string name="financeiro_carregando_dados">Carregando dados…</string>
-    <string name="financeiro_erro_carregar">Erro ao carregar: %1$s</string>
     <string name="financeiro_status_ativo">✅ Ativo</string>
     <string name="financeiro_status_expirado">Expirado</string>
     <string name="financeiro_valor_format">R$ %.2f</string>
@@ -476,4 +466,5 @@
          painel admin (ver UsuarioAdminAdapter, item_usuario_admin.xml). -->
     <string name="admin_usuario_viagens_formato">Viagens: %1$d</string>
     <string name="admin_usuario_valor_formato">💰 R$ %.2f</string>
+    <string name="cd_foto_perfil">Foto de perfil</string>
 </resources>
