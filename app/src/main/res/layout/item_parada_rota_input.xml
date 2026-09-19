@@ -38,6 +38,10 @@
 
     </LinearLayout>
 
+    <TextView
+        style="@style/RotuloCampoCaronas"
+        android:text="@string/oferecer_parada_cidade_hint" />
+
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
@@ -61,11 +65,15 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <TextView
+        style="@style/RotuloCampoCaronas"
+        android:layout_marginTop="8dp"
+        android:text="@string/oferecer_parada_endereco_hint" />
+
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         app:boxBackgroundColor="#FFFFFF"
         app:boxCornerRadiusTopStart="10dp"
         app:boxCornerRadiusTopEnd="10dp"

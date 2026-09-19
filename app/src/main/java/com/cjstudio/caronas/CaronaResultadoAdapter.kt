@@ -67,11 +67,7 @@ class CaronaResultadoAdapter(
         // inteira do motorista. Uma parada em outro pedaço da viagem, pra
         // pegar outro passageiro, não é da conta de quem só vai andar
         // deste trecho pra cá.
-        holder.tvRota.text = context.getString(
-            R.string.procurar_rota_formato,
-            resultado.cidadeEmbarque,
-            resultado.cidadeDesembarque
-        )
+        holder.tvRota.text = RotaTextoUtil.formatar(context, resultado.cidadeEmbarque, resultado.cidadeDesembarque)
         holder.tvDataHora.text = carona.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
 
         // Só o primeiro nome do motorista aqui — nome completo só depois de

@@ -317,7 +317,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                         adapterResultadosBusca = CaronaResultadoAdapter(
                             resultados,
                             onSolicitarClick = { resultado -> solicitarVaga(resultado) },
-                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId) }
+                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId, comoMotorista = true) }
                         )
                         rvResultadosBusca.adapter = adapterResultadosBusca
                     }
@@ -471,7 +471,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                             onCancelarClick = { confirmarCancelarViagem(it) },
                             onChatClick = { abrirChatViagem(it) },
                             onAvaliarClick = { abrirDialogAvaliarMotorista(it) },
-                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId) },
+                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId, comoMotorista = true) },
                             onExcluirLongClick = { confirmarExcluirViagem(it) }
                         )
                     }
@@ -604,7 +604,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                             onChatClick = { abrirChatViagem(it) },
                             onExcluirLongClick = { confirmarExcluirSolicitacao(it) },
                             onAvaliarClick = { abrirDialogAvaliarPassageiro(it) },
-                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId) },
+                            onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId, comoMotorista = false) },
                             onCancelarClick = { confirmarCancelarComoMotorista(it) }
                         )
                     }
@@ -961,9 +961,14 @@ class TelaCaronasActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun abrirPerfilPublico(usuarioId: String) {
+    // comoMotorista = true: passageiro abrindo o perfil de um motorista (busca,
+    // Minhas Viagens) — mostra o carro. false: motorista abrindo o perfil de um
+    // passageiro (Solicitações Recebidas) — nunca mostra carro, mesmo que essa
+    // pessoa também seja motorista.
+    private fun abrirPerfilPublico(usuarioId: String, comoMotorista: Boolean) {
         val intent = Intent(this, PerfilPublicoActivity::class.java)
         intent.putExtra(PerfilPublicoActivity.EXTRA_USUARIO_ID, usuarioId)
+        intent.putExtra(PerfilPublicoActivity.EXTRA_EXIBIR_COMO_MOTORISTA, comoMotorista)
         startActivity(intent)
     }
 
@@ -1124,20 +1129,7 @@ class TelaCaronasActivity : AppCompatActivity() {
             // existe pro motorista — é quem tem o limite de 10 caronas
             // gratuitas (ver AcessoMotoristaUtil).
             tvContadorViagensGratis.visibility = View.VISIBLE
-            val acessoPagoValido = usuario.acessoMotoristaExpiraEm?.time?.let { it > System.currentTimeMillis() } == true
-            tvContadorViagensGratis.text = if (acessoPagoValido) {
-                getString(R.string.tela_contador_viagens_gratis_pago_formato, formatoDataOferta.format(usuario.acessoMotoristaExpiraEm!!))
-            } else {
-                // Mostra quantas AINDA RESTAM (não quantas já usou) — pedido
-                // explícito do usuário: "1/10" (já usou 1) confundia, "09/10"
-                // (restam 9) deixa claro quanto ainda dá pra oferecer grátis.
-                val usadas = minOf(usuario.caronasOferecidas, AcessoMotoristaUtil.CARONAS_GRATUITAS)
-                getString(
-                    R.string.tela_contador_viagens_gratis_formato,
-                    AcessoMotoristaUtil.CARONAS_GRATUITAS - usadas,
-                    AcessoMotoristaUtil.CARONAS_GRATUITAS
-                )
-            }
+            tvContadorViagensGratis.text = AcessoMotoristaUtil.textoStatus(this, usuario)
 
             lifecycleScope.launch {
                 caronaRepository.buscarMinhasOfertas().onSuccess { ofertas ->

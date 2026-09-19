@@ -62,11 +62,7 @@ class MinhaViagemAdapter(
         val viagem = viagens[position]
         val context = holder.itemView.context
 
-        holder.tvRota.text = context.getString(
-            R.string.procurar_rota_formato,
-            viagem.cidadeOrigem ?: "",
-            viagem.cidadeDestino ?: ""
-        )
+        holder.tvRota.text = RotaTextoUtil.formatar(context, viagem.cidadeOrigem, viagem.cidadeDestino)
         holder.tvDataHora.text = viagem.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
         holder.tvValorPago.text = context.getString(
             R.string.minhas_viagens_valor_pago_formato,

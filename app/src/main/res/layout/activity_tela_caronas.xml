@@ -404,12 +404,8 @@
 
             <TextView
                 android:id="@+id/tvTituloSecaoDois"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/TituloSecaoCaronas"
                 android:text="@string/solicitacoes_recebidas_titulo"
-                android:textColor="@color/azul_neon"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="10dp"
                 android:visibility="gone" />

@@ -64,6 +64,9 @@ class PerfilPublicoActivity : AppCompatActivity() {
         rvAvaliacoes = findViewById(R.id.rvAvaliacoesPerfilPublico)
         rvAvaliacoes.layoutManager = LinearLayoutManager(this)
 
+        if (intent.hasExtra(EXTRA_EXIBIR_COMO_MOTORISTA)) {
+            exibirComoMotorista = intent.getBooleanExtra(EXTRA_EXIBIR_COMO_MOTORISTA, false)
+        }
         val usuarioId = intent.getStringExtra(EXTRA_USUARIO_ID)
         if (usuarioId == null) {
             finish()
@@ -71,6 +74,13 @@ class PerfilPublicoActivity : AppCompatActivity() {
         }
         carregarPerfil(usuarioId)
     }
+
+    // Papel em que a pessoa está sendo vista — decidido por QUEM ABRIU o perfil, não
+    // pelo cadastro: o mesmo usuário pode ser motorista e passageiro, e o motorista
+    // que abre o perfil de um passageiro (Solicitações Recebidas) não deve ver o
+    // carro dele, mesmo que essa pessoa também seja motorista cadastrada.
+    // Sem o extra, cai no comportamento antigo (papel da última sessão).
+    private var exibirComoMotorista: Boolean? = null
 
     private fun carregarPerfil(usuarioId: String) {
         lifecycleScope.launch {
@@ -100,10 +110,11 @@ class PerfilPublicoActivity : AppCompatActivity() {
 
     private fun preencherPerfil(usuario: Usuario) {
         tvNome.text = usuario.nomeCompleto ?: ""
-        tvPapel.text = getString(if (usuario.motorista) R.string.perfil_publico_motorista else R.string.perfil_publico_passageiro)
+        val comoMotorista = exibirComoMotorista ?: usuario.motorista
+        tvPapel.text = getString(if (comoMotorista) R.string.perfil_publico_motorista else R.string.perfil_publico_passageiro)
 
         val veiculo = usuario.veiculo
-        if (usuario.motorista && veiculo != null && veiculo.estaPreenchido()) {
+        if (comoMotorista && veiculo != null && veiculo.estaPreenchido()) {
             tvCarro.visibility = View.VISIBLE
             tvCarro.text = getString(
                 R.string.minhas_viagens_carro_formato,
@@ -147,5 +158,6 @@ class PerfilPublicoActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_USUARIO_ID = "usuarioId"
+        const val EXTRA_EXIBIR_COMO_MOTORISTA = "exibirComoMotorista"
     }
 }

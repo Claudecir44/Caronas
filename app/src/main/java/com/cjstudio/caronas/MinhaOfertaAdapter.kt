@@ -15,6 +15,12 @@ import java.util.Locale
 // destino, com endereço quando houver), mesmo espírito de
 // MinhaViagemAdapter. Editar/Excluir continuam sempre visíveis, não
 // dependem de expandir.
+//
+// A primeira linha da lista é o título "Viagens Ofertadas" (view type próprio,
+// item_titulo_secao.xml) — fica dentro do adapter, e não como TextView solto
+// na tela, porque o mesmo RecyclerView é reaproveitado por outros modos
+// (busca, Minhas Viagens, Avaliações) e assim o título nunca aparece fora de
+// Minhas Ofertas. Por isso a posição do adapter é sempre a da oferta + 1.
 class MinhaOfertaAdapter(
     private val ofertas: List<Carona>,
     // Vagas ainda livres da rota inteira de cada oferta (id -> vagas), já
@@ -29,10 +35,14 @@ class MinhaOfertaAdapter(
     private val totalRecebidoPorOferta: Map<String, Double> = emptyMap(),
     private val onEditarClick: (Carona) -> Unit,
     private val onExcluirClick: (Carona) -> Unit
-) : RecyclerView.Adapter<MinhaOfertaAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
     private var posicaoAberta = -1
+
+    class TituloViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvTitulo: TextView = view.findViewById(R.id.tvTituloSecaoLista)
+    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val header: LinearLayout = view.findViewById(R.id.headerMinhaOferta)
@@ -48,20 +58,27 @@ class MinhaOfertaAdapter(
         val btnExcluir: Button = view.findViewById(R.id.btnExcluirOferta)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_minha_oferta, parent, false)
-        return ViewHolder(view)
+    override fun getItemViewType(position: Int) = if (position == 0) TIPO_TITULO else TIPO_OFERTA
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TIPO_TITULO) {
+            TituloViewHolder(inflater.inflate(R.layout.item_titulo_secao, parent, false))
+        } else {
+            ViewHolder(inflater.inflate(R.layout.item_minha_oferta, parent, false))
+        }
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val oferta = ofertas[position]
+    override fun onBindViewHolder(viewHolder: RecyclerView.ViewHolder, position: Int) {
+        if (viewHolder is TituloViewHolder) {
+            viewHolder.tvTitulo.setText(R.string.minhas_ofertas_secao_titulo)
+            return
+        }
+        val holder = viewHolder as ViewHolder
+        val oferta = ofertas[position - 1]
         val context = holder.itemView.context
 
-        holder.tvRota.text = context.getString(
-            R.string.procurar_rota_formato,
-            oferta.cidadeOrigem ?: "",
-            oferta.cidadeDestino ?: ""
-        )
+        holder.tvRota.text = RotaTextoUtil.formatar(context, oferta.cidadeOrigem, oferta.cidadeDestino)
         holder.tvDataHora.text = oferta.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
         val vagas = oferta.id?.let { vagasDisponiveisPorOferta[it] } ?: oferta.vagas
         holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, vagas)
@@ -135,5 +152,12 @@ class MinhaOfertaAdapter(
         }
     }
 
-    override fun getItemCount() = ofertas.size
+    // +1 pela linha de título "Viagens Ofertadas" — e nenhuma linha quando não
+    // há oferta (a tela mostra a mensagem de lista vazia no lugar).
+    override fun getItemCount() = if (ofertas.isEmpty()) 0 else ofertas.size + 1
+
+    private companion object {
+        const val TIPO_TITULO = 0
+        const val TIPO_OFERTA = 1
+    }
 }

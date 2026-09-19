@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Título de seção que abre uma lista (hoje: "Viagens Ofertadas", primeira linha
+     do MinhaOfertaAdapter) — mesmo estilo de "Solicitações Recebidas". -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tvTituloSecaoLista"
+    style="@style/TituloSecaoCaronas"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="10dp" />

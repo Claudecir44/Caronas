@@ -115,7 +115,7 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
         }
 
         val veiculo = usuario.veiculo
-        if (usuario.motorista && veiculo != null) {
+        if (veiculo != null && veiculo.estaPreenchido()) {
             containerVeiculo.visibility = View.VISIBLE
             etVeiculoMarca.setText(veiculo.marca ?: "")
             etVeiculoModelo.setText(veiculo.modelo ?: "")

@@ -244,4 +244,20 @@ class UsuarioRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // Ordena aqui, no cliente, em vez de orderBy no Firestore: whereEqualTo +
+    // orderBy em outro campo exigiria um índice composto novo, e um motorista
+    // tem no máximo alguns documentos (um por mês pago).
+    override suspend fun buscarMeusPagamentosMotorista(): Result<List<PagamentoMotorista>> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw IllegalStateException("Usuário não autenticado.")
+            val snapshot = db.collection("pagamentosMotorista").whereEqualTo("usuarioId", uid).get().await()
+            val pagamentos = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(PagamentoMotorista::class.java)?.also { it.id = doc.id }
+            }.sortedByDescending { it.dataCompra ?: 0L }
+            Result.success(pagamentos)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

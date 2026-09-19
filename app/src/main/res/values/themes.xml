@@ -29,4 +29,25 @@
         <item name="android:focusable">true</item>
     </style>
 
+    <!-- Título pequeno, preto, alinhado à esquerda, que vai ACIMA de cada campo
+         de digitação (repete o mesmo texto do hint que aparece dentro dele) —
+         usado na tela Oferecer Carona. -->
+    <!-- Título de seção da tela Minhas Ofertas ("Viagens Ofertadas" e
+         "Solicitações Recebidas"): mesma letra, tamanho e cor nos dois. -->
+    <style name="TituloSecaoCaronas">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#000000</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="RotuloCampoCaronas">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#000000</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+    </style>
+
 </resources>

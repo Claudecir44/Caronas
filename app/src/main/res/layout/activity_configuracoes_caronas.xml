@@ -22,6 +22,74 @@
             android:paddingTop="28dp"
             android:paddingBottom="28dp" />
 
+        <!-- Só pro motorista (visibilidade decidida em
+             ConfiguracoesCaronasActivity) — abre o checkout do acesso pago
+             (R$15,99 = 30 dias) e mostra o status logo abaixo do título. -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardConfigPagamentos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardElevation="3dp">
+
+            <LinearLayout
+                android:id="@+id/btnConfigPagamentos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icone_config"
+                    android:text="💳"
+                    android:textSize="20sp"
+                    android:gravity="center"
+                    android:layout_marginEnd="14dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/config_botao_pagamentos"
+                        android:textColor="#222222"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvConfigPagamentosStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="#777777"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textSize="22sp"
+                    android:textColor="#B0BEC5" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -55,54 +123,6 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/config_botao_termos"
-                    android:textColor="#222222"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="›"
-                    android:textSize="22sp"
-                    android:textColor="#B0BEC5" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardElevation="3dp">
-
-            <LinearLayout
-                android:id="@+id/btnConfigEditarPerfil"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
-
-                <TextView
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_icone_config"
-                    android:text="👤"
-                    android:textSize="20sp"
-                    android:gravity="center"
-                    android:layout_marginEnd="14dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/config_botao_editar_perfil"
                     android:textColor="#222222"
                     android:textSize="15sp"
                     android:textStyle="bold" />

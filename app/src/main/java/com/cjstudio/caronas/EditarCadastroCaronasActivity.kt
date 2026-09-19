@@ -173,13 +173,17 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
             veiculo = Veiculo(modelo = modelo, marca = marca, cor = cor, placa = placa)
         }
 
-        // Não mexe em "motorista" (papel da sessão atual) — isso é decisão
-        // de login (LoginCaronasActivity), não de editar o perfil. Salvar
-        // aqui só atualiza dados cadastrais e o veículo.
+        // "motorista" é o papel da sessão atual (decidido no login, ver
+        // LoginCaronasActivity) — editar o perfil nunca PASSA a pessoa pra motorista,
+        // mas se ela desmarcou "sou motorista" (veículo apagado) enquanto estava
+        // logada como motorista, o papel cai pra passageiro na hora: sem veículo
+        // ela deixa de ser motorista, e a tela principal deixa de oferecer as
+        // ações de motorista sem precisar sair e entrar de novo.
         val usuarioAtualizado = base.copy(
             nomeCompleto = nome,
             telefone = telefone,
-            veiculo = veiculo
+            veiculo = veiculo,
+            motorista = base.motorista && souMotorista
         )
 
         progressBar.visibility = View.VISIBLE

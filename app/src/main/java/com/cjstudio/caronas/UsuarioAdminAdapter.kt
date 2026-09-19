@@ -28,6 +28,9 @@ class UsuarioAdminAdapter(
     // por uid — só preenchidos/exibidos nas listas de Motoristas/
     // Passageiros, escondidos na seleção de usuário da busca de Mensagens
     // (mostrarEstatisticas = false lá, sem relação com viagens/dinheiro).
+    // Na lista de Passageiros o carro não aparece, mesmo de quem também é
+    // motorista (a pessoa está ali como passageiro) — só em Motoristas.
+    private val mostrarVeiculo: Boolean = true,
     private val mostrarEstatisticas: Boolean = false,
     private val viagensPorUsuario: Map<String, Int> = emptyMap(),
     private val valorPorUsuario: Map<String, Double> = emptyMap()
@@ -57,7 +60,7 @@ class UsuarioAdminAdapter(
         holder.tvTelefone.text = usuario.telefone ?: ""
 
         val veiculo = usuario.veiculo
-        if (veiculo != null && veiculo.estaPreenchido()) {
+        if (mostrarVeiculo && veiculo != null && veiculo.estaPreenchido()) {
             holder.tvVeiculo.visibility = View.VISIBLE
             holder.tvVeiculo.text = context.getString(
                 R.string.admin_veiculo_formato, veiculo.marca, veiculo.modelo, veiculo.cor, veiculo.placa

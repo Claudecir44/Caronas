@@ -253,7 +253,11 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.listarTodosUsuarios()
                 .onSuccess { usuarios ->
-                    val passageiros = usuarios.filter { it.veiculo?.estaPreenchido() != true }
+                    // Todo cadastro é passageiro; quem também marcou "sou
+                    // motorista" (veículo preenchido) continua aqui E entra na
+                    // lista de Motoristas. Desmarcar apaga o veículo, então a
+                    // pessoa sai de Motoristas na próxima vez que a lista abrir.
+                    val passageiros = usuarios
                     exibirContadorSecao(passageiros.size)
                     // Viagens realizadas + total pago de cada passageiro (ver
                     // comentário equivalente em mostrarMotoristas acima).
@@ -264,6 +268,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                             lista,
                             onClick = { usuario -> abrirDetalhesUsuario(usuario) },
                             onLongClick = { usuario -> confirmarRemoverUsuario(usuario) { mostrarPassageiros() } },
+                            mostrarVeiculo = false,
                             mostrarEstatisticas = true,
                             viagensPorUsuario = viagensPorPassageiro,
                             valorPorUsuario = pagoPorPassageiro

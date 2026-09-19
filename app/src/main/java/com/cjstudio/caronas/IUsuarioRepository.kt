@@ -62,4 +62,9 @@ interface IUsuarioRepository {
     // functions/index.js:createPaymentPreferenceMotorista) e devolve a URL
     // de checkout (initPoint) pra abrir no navegador.
     suspend fun iniciarPagamentoAcessoMotorista(): Result<String>
+
+    // Histórico de pagamentos do PRÓPRIO motorista logado (coleção
+    // pagamentosMotorista, gravada só pela Cloud Function), do mais recente
+    // pro mais antigo — alimenta a lista "Meus pagamentos" da tela de acesso pago.
+    suspend fun buscarMeusPagamentosMotorista(): Result<List<PagamentoMotorista>>
 }

@@ -4,9 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -15,6 +17,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 // Checkout do acesso pago do motorista — R$15,99 = 30 dias avulsos, sem
@@ -27,6 +32,11 @@ import javax.inject.Inject
 // documento usuarios/{uid} até acessoMotoristaExpiraEm mudar — quem decide
 // se o pagamento foi aprovado é sempre esse listener, nunca o retorno do
 // deep link em si (ver onNewIntent).
+//
+// Abaixo do botão de pagar fica "Meus pagamentos" (data, valor e validade de
+// cada pagamento) e, enquanto o acesso atual ainda tem mais de 2 dias, o botão
+// fica desabilitado com o aviso de quando dá pra renovar (mesma regra que
+// createPaymentPreferenceMotorista aplica no servidor — a trava de verdade).
 @AndroidEntryPoint
 class AssinaturaMotoristaActivity : AppCompatActivity() {
 
@@ -35,6 +45,10 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
 
     private lateinit var btnPagar: Button
     private lateinit var layoutAguardando: LinearLayout
+    private lateinit var tvAvisoRenovacao: TextView
+    private lateinit var tvSemPagamentos: TextView
+    private lateinit var containerPagamentos: LinearLayout
+    private val formatoData = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
     private var listenerConfirmacao: ListenerRegistration? = null
     private var expiraEmAntesDaCompra: Long? = null
 
@@ -44,8 +58,62 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
 
         btnPagar = findViewById(R.id.btnPagarAssinaturaMotorista)
         layoutAguardando = findViewById(R.id.layoutAguardandoConfirmacaoMotorista)
+        tvAvisoRenovacao = findViewById(R.id.tvAvisoRenovacaoMotorista)
+        tvSemPagamentos = findViewById(R.id.tvSemPagamentosMotorista)
+        containerPagamentos = findViewById(R.id.containerMeusPagamentosMotorista)
 
         btnPagar.setOnClickListener { iniciarPagamento() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        carregarStatusEPagamentos()
+    }
+
+    // Relê usuário e pagamentos toda vez que a tela volta ao topo — cobre a
+    // volta do checkout e a virada do dia (o botão libera sozinho quando entra
+    // na janela de 2 dias).
+    private fun carregarStatusEPagamentos() {
+        lifecycleScope.launch {
+            usuarioRepository.buscarUsuarioLogado().onSuccess { usuario -> aplicarRegraDeRenovacao(usuario) }
+            usuarioRepository.buscarMeusPagamentosMotorista()
+                .onSuccess { mostrarPagamentos(it) }
+                .onFailure {
+                    Log.e(TAG, "Erro ao carregar pagamentos", it)
+                    Toast.makeText(this@AssinaturaMotoristaActivity, R.string.assinatura_motorista_erro_carregar_pagamentos, Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private fun aplicarRegraDeRenovacao(usuario: Usuario) {
+        if (AcessoMotoristaUtil.podePagarNovamente(usuario)) {
+            // Se um checkout foi aberto e ainda estamos esperando a confirmação
+            // (listenerConfirmacao ativo), o botão continua desabilitado — senão
+            // a volta do navegador reabilitaria e daria pra pagar em dobro.
+            btnPagar.isEnabled = listenerConfirmacao == null
+            tvAvisoRenovacao.visibility = View.GONE
+        } else {
+            val libera = AcessoMotoristaUtil.liberaRenovacaoEm(usuario) ?: return
+            btnPagar.isEnabled = false
+            tvAvisoRenovacao.text = getString(R.string.assinatura_motorista_renovacao_bloqueada, formatoData.format(Date(libera)))
+            tvAvisoRenovacao.visibility = View.VISIBLE
+        }
+    }
+
+    private fun mostrarPagamentos(pagamentos: List<PagamentoMotorista>) {
+        containerPagamentos.removeAllViews()
+        tvSemPagamentos.visibility = if (pagamentos.isEmpty()) View.VISIBLE else View.GONE
+        val inflater = LayoutInflater.from(this)
+        for (p in pagamentos) {
+            val linha = inflater.inflate(R.layout.item_meu_pagamento_motorista, containerPagamentos, false)
+            linha.findViewById<TextView>(R.id.tvPagamentoData).text =
+                getString(R.string.assinatura_motorista_pagamento_linha_data, p.dataCompra?.let { formatoData.format(Date(it)) } ?: "—")
+            linha.findViewById<TextView>(R.id.tvPagamentoValidade).text =
+                getString(R.string.assinatura_motorista_pagamento_linha_validade, p.expiraEm?.let { formatoData.format(Date(it)) } ?: "—")
+            linha.findViewById<TextView>(R.id.tvPagamentoValor).text =
+                getString(R.string.assinatura_motorista_pagamento_linha_valor, String.format(Locale("pt", "BR"), "%.2f", p.valor))
+            containerPagamentos.addView(linha)
+        }
     }
 
     private fun iniciarPagamento() {

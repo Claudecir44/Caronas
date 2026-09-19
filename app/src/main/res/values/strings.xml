@@ -13,7 +13,7 @@
     <!-- Configurações -->
     <string name="config_titulo">Configurações</string>
     <string name="config_botao_termos">Termos de Uso e Privacidade</string>
-    <string name="config_botao_editar_perfil">Editar Perfil</string>
+    <string name="config_botao_pagamentos">Pagamentos</string>
     <string name="config_botao_manifestacoes">Reclamações, Sugestões e Denúncias</string>
 
     <!-- Acesso pago do motorista (10 caronas grátis, depois R$15,99/30 dias) -->
@@ -26,6 +26,13 @@
     <string name="assinatura_motorista_sucesso">Acesso liberado por 30 dias! Já pode continuar oferecendo caronas.</string>
     <string name="assinatura_motorista_erro_checkout">Erro ao iniciar pagamento: %1$s</string>
     <string name="assinatura_motorista_erro_abrir_checkout">Não foi possível abrir a página de pagamento.</string>
+    <string name="assinatura_motorista_renovacao_bloqueada">Seu acesso ainda está válido. Você poderá renovar a partir de %1$s.</string>
+    <string name="assinatura_motorista_meus_pagamentos">Meus pagamentos</string>
+    <string name="assinatura_motorista_sem_pagamentos">Você ainda não fez nenhum pagamento.</string>
+    <string name="assinatura_motorista_pagamento_linha_data">Pago em %1$s</string>
+    <string name="assinatura_motorista_pagamento_linha_valor">R$ %1$s</string>
+    <string name="assinatura_motorista_pagamento_linha_validade">Válido até %1$s</string>
+    <string name="assinatura_motorista_erro_carregar_pagamentos">Não foi possível carregar seus pagamentos.</string>
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
     <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, libere mais 30 dias de acesso por R$ 15,99.</string>
     <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
@@ -190,6 +197,7 @@
 
     <!-- Minhas Ofertas (motorista) -->
     <string name="minhas_ofertas_titulo">Minhas Ofertas</string>
+    <string name="minhas_ofertas_secao_titulo">Viagens Ofertadas</string>
     <string name="minhas_ofertas_vazio">Você ainda não publicou nenhuma carona.</string>
     <string name="minhas_ofertas_erro_carregar">Erro ao carregar suas ofertas: %1$s</string>
     <string name="minhas_ofertas_status_ativa">ATIVA</string>
