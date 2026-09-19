@@ -822,7 +822,8 @@
     async function carregarFinanceiro() {
         const snap = await db.collection('pagamentosMotorista').get();
         pagamentosMotoristaCache = [];
-        snap.forEach((doc) => { const p = doc.data(); p.id = doc.id; pagamentosMotoristaCache.push(p); });
+        // Estornados (ver revogarAcessoMotoristaPorEstorno em functions/index.js) não entram no financeiro.
+        snap.forEach((doc) => { const p = doc.data(); p.id = doc.id; if (!p.estornado) pagamentosMotoristaCache.push(p); });
         aplicarFiltroFinanceiro();
     }
 

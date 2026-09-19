@@ -21,7 +21,12 @@ data class PagamentoMotorista(
     var valor: Double = 0.0,
     var dataCompra: Long? = null,
     var expiraEm: Long? = null,
-    var mercadoPagoPaymentId: String? = null
+    var mercadoPagoPaymentId: String? = null,
+
+    // Marcado pela Cloud Function quando o Mercado Pago avisa estorno/chargeback
+    // (ver revogarAcessoMotoristaPorEstorno) — o acesso desse pagamento já foi
+    // retirado; o painel financeiro ignora esses documentos.
+    var estornado: Boolean = false
 ) {
-    constructor() : this(null, null, null, null, 0.0, null, null, null)
+    constructor() : this(null, null, null, null, 0.0, null, null, null, false)
 }

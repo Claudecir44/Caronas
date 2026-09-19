@@ -108,8 +108,11 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
             val linha = inflater.inflate(R.layout.item_meu_pagamento_motorista, containerPagamentos, false)
             linha.findViewById<TextView>(R.id.tvPagamentoData).text =
                 getString(R.string.assinatura_motorista_pagamento_linha_data, p.dataCompra?.let { formatoData.format(Date(it)) } ?: "—")
-            linha.findViewById<TextView>(R.id.tvPagamentoValidade).text =
+            linha.findViewById<TextView>(R.id.tvPagamentoValidade).text = if (p.estornado) {
+                getString(R.string.assinatura_motorista_pagamento_estornado)
+            } else {
                 getString(R.string.assinatura_motorista_pagamento_linha_validade, p.expiraEm?.let { formatoData.format(Date(it)) } ?: "—")
+            }
             linha.findViewById<TextView>(R.id.tvPagamentoValor).text =
                 getString(R.string.assinatura_motorista_pagamento_linha_valor, String.format(Locale("pt", "BR"), "%.2f", p.valor))
             containerPagamentos.addView(linha)

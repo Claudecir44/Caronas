@@ -177,6 +177,47 @@ async function concederAcessoMotorista(usuarioId, paymentId) {
     console.log(`✅ Acesso motorista concedido a ${usuarioId} até ${novaExpiracao.toISOString()} (pagamento ${paymentId})`);
 }
 
+// Estorno (refunded), contestação no cartão (charged_back) ou cancelamento de um
+// pagamento que JÁ tinha liberado acesso: tira da validade os 30 dias que esse
+// pagamento deu (pagamentos empilhados perdem só a parte deste) e marca o
+// documento em pagamentosMotorista como estornado — o painel financeiro deixa de
+// contar e "Meus pagamentos" mostra o estorno. Idempotente (o MP reenvia a
+// notificação): a transação só age uma vez por pagamento. Sem documento em
+// pagamentosMotorista = o pagamento nunca liberou nada, não há o que revogar.
+async function revogarAcessoMotoristaPorEstorno(usuarioId, paymentId, statusMp) {
+    const db = admin.firestore();
+    const pagSnap = await db.collection('pagamentosMotorista')
+        .where('mercadoPagoPaymentId', '==', String(paymentId)).limit(1).get();
+    if (pagSnap.empty) {
+        console.log('ℹ️ Pagamento', paymentId, 'sem acesso concedido — nada a revogar.');
+        return;
+    }
+    const pagRef = pagSnap.docs[0].ref;
+    const usuarioRef = db.collection('usuarios').doc(usuarioId);
+
+    const revogou = await db.runTransaction(async (t) => {
+        const [pag, usuario] = await Promise.all([t.get(pagRef), t.get(usuarioRef)]);
+        if (pag.get('estornado') === true) return false;
+
+        t.update(pagRef, { estornado: true, estornadoEm: Date.now(), statusMercadoPago: statusMp });
+
+        const atual = usuario.exists ? usuario.get('acessoMotoristaExpiraEm') : null;
+        if (atual && typeof atual.toMillis === 'function') {
+            const novoMs = atual.toMillis() - ACESSO_MOTORISTA_DIAS * 24 * 60 * 60 * 1000;
+            t.update(usuarioRef, {
+                acessoMotoristaExpiraEm: novoMs > Date.now()
+                    ? admin.firestore.Timestamp.fromMillis(novoMs)
+                    : admin.firestore.FieldValue.delete(),
+            });
+        }
+        return true;
+    });
+
+    console.log(revogou
+        ? `↩️ Acesso motorista revogado por ${statusMp}: ${usuarioId} (pagamento ${paymentId})`
+        : `⚠️ Pagamento ${paymentId} já estava estornado — notificação repetida ignorada.`);
+}
+
 exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => {
     if (!MERCADOPAGO_ACCESS_TOKEN) {
         console.error('❌ Token não configurado.');
@@ -229,6 +270,8 @@ exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => 
             }
 
             await concederAcessoMotorista(usuarioId, payment.id);
+        } else if (['refunded', 'charged_back', 'cancelled'].includes(payment.status)) {
+            await revogarAcessoMotoristaPorEstorno(usuarioId, payment.id, payment.status);
         }
 
         res.sendStatus(200);

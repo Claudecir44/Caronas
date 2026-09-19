@@ -450,7 +450,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.listarPagamentosMotorista()
                 .onSuccess { pagamentos ->
-                    pagamentosMotoristaCache = pagamentos
+                    // Estornados não entram no financeiro (totais, lista e PDF).
+                    pagamentosMotoristaCache = pagamentos.filter { !it.estornado }
                     aplicarFiltroFinanceiro()
                 }
                 .onFailure { mostrarErroSecao(it) }

@@ -32,6 +32,7 @@
     <string name="assinatura_motorista_pagamento_linha_data">Pago em %1$s</string>
     <string name="assinatura_motorista_pagamento_linha_valor">R$ %1$s</string>
     <string name="assinatura_motorista_pagamento_linha_validade">Válido até %1$s</string>
+    <string name="assinatura_motorista_pagamento_estornado">Estornado — acesso removido</string>
     <string name="assinatura_motorista_erro_carregar_pagamentos">Não foi possível carregar seus pagamentos.</string>
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
     <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, libere mais 30 dias de acesso por R$ 15,99.</string>
