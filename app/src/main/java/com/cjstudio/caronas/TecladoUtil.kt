@@ -21,13 +21,11 @@ import androidx.core.view.WindowInsetsCompat
 // junto com o padding, rola até o campo focado ficar visível acima do
 // teclado.
 //
-// Com o teclado FECHADO, o modo edge-to-edge ainda desenha o conteúdo por
-// baixo da barra de navegação do sistema — sem um piso mínimo, uma tela com
-// conteúdo fixo embaixo (ex.: a caixa de digitar + botão enviar do chat,
-// presa ao fim de um LinearLayout com peso, não dentro de um ScrollView)
-// fica parcial ou totalmente atrás da barra, impossível de tocar. Por isso
-// o padding nunca é menor que a barra de sistema, mesmo sem teclado — só
-// cresce mais que isso quando o teclado (maior que a barra) está aberto.
+// O espaço das barras do sistema (status e navegação) NÃO é tratado aqui: é
+// reservado uma vez, para toda Activity, no container raiz do conteúdo (ver
+// CaronasApplication). Como o teclado é medido a partir da borda da tela e
+// inclui a barra de navegação, aqui entra só o que ele ocupa ALÉM da barra —
+// senão a altura da barra seria contada duas vezes.
 //
 // Chamar depois do setContentView, na raiz rolável ou na raiz da tela.
 fun View.ajustarPaddingParaTeclado() {
@@ -35,13 +33,12 @@ fun View.ajustarPaddingParaTeclado() {
     ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsets ->
         val teclado = windowInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom
         val barrasSistema = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-        val paddingInferior = maxOf(teclado, barrasSistema)
         val paddingTeclado = maxOf(teclado - barrasSistema, 0)
         view.setPadding(
             view.paddingLeft,
             view.paddingTop,
             view.paddingRight,
-            paddingInferiorOriginal + paddingInferior
+            paddingInferiorOriginal + paddingTeclado
         )
 
         if (paddingTeclado > 0 && view is ScrollView) {
