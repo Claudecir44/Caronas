@@ -85,10 +85,10 @@ class OferecerCaronaActivity : AppCompatActivity() {
         btnPublicar = findViewById(R.id.btnPublicar)
         progressBar = findViewById(R.id.progressBar)
 
-        AutocompleteEnderecoUtil.ligar(this, etCidadeOrigem, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etEnderecoOrigem, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etCidadeDestino, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etEnderecoDestino, autocompleteRepository)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeOrigem, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, etEnderecoOrigem, autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeOrigem)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeDestino, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, etEnderecoDestino, autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeDestino)
 
         btnData.setOnClickListener { abrirSeletorData() }
         btnHora.setOnClickListener { abrirSeletorHora() }
@@ -105,8 +105,9 @@ class OferecerCaronaActivity : AppCompatActivity() {
         linha.findViewById<TextView>(R.id.btnRemoverParada).setOnClickListener {
             containerParadas.removeView(linha)
         }
-        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etCidadeParada), autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository)
+        val etCidadeParada = linha.findViewById<EditText>(R.id.etCidadeParada)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeParada, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeParada)
         containerParadas.addView(linha)
     }
 

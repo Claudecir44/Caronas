@@ -348,6 +348,78 @@ if (!LOCATIONIQ_API_KEY) {
     console.error('   (cadastro gratuito, sem cartão, em https://locationiq.com/register)');
 }
 
+// Sigla de cada estado a partir do nome que a LocationIQ devolve (em português).
+const UF_POR_ESTADO = {
+    'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM', 'Bahia': 'BA', 'Ceará': 'CE',
+    'Distrito Federal': 'DF', 'Espírito Santo': 'ES', 'Goiás': 'GO', 'Maranhão': 'MA', 'Mato Grosso': 'MT',
+    'Mato Grosso do Sul': 'MS', 'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR',
+    'Pernambuco': 'PE', 'Piauí': 'PI', 'Rio de Janeiro': 'RJ', 'Rio Grande do Norte': 'RN',
+    'Rio Grande do Sul': 'RS', 'Rondônia': 'RO', 'Roraima': 'RR', 'Santa Catarina': 'SC',
+    'São Paulo': 'SP', 'Sergipe': 'SE', 'Tocantins': 'TO',
+};
+
+// Campo de CIDADE: só municípios, no formato "Cachoeirinha - RS" pra quem escolhe
+// (há uma em RS, PE e TO), mas o valor que vai pro campo é SÓ o nome
+// ("Cachoeirinha") — a busca de caronas compara o texto da cidade por igualdade
+// (normalizado, sem acento/caixa), então gravar "Viamão, Região Metropolitana de
+// Porto Alegre, Rio Grande do Sul, Brasil" fazia quem digitasse só "Viamão" não
+// achar a carona. Sem municípios na resposta, aceita cidade/vila/povoado.
+function sugestoesDeCidade(itens) {
+    const municipios = itens.filter((i) => i.class === 'place' && i.type === 'municipality');
+    const base = municipios.length
+        ? municipios
+        : itens.filter((i) => i.class === 'place' && ['city', 'town', 'village'].includes(i.type));
+    const vistos = new Set();
+    const resultado = [];
+    for (const item of base) {
+        const a = item.address || {};
+        const nome = a.name || a.city || a.town || a.village;
+        if (!nome) continue;
+        const uf = UF_POR_ESTADO[a.state];
+        const texto = uf ? `${nome} - ${uf}` : nome;
+        if (vistos.has(texto)) continue;
+        vistos.add(texto);
+        resultado.push({ texto, valor: nome });
+        if (resultado.length >= 5) break;
+    }
+    return resultado;
+}
+
+// Campo de ENDEREÇO: rua (ou local), número quando houver, bairro e cidade — sem
+// região metropolitana, CEP nem "Brasil". Rios, montanhas e limites administrativos
+// não servem de endereço.
+function sugestoesDeEndereco(itens) {
+    const ignorar = new Set(['waterway', 'natural', 'boundary']);
+    const vistos = new Set();
+    const resultado = [];
+    for (const item of itens) {
+        if (ignorar.has(item.class)) continue;
+        if (item.class === 'place' && ['municipality', 'city', 'town', 'village', 'state', 'region'].includes(item.type)) continue;
+        const a = item.address || {};
+        const via = a.road;
+        const partes = [];
+        if (a.name && a.name !== via) partes.push(a.name);
+        if (via) partes.push(a.house_number ? `${via}, ${a.house_number}` : via);
+        if (!partes.length) continue;
+        const bairro = a.suburb || a.neighbourhood;
+        if (bairro && !partes.includes(bairro)) partes.push(bairro);
+        const cidade = a.city || a.town || a.village || a.municipality;
+        if (cidade && !partes.includes(cidade)) partes.push(cidade);
+        const uf = UF_POR_ESTADO[a.state];
+        const texto = partes.join(', ') + (uf ? ` - ${uf}` : '');
+        if (vistos.has(texto)) continue;
+        vistos.add(texto);
+        resultado.push({ texto, valor: texto });
+        if (resultado.length >= 5) break;
+    }
+    return resultado;
+}
+
+// Parâmetros: consulta (texto digitado), tipo ('cidade' | 'endereco') e, no
+// endereço, cidade (o que está no campo de cidade ao lado — vira parte da busca,
+// pra achar a rua da cidade certa). Sem "tipo" (app antigo) segue no formato de
+// antes — frases longas —, só que agora restrito ao Brasil. A API ignora acento
+// ("viamao" acha Viamão).
 exports.autocompletarEndereco = functions.https.onCall(async (request) => {
     if (!request.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
@@ -360,35 +432,46 @@ exports.autocompletarEndereco = functions.https.onCall(async (request) => {
     if (!consulta) {
         throw new functions.https.HttpsError('invalid-argument', 'consulta é obrigatória.');
     }
+    const tipo = request.data && request.data.tipo;
+    const cidadeContexto = (request.data && request.data.cidade || '').trim();
+    const busca = tipo === 'endereco' && cidadeContexto ? `${consulta} ${cidadeContexto}` : consulta;
 
     try {
+        // O parâmetro é "countrycodes" (minúsculo): com "countryCodes" a API ignorava
+        // o filtro e devolvia cidades da França, Itália, Argentina...
         const url =
             'https://api.locationiq.com/v1/autocomplete' +
             `?key=${LOCATIONIQ_API_KEY}` +
-            `&q=${encodeURIComponent(consulta)}` +
-            '&countryCodes=br&accept-language=pt&limit=5&normalizecity=1';
+            `&q=${encodeURIComponent(busca)}` +
+            `&countrycodes=br&accept-language=pt&normalizecity=1&limit=${tipo ? 10 : 5}`;
         const resposta = await fetch(url);
 
         // A própria API devolve 404 quando não acha nada — não é erro de
         // verdade, só "sem sugestão ainda" (comum com poucos caracteres).
         if (resposta.status === 404) {
-            return { sugestoes: [] };
+            return { sugestoes: [], itens: [] };
         }
         if (!resposta.ok) {
             console.error(`❌ LocationIQ respondeu ${resposta.status}`);
-            return { sugestoes: [] };
+            return { sugestoes: [], itens: [] };
         }
 
         const dados = await resposta.json();
-        const sugestoes = Array.isArray(dados)
-            ? dados.map((item) => item.display_name).filter(Boolean)
-            : [];
+        const lista = Array.isArray(dados) ? dados : [];
+
+        if (tipo === 'cidade' || tipo === 'endereco') {
+            const itens = tipo === 'cidade' ? sugestoesDeCidade(lista) : sugestoesDeEndereco(lista);
+            return { sugestoes: itens.map((i) => i.texto), itens };
+        }
+
+        // Formato antigo (app sem "tipo").
+        const sugestoes = lista.map((item) => item.display_name).filter(Boolean).slice(0, 5);
         return { sugestoes };
     } catch (error) {
         console.error('❌ Erro ao consultar LocationIQ:', error);
         // Autocomplete é só uma ajuda visual — nunca deveria travar o
         // formulário do app, só deixar de sugerir.
-        return { sugestoes: [] };
+        return { sugestoes: [], itens: [] };
     }
 });
 

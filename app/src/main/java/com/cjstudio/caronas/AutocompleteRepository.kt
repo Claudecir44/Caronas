@@ -21,16 +21,29 @@ class AutocompleteRepository @Inject constructor(
         const val TAG = "AutocompleteRepository"
     }
 
-    override suspend fun autocompletar(consulta: String): List<String> {
+    override suspend fun autocompletar(
+        consulta: String,
+        tipo: TipoAutocomplete,
+        cidadeContexto: String?
+    ): List<SugestaoEndereco> {
         if (consulta.isBlank()) return emptyList()
         return try {
+            val parametros = mutableMapOf<String, Any>("consulta" to consulta, "tipo" to tipo.id)
+            if (tipo == TipoAutocomplete.ENDERECO && !cidadeContexto.isNullOrBlank()) {
+                parametros["cidade"] = cidadeContexto.trim()
+            }
             val resultado = functions.getHttpsCallable("autocompletarEndereco")
-                .call(mapOf("consulta" to consulta))
+                .call(parametros)
                 .await()
             @Suppress("UNCHECKED_CAST")
             val dados = resultado.data as? Map<String, Any?>
             @Suppress("UNCHECKED_CAST")
-            (dados?.get("sugestoes") as? List<String>) ?: emptyList()
+            val itens = dados?.get("itens") as? List<Map<String, Any?>> ?: return emptyList()
+            itens.mapNotNull { item ->
+                val texto = item["texto"] as? String ?: return@mapNotNull null
+                val valor = item["valor"] as? String ?: texto
+                SugestaoEndereco(texto, valor)
+            }
         } catch (e: Exception) {
             // Ver comentário em IAutocompleteRepository — nunca propaga erro.
             Log.w(TAG, "Erro ao buscar sugestões: ${e.message}")

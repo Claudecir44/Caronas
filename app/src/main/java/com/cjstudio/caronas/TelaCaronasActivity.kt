@@ -235,8 +235,8 @@ class TelaCaronasActivity : AppCompatActivity() {
         val etData = view.findViewById<EditText>(R.id.etDataBusca)
         val btnBuscar = view.findViewById<Button>(R.id.btnBuscarDialog)
 
-        AutocompleteEnderecoUtil.ligar(this, etOrigem, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etDestino, autocompleteRepository)
+        AutocompleteEnderecoUtil.ligar(this, etOrigem, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, etDestino, autocompleteRepository, TipoAutocomplete.CIDADE)
 
         val dataSelecionada = Calendar.getInstance()
         var dataEscolhida = false
@@ -817,10 +817,10 @@ class TelaCaronasActivity : AppCompatActivity() {
         val etValor = view.findViewById<EditText>(R.id.etValorEditar)
         val btnSalvar = view.findViewById<Button>(R.id.btnSalvarOferta)
 
-        AutocompleteEnderecoUtil.ligar(this, etCidadeOrigem, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etEnderecoOrigem, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etCidadeDestino, autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, etEnderecoDestino, autocompleteRepository)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeOrigem, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, etEnderecoOrigem, autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeOrigem)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeDestino, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, etEnderecoDestino, autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeDestino)
 
         // Pré-preenche origem/destino a partir de paradas.first()/last()
         // (fonte da verdade, ver Carona.kt) e insere uma linha por parada
@@ -942,8 +942,9 @@ class TelaCaronasActivity : AppCompatActivity() {
         linha.findViewById<TextView>(R.id.btnRemoverParada).setOnClickListener {
             container.removeView(linha)
         }
-        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etCidadeParada), autocompleteRepository)
-        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository)
+        val etCidadeParada = linha.findViewById<EditText>(R.id.etCidadeParada)
+        AutocompleteEnderecoUtil.ligar(this, etCidadeParada, autocompleteRepository, TipoAutocomplete.CIDADE)
+        AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeParada)
         container.addView(linha)
     }
 
