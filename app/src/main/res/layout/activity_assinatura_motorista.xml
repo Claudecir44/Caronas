@@ -42,24 +42,108 @@
         android:gravity="center"
         android:layout_marginBottom="24dp" />
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/cardPlanoMensal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/assinatura_motorista_preco"
-        android:textColor="#222222"
-        android:textSize="30sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="4dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_plano_motorista"
+        android:padding="16dp"
+        android:layout_marginBottom="12dp"
+        android:clickable="true"
+        android:focusable="true">
 
-    <TextView
-        android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/plano_motorista_mensal_titulo"
+                android:textColor="#222222"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/plano_motorista_mensal_prazo"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/plano_motorista_mensal_preco"
+            android:textColor="#222222"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cardPlanoTrimestral"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/assinatura_motorista_prazo"
-        android:textColor="#888888"
-        android:textSize="13sp"
-        android:gravity="center"
-        android:layout_marginBottom="28dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_plano_motorista"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/plano_motorista_trimestral_titulo"
+                android:textColor="#222222"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/plano_motorista_trimestral_prazo"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/plano_motorista_trimestral_economia"
+                android:textColor="#2E7D32"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/plano_motorista_trimestral_preco"
+            android:textColor="#222222"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnPagarAssinaturaMotorista"

@@ -22,7 +22,8 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
-// Checkout do acesso pago do motorista — R$15,99 = 30 dias avulsos, sem
+// Checkout do acesso pago do motorista — planos avulsos (Mensal 30 dias /
+// Trimestral 90 dias, ver PlanoMotorista), sem
 // renovação automática (ver Usuario.kt, firestore.rules:
 // permiteOferecerCarona, functions/index.js:createPaymentPreferenceMotorista/
 // paymentWebhookMotorista). Aberta pela OferecerCaronaActivity quando o
@@ -44,6 +45,9 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     lateinit var usuarioRepository: IUsuarioRepository
 
     private lateinit var btnPagar: Button
+    private lateinit var cardMensal: View
+    private lateinit var cardTrimestral: View
+    private var planoSelecionado = PlanoMotorista.MENSAL
     private lateinit var layoutAguardando: LinearLayout
     private lateinit var tvAvisoRenovacao: TextView
     private lateinit var tvSemPagamentos: TextView
@@ -62,7 +66,19 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
         tvSemPagamentos = findViewById(R.id.tvSemPagamentosMotorista)
         containerPagamentos = findViewById(R.id.containerMeusPagamentosMotorista)
 
+        cardMensal = findViewById(R.id.cardPlanoMensal)
+        cardTrimestral = findViewById(R.id.cardPlanoTrimestral)
+        cardMensal.setOnClickListener { selecionarPlano(PlanoMotorista.MENSAL) }
+        cardTrimestral.setOnClickListener { selecionarPlano(PlanoMotorista.TRIMESTRAL) }
+        selecionarPlano(PlanoMotorista.MENSAL)
+
         btnPagar.setOnClickListener { iniciarPagamento() }
+    }
+
+    private fun selecionarPlano(plano: PlanoMotorista) {
+        planoSelecionado = plano
+        cardMensal.isSelected = plano == PlanoMotorista.MENSAL
+        cardTrimestral.isSelected = plano == PlanoMotorista.TRIMESTRAL
     }
 
     override fun onResume() {
@@ -106,8 +122,9 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
         val inflater = LayoutInflater.from(this)
         for (p in pagamentos) {
             val linha = inflater.inflate(R.layout.item_meu_pagamento_motorista, containerPagamentos, false)
+            val dataTexto = getString(R.string.assinatura_motorista_pagamento_linha_data, p.dataCompra?.let { formatoData.format(Date(it)) } ?: "—")
             linha.findViewById<TextView>(R.id.tvPagamentoData).text =
-                getString(R.string.assinatura_motorista_pagamento_linha_data, p.dataCompra?.let { formatoData.format(Date(it)) } ?: "—")
+                if (p.plano.isNullOrBlank()) dataTexto else "$dataTexto · ${p.plano}"
             linha.findViewById<TextView>(R.id.tvPagamentoValidade).text = if (p.estornado) {
                 getString(R.string.assinatura_motorista_pagamento_estornado)
             } else {
@@ -125,7 +142,7 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
                 expiraEmAntesDaCompra = usuario.acessoMotoristaExpiraEm?.time
             }
-            usuarioRepository.iniciarPagamentoAcessoMotorista()
+            usuarioRepository.iniciarPagamentoAcessoMotorista(planoSelecionado)
                 .onSuccess { initPoint ->
                     try {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(initPoint)))

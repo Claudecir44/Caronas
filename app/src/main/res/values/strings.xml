@@ -16,14 +16,19 @@
     <string name="config_botao_pagamentos">Pagamentos</string>
     <string name="config_botao_manifestacoes">Reclamações, Sugestões e Denúncias</string>
 
-    <!-- Acesso pago do motorista (10 caronas grátis, depois R$15,99/30 dias) -->
+    <!-- Acesso pago do motorista (10 caronas grátis, depois plano Mensal R$17,99/30 dias ou Trimestral R$44,99/90 dias) -->
     <string name="assinatura_motorista_titulo">Acesso de motorista</string>
-    <string name="assinatura_motorista_explicacao">Você já usou suas 10 caronas gratuitas como motorista. Para continuar oferecendo caronas, libere mais 30 dias de acesso.</string>
-    <string name="assinatura_motorista_preco">R$ 15,99</string>
-    <string name="assinatura_motorista_prazo">válido por 30 dias, pagamento único</string>
+    <string name="assinatura_motorista_explicacao">As 10 primeiras caronas como motorista são gratuitas. Depois delas, escolha um plano de acesso para continuar oferecendo caronas.</string>
+    <string name="plano_motorista_mensal_titulo">Mensal</string>
+    <string name="plano_motorista_mensal_prazo">30 dias, pagamento único</string>
+    <string name="plano_motorista_mensal_preco">R$ 17,99</string>
+    <string name="plano_motorista_trimestral_titulo">Trimestral</string>
+    <string name="plano_motorista_trimestral_prazo">90 dias, pagamento único</string>
+    <string name="plano_motorista_trimestral_preco">R$ 44,99</string>
+    <string name="plano_motorista_trimestral_economia">Economize R$ 8,98 em relação a 3 meses no plano mensal</string>
     <string name="assinatura_motorista_botao_pagar">Pagar com Mercado Pago</string>
     <string name="assinatura_motorista_aguardando">Aguardando confirmação do pagamento…</string>
-    <string name="assinatura_motorista_sucesso">Acesso liberado por 30 dias! Já pode continuar oferecendo caronas.</string>
+    <string name="assinatura_motorista_sucesso">Acesso liberado! Já pode continuar oferecendo caronas.</string>
     <string name="assinatura_motorista_erro_checkout">Erro ao iniciar pagamento: %1$s</string>
     <string name="assinatura_motorista_erro_abrir_checkout">Não foi possível abrir a página de pagamento.</string>
     <string name="assinatura_motorista_renovacao_bloqueada">Seu acesso ainda está válido. Você poderá renovar a partir de %1$s.</string>
@@ -35,7 +40,7 @@
     <string name="assinatura_motorista_pagamento_estornado">Estornado — acesso removido</string>
     <string name="assinatura_motorista_erro_carregar_pagamentos">Não foi possível carregar seus pagamentos.</string>
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
-    <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, libere mais 30 dias de acesso por R$ 15,99.</string>
+    <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, escolha um plano de acesso: 30 dias por R$ 17,99 ou 90 dias por R$ 44,99.</string>
     <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
     <string name="tela_contador_viagens_gratis_formato">Grátis: %1$02d/%2$02d</string>
     <string name="tela_contador_viagens_gratis_pago_formato">Acesso pago até %1$s</string>

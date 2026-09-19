@@ -2,7 +2,7 @@ package com.cjstudio.caronas
 
 import com.google.firebase.firestore.PropertyName
 
-// Um documento por pagamento aprovado dos R$15,99/30 dias do motorista (ver
+// Um documento por pagamento aprovado do acesso pago do motorista (ver
 // concederAcessoMotorista em functions/index.js) — histórico completo de
 // cobranças, ao contrário de usuarios.acessoMotoristaExpiraEm, que só guarda
 // a validade da ÚLTIMA compra. Mesmo papel da coleção "pagamentos" do Match
@@ -26,7 +26,12 @@ data class PagamentoMotorista(
     // Marcado pela Cloud Function quando o Mercado Pago avisa estorno/chargeback
     // (ver revogarAcessoMotoristaPorEstorno) — o acesso desse pagamento já foi
     // retirado; o painel financeiro ignora esses documentos.
-    var estornado: Boolean = false
+    var estornado: Boolean = false,
+
+    // Plano comprado (Mensal/Trimestral) e quantos dias deu — ausentes nos
+    // pagamentos antigos, de antes dos planos (todos de 30 dias).
+    var plano: String? = null,
+    var dias: Int? = null
 ) {
-    constructor() : this(null, null, null, null, 0.0, null, null, null, false)
+    constructor() : this(null, null, null, null, 0.0, null, null, null, false, null, null)
 }

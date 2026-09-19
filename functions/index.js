@@ -59,8 +59,27 @@ if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
 // Premium do Match, só que aqui com um preço/prazo só, sem planos).
 // ============================================================
 const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-const ACESSO_MOTORISTA_VALOR = 15.99;
-const ACESSO_MOTORISTA_DIAS = 30;
+// Planos avulsos (sem renovação automática) — preço e duração vêm SEMPRE daqui,
+// indexados pelo nome do plano; o app só diz QUAL plano quer, nunca quanto vale.
+// Os mesmos valores aparecem em strings.xml do app (plano_motorista_*) e
+// precisam bater com esta tabela.
+const PLANOS_MOTORISTA = {
+    Mensal: {
+        valor: 17.99,
+        dias: 30,
+        titulo: 'Acesso motorista Caronas — 30 dias',
+        descricao: 'Libera oferecer caronas por 30 dias',
+    },
+    Trimestral: {
+        valor: 44.99,
+        dias: 90,
+        titulo: 'Acesso motorista Caronas — 90 dias',
+        descricao: 'Libera oferecer caronas por 90 dias (3 meses)',
+    },
+};
+const PLANO_MOTORISTA_PADRAO = 'Mensal';
+// Pagamentos antigos (antes dos planos) não guardaram a duração: eram todos de 30 dias.
+const ACESSO_MOTORISTA_DIAS_LEGADO = 30;
 // Só dá pra pagar de novo faltando no máximo isso pro acesso atual vencer —
 // evita empilhar vários períodos de uma vez (a tela do app mostra a mesma
 // regra, ver AcessoMotoristaUtil.JANELA_RENOVACAO_DIAS, mas a trava de
@@ -87,6 +106,12 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
     }
     const uid = request.auth.uid;
 
+    const nomePlano = (request.data && request.data.plano) || PLANO_MOTORISTA_PADRAO;
+    const plano = PLANOS_MOTORISTA[nomePlano];
+    if (!plano) {
+        throw new functions.https.HttpsError('invalid-argument', 'Plano inválido.');
+    }
+
     const userDoc = await admin.firestore().collection('usuarios').doc(uid).get();
     const userData = userDoc.exists ? userDoc.data() : {};
     const email = userData.email || `${uid}@caronasapp.com`;
@@ -107,12 +132,12 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
     try {
         const preference = {
             items: [{
-                id: 'acesso_motorista_30_dias',
-                title: 'Acesso motorista Caronas — 30 dias',
-                description: 'Libera oferecer caronas por mais 30 dias',
+                id: `acesso_motorista_${plano.dias}_dias`,
+                title: plano.titulo,
+                description: plano.descricao,
                 quantity: 1,
                 currency_id: 'BRL',
-                unit_price: ACESSO_MOTORISTA_VALOR,
+                unit_price: plano.valor,
             }],
             payer: { email, name: nome },
             // Mesmo formato do Match (usuarioId_timestamp) — só um
@@ -127,7 +152,7 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
             },
             auto_return: 'approved',
             notification_url: `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/paymentWebhookMotorista`,
-            metadata: { usuarioId: uid },
+            metadata: { usuarioId: uid, plano: nomePlano },
             statement_descriptor: 'CARONAS APP',
         };
 
@@ -142,18 +167,19 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
     }
 });
 
-// Soma 30 dias à data de expiração atual (se ainda válida) ou a partir de
+// Soma os dias do plano à data de expiração atual (se ainda válida) ou a partir de
 // agora (se vencida/nunca pagou) — evita que pagar de novo ANTES de
 // vencer "perca" os dias que ainda restavam (mesmo raciocínio de
 // concederPremium no Match, extends em vez de sobrescrever).
-async function concederAcessoMotorista(usuarioId, paymentId) {
+async function concederAcessoMotorista(usuarioId, paymentId, nomePlano, valorPago) {
+    const plano = PLANOS_MOTORISTA[nomePlano] || PLANOS_MOTORISTA[PLANO_MOTORISTA_PADRAO];
     const usuarioRef = admin.firestore().collection('usuarios').doc(usuarioId);
     const usuarioDoc = await usuarioRef.get();
     const usuarioData = usuarioDoc.exists ? usuarioDoc.data() : {};
     const atual = usuarioData.acessoMotoristaExpiraEm;
     const agora = Date.now();
     const baseMs = (atual && typeof atual.toMillis === 'function' && atual.toMillis() > agora) ? atual.toMillis() : agora;
-    const novaExpiracao = new Date(baseMs + ACESSO_MOTORISTA_DIAS * 24 * 60 * 60 * 1000);
+    const novaExpiracao = new Date(baseMs + plano.dias * 24 * 60 * 60 * 1000);
 
     await usuarioRef.update({
         acessoMotoristaExpiraEm: admin.firestore.Timestamp.fromDate(novaExpiracao),
@@ -168,18 +194,22 @@ async function concederAcessoMotorista(usuarioId, paymentId) {
         usuarioId,
         usuarioNome: usuarioData.nomeCompleto || '',
         usuarioEmail: usuarioData.email || '',
-        valor: ACESSO_MOTORISTA_VALOR,
+        // O que foi realmente cobrado (transaction_amount do Mercado Pago); cai no
+        // preço da tabela só se o MP não informar.
+        valor: typeof valorPago === 'number' ? valorPago : plano.valor,
+        plano: nomePlano in PLANOS_MOTORISTA ? nomePlano : PLANO_MOTORISTA_PADRAO,
+        dias: plano.dias,
         dataCompra: agora,
         expiraEm: novaExpiracao.getTime(),
         mercadoPagoPaymentId: String(paymentId),
     });
 
-    console.log(`✅ Acesso motorista concedido a ${usuarioId} até ${novaExpiracao.toISOString()} (pagamento ${paymentId})`);
+    console.log(`✅ Acesso motorista (${nomePlano}, ${plano.dias} dias) concedido a ${usuarioId} até ${novaExpiracao.toISOString()} (pagamento ${paymentId})`);
 }
 
 // Estorno (refunded), contestação no cartão (charged_back) ou cancelamento de um
-// pagamento que JÁ tinha liberado acesso: tira da validade os 30 dias que esse
-// pagamento deu (pagamentos empilhados perdem só a parte deste) e marca o
+// pagamento que JÁ tinha liberado acesso: tira da validade os dias que esse
+// pagamento deu (campo "dias"; 30 nos pagamentos antigos, sem o campo) (pagamentos empilhados perdem só a parte deste) e marca o
 // documento em pagamentosMotorista como estornado — o painel financeiro deixa de
 // contar e "Meus pagamentos" mostra o estorno. Idempotente (o MP reenvia a
 // notificação): a transação só age uma vez por pagamento. Sem documento em
@@ -199,11 +229,12 @@ async function revogarAcessoMotoristaPorEstorno(usuarioId, paymentId, statusMp) 
         const [pag, usuario] = await Promise.all([t.get(pagRef), t.get(usuarioRef)]);
         if (pag.get('estornado') === true) return false;
 
+        const diasDoPagamento = pag.get('dias') || ACESSO_MOTORISTA_DIAS_LEGADO;
         t.update(pagRef, { estornado: true, estornadoEm: Date.now(), statusMercadoPago: statusMp });
 
         const atual = usuario.exists ? usuario.get('acessoMotoristaExpiraEm') : null;
         if (atual && typeof atual.toMillis === 'function') {
-            const novoMs = atual.toMillis() - ACESSO_MOTORISTA_DIAS * 24 * 60 * 60 * 1000;
+            const novoMs = atual.toMillis() - diasDoPagamento * 24 * 60 * 60 * 1000;
             t.update(usuarioRef, {
                 acessoMotoristaExpiraEm: novoMs > Date.now()
                     ? admin.firestore.Timestamp.fromMillis(novoMs)
@@ -269,7 +300,8 @@ exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => 
                 throw idempotenciaError;
             }
 
-            await concederAcessoMotorista(usuarioId, payment.id);
+            const planoPago = payment.metadata && payment.metadata.plano;
+            await concederAcessoMotorista(usuarioId, payment.id, planoPago, payment.transaction_amount);
         } else if (['refunded', 'charged_back', 'cancelled'].includes(payment.status)) {
             await revogarAcessoMotoristaPorEstorno(usuarioId, payment.id, payment.status);
         }
