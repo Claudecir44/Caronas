@@ -92,7 +92,14 @@ class LoginCaronasActivity : AppCompatActivity() {
                 // cadastro antes. Se já tem veículo de verdade, entra direto.
                 if (entrarComoMotorista && usuario.veiculo?.estaPreenchido() != true) {
                     Toast.makeText(this@LoginCaronasActivity, R.string.login_erro_sem_veiculo, Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this@LoginCaronasActivity, EditarCadastroCaronasActivity::class.java))
+                    // Avisa a edição que a pessoa veio do login querendo entrar como
+                    // motorista: ao salvar o veículo ela segue direto pra tela
+                    // principal (senão o app fecha, já que esta tela de login é
+                    // encerrada logo abaixo e não sobra nada na pilha).
+                    startActivity(
+                        Intent(this@LoginCaronasActivity, EditarCadastroCaronasActivity::class.java)
+                            .putExtra(EditarCadastroCaronasActivity.EXTRA_VEM_DO_LOGIN_COMO_MOTORISTA, true)
+                    )
                     finish()
                     return@onSuccess
                 }

@@ -36,6 +36,9 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
     private lateinit var etEmail: EditText
     private lateinit var etTelefone: EditText
     private lateinit var cbSouMotorista: CheckBox
+    // true quando a tela foi aberta pelo login (escolheu entrar como motorista mas
+    // o cadastro não tinha veículo) — ver LoginCaronasActivity.
+    private var vemDoLoginComoMotorista = false
     private lateinit var layoutVeiculo: LinearLayout
     private lateinit var etVeiculoModelo: EditText
     private lateinit var etVeiculoMarca: EditText
@@ -65,6 +68,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         etNomeCompleto = findViewById(R.id.etNomeCompleto)
         etEmail = findViewById(R.id.etEmail)
         etTelefone = findViewById(R.id.etTelefone)
+        vemDoLoginComoMotorista = intent.getBooleanExtra(EXTRA_VEM_DO_LOGIN_COMO_MOTORISTA, false)
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
         etVeiculoModelo = findViewById(R.id.etVeiculoModelo)
@@ -128,8 +132,11 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         // mexer nisso de propósito. O que decide o checkbox aqui tem que
         // ser só "esse cadastro tem veículo?".
         val temVeiculoCadastrado = usuario.veiculo?.estaPreenchido() == true
-        cbSouMotorista.isChecked = temVeiculoCadastrado
-        layoutVeiculo.visibility = if (temVeiculoCadastrado) View.VISIBLE else View.GONE
+        // Vindo do login como motorista, já abre marcado com os campos do veículo
+        // à mostra — é exatamente pra isso que a pessoa caiu aqui.
+        val marcarComoMotorista = temVeiculoCadastrado || vemDoLoginComoMotorista
+        cbSouMotorista.isChecked = marcarComoMotorista
+        layoutVeiculo.visibility = if (marcarComoMotorista) View.VISIBLE else View.GONE
         usuario.veiculo?.let { veiculo ->
             etVeiculoModelo.setText(veiculo.modelo)
             etVeiculoMarca.setText(veiculo.marca)
@@ -216,6 +223,23 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 btnSalvar.isEnabled = true
                 Toast.makeText(this@EditarCadastroCaronasActivity, R.string.editar_sucesso, Toast.LENGTH_LONG).show()
+                // Dois casos em que o papel da sessão MUDA e a tela principal precisa
+                // ser refeita do zero (limpando a pilha), em vez de só voltar pra ela:
+                //  - veio do login querendo entrar como motorista e salvou o veículo
+                //    (a tela de login já foi encerrada — só finish() fechava o app);
+                //  - estava logada como motorista e desmarcou "sou motorista": passa a
+                //    ser passageira na hora. Refazer a tela evita ficar com botões,
+                //    lista de ofertas e avisos de motorista de um papel que ela já não
+                //    tem, e o app não fecha nem exige sair e entrar de novo.
+                val virouPassageiro = base.motorista && !souMotorista
+                if (vemDoLoginComoMotorista || virouPassageiro) {
+                    // Papel motorista só vale se salvou com veículo (souMotorista).
+                    usuarioRepository.atualizarPapelMotorista(uid, souMotorista)
+                    startActivity(
+                        Intent(this@EditarCadastroCaronasActivity, TelaCaronasActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    )
+                }
                 finish()
             }.onFailure { e ->
                 progressBar.visibility = View.GONE
@@ -263,5 +287,9 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_VEM_DO_LOGIN_COMO_MOTORISTA = "vemDoLoginComoMotorista"
     }
 }
