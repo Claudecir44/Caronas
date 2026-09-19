@@ -19,6 +19,16 @@ service cloud.firestore {
       return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Uma viagem vira "concluída" 10 minutos depois do horário de partida (mesma
+    // tolerância de StatusViagemUtil no app) e não pode mais ser editada.
+    // dataHoraPartida é guardado em millis (número); sem esse campo a viagem
+    // segue editável.
+    function viagemJaConcluida(dados) {
+      return 'dataHoraPartida' in dados
+        && dados.dataHoraPartida is number
+        && request.time.toMillis() > dados.dataHoraPartida + 600000;
+    }
+
     match /admins/{adminId} {
       allow read: if ehAdmin();
       allow create, delete: if false;
@@ -82,7 +92,11 @@ service cloud.firestore {
       // erra ao ler resource.data num resource nulo e nega com
       // PERMISSION_DENIED em vez de simplesmente não achar nada pra
       // apagar (mesmo bug já documentado abaixo em /solicitacoes).
-      allow update, delete: if request.auth != null &&
+      // Editar: só o dono e só enquanto a viagem não foi concluída. Excluir
+      // continua liberado ao dono mesmo depois de concluída.
+      allow update: if request.auth != null &&
+        (resource == null || (resource.data.motoristaId == request.auth.uid && !viagemJaConcluida(resource.data)));
+      allow delete: if request.auth != null &&
         (resource == null || resource.data.motoristaId == request.auth.uid);
 
       // Ocupação de vaga POR TRECHO da rota (ver SolicitacaoRepository.
