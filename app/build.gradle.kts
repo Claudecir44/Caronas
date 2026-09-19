@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.firebase.crashlytics) apply false
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
@@ -14,6 +15,8 @@ plugins {
 val temGoogleServices = file("google-services.json").exists()
 if (temGoogleServices) {
     apply(plugin = "com.google.gms.google-services")
+    // Crashlytics depende do google-services (mesmo arquivo de configuração).
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {
@@ -97,6 +100,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
     // Badge numérico no ícone do launcher (ver AppIconBadgeUtil.kt) — a
     // API pública do Android só faz o CANAL de notificação pedir um badge
     // (setShowBadge, já configurado), mas quem desenha o número em cima do

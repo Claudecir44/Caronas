@@ -69,6 +69,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var notificacaoRepository: INotificacaoRepository
 
+    @Inject
+    lateinit var falhasRepository: IFalhasRepository
+
     private lateinit var ivFoto: ImageView
     private lateinit var tvNome: TextView
     private lateinit var tvTituloSecao: TextView
@@ -186,6 +189,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private fun carregarAdminLogado(ivFoto: ImageView, tvNome: TextView) {
         val uid = adminRepository.uidLogado() ?: return
         notificacaoRepository.atualizarTokenAdmin(uid)
+        falhasRepository.definirUsuario(uid)
         lifecycleScope.launch {
             adminRepository.buscarAdminLogado(uid).onSuccess { admin ->
                 tvNome.text = admin.nome?.ifEmpty { null } ?: admin.email ?: ""

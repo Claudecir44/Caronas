@@ -64,6 +64,9 @@ class TelaCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var notificacaoRepository: INotificacaoRepository
 
+    @Inject
+    lateinit var falhasRepository: IFalhasRepository
+
     private lateinit var ivFotoPerfil: ImageView
     private lateinit var tvPapelUsuario: TextView
     private lateinit var tvNomeUsuario: TextView
@@ -1170,6 +1173,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
                 usuarioAtual = usuario
+                falhasRepository.definirUsuario(usuario.id)
                 notificacaoRepository.atualizarTokenUsuario(usuario.id)
                 if (!badgeMinhasOfertasIniciado) {
                     badgeMinhasOfertasIniciado = true

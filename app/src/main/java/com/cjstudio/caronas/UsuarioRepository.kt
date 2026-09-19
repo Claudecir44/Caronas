@@ -24,7 +24,8 @@ class UsuarioRepository @Inject constructor(
     private val db: FirebaseFirestore,
     private val storage: FirebaseStorage,
     private val prefs: DataStore<Preferences>,
-    private val functions: FirebaseFunctions
+    private val functions: FirebaseFunctions,
+    private val falhas: IFalhasRepository
 ) : IUsuarioRepository {
 
     private fun colecaoUsuarios() = db.collection("usuarios")
@@ -189,6 +190,7 @@ class UsuarioRepository @Inject constructor(
     }
 
     override suspend fun logout() {
+        falhas.definirUsuario(null)
         auth.signOut()
         prefs.edit { it.remove(KEY_USUARIO_ID) }
     }

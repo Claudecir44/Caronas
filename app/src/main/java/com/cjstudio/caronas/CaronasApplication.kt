@@ -7,6 +7,7 @@ import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 // Ponto de entrada do Hilt. Fase 1: só isso — App Check, heartbeat de
 // presença e proteção contra captura de tela (padrões usados no Match)
@@ -28,8 +29,17 @@ import dagger.hilt.android.HiltAndroidApp
 @HiltAndroidApp
 class CaronasApplication : Application() {
 
+    @Inject
+    lateinit var falhasRepository: IFalhasRepository
+
     override fun onCreate() {
         super.onCreate()
+
+        // Contexto que vai em todo relatório do Crashlytics: qual dos dois apps
+        // (usuario/admin) e se é build de teste — pra filtrar no painel.
+        falhasRepository.definirChave("tipo", BuildConfig.TIPO)
+        falhasRepository.definirChave("debug", BuildConfig.DEBUG.toString())
+
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
