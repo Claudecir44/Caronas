@@ -284,9 +284,12 @@ service cloud.firestore {
     // concederAcessoMotorista em functions/index.js, tela "Financeiro" do
     // painel admin). Só admin lê; só a Cloud Function grava (Admin SDK,
     // depois de confirmar o pagamento de verdade no webhook do Mercado
-    // Pago) — mesmo padrão de "pagamentos" no Match.
+    // Pago) — mesmo padrão de "pagamentos" no Match. O próprio motorista
+    // também lê os SEUS (tela "Meus pagamentos" em AssinaturaMotoristaActivity),
+    // só os que têm o próprio uid em usuarioId — nunca os de outra pessoa.
     match /pagamentosMotorista/{pagamentoId} {
-      allow read: if ehAdmin();
+      allow read: if ehAdmin()
+        || (request.auth != null && resource.data.usuarioId == request.auth.uid);
       allow write: if false;
     }
   }

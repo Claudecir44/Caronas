@@ -61,6 +61,11 @@ if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
 const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
 const ACESSO_MOTORISTA_VALOR = 15.99;
 const ACESSO_MOTORISTA_DIAS = 30;
+// Só dá pra pagar de novo faltando no máximo isso pro acesso atual vencer —
+// evita empilhar vários períodos de uma vez (a tela do app mostra a mesma
+// regra, ver AcessoMotoristaUtil.JANELA_RENOVACAO_DIAS, mas a trava de
+// verdade é a daqui).
+const ACESSO_MOTORISTA_JANELA_RENOVACAO_DIAS = 2;
 
 if (MERCADOPAGO_ACCESS_TOKEN) {
     mercadopago.configure({ access_token: MERCADOPAGO_ACCESS_TOKEN });
@@ -86,6 +91,18 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
     const userData = userDoc.exists ? userDoc.data() : {};
     const email = userData.email || `${uid}@caronasapp.com`;
     const nome = userData.nomeCompleto || 'Motorista';
+
+    const expiraAtual = userData.acessoMotoristaExpiraEm;
+    if (expiraAtual && typeof expiraAtual.toMillis === 'function') {
+        const restanteMs = expiraAtual.toMillis() - Date.now();
+        if (restanteMs > ACESSO_MOTORISTA_JANELA_RENOVACAO_DIAS * 24 * 60 * 60 * 1000) {
+            throw new functions.https.HttpsError(
+                'failed-precondition',
+                'Seu acesso ainda está válido. Você poderá renovar a partir de ' +
+                    new Date(expiraAtual.toMillis() - ACESSO_MOTORISTA_JANELA_RENOVACAO_DIAS * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + '.'
+            );
+        }
+    }
 
     try {
         const preference = {

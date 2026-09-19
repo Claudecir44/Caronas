@@ -444,14 +444,18 @@
         usuariosSnap.forEach((doc) => {
             const u = doc.data();
             u.id = doc.id;
-            if (veiculoEstaPreenchido(u.veiculo)) motoristas.push(u); else passageiros.push(u);
+            // Todo cadastro é passageiro; quem também marcou "sou motorista"
+            // (veículo preenchido) entra TAMBÉM em motoristas. Desmarcar apaga o
+            // veículo, então na próxima carga deixa de contar como motorista.
+            passageiros.push(u);
+            if (veiculoEstaPreenchido(u.veiculo)) motoristas.push(u);
         });
 
         // Cache pra abrirDetalhesUsuario() não precisar reconsultar o
         // Firestore ao abrir o modal de edição (mesmo espírito de
         // sugestoesCache no Match).
         usuariosCache = {};
-        [...motoristas, ...passageiros].forEach((u) => { usuariosCache[u.id] = u; });
+        passageiros.forEach((u) => { usuariosCache[u.id] = u; });
 
         document.getElementById('contadorMotoristasTab').textContent = String(motoristas.length);
         document.getElementById('contadorPassageirosTab').textContent = String(passageiros.length);
