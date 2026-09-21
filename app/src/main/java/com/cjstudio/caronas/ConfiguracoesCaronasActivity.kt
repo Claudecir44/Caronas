@@ -28,6 +28,10 @@ import javax.inject.Inject
 // texto do contador da tela principal (AcessoMotoristaUtil.textoStatus).
 // O status é relido no onResume pra refletir o pagamento assim que o
 // motorista volta do checkout.
+// Aberta também pelo ⚙️ do painel Administração (EXTRA_MODO_ADMIN): aí só
+// mostra o que serve a um administrador — Termos de Uso e Privacidade. Sem
+// "Pagamentos" (acesso pago é do motorista) e sem "Reclamações, Sugestões e
+// Denúncias" (o admin recebe essas mensagens, não as envia).
 @AndroidEntryPoint
 class ConfiguracoesCaronasActivity : AppCompatActivity() {
 
@@ -36,6 +40,7 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
 
     private lateinit var cardPagamentos: View
     private lateinit var tvPagamentosStatus: TextView
+    private var modoAdmin = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +48,11 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
 
         cardPagamentos = findViewById(R.id.cardConfigPagamentos)
         tvPagamentosStatus = findViewById(R.id.tvConfigPagamentosStatus)
+        modoAdmin = intent.getBooleanExtra(EXTRA_MODO_ADMIN, false)
+        if (modoAdmin) {
+            cardPagamentos.visibility = View.GONE
+            findViewById<View>(R.id.cardConfigManifestacoes).visibility = View.GONE
+        }
 
         findViewById<View>(R.id.btnConfigPagamentos).setOnClickListener {
             startActivity(Intent(this, AssinaturaMotoristaActivity::class.java))
@@ -60,7 +70,7 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        atualizarPagamentos()
+        if (!modoAdmin) atualizarPagamentos()
     }
 
     private fun atualizarPagamentos() {
@@ -75,5 +85,9 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_MODO_ADMIN = "modoAdmin"
     }
 }

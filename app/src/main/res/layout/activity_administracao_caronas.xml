@@ -41,6 +41,22 @@
 
         </LinearLayout>
 
+        <!-- Configurações (Termos de Uso e Privacidade) — mesmo ícone/posição
+             da tela do usuário (activity_tela_caronas.xml). -->
+        <TextView
+            android:id="@+id/tvConfiguracoesAdmin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="26dp"
+            android:text="⚙️"
+            android:textSize="24sp"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/config_titulo" />
+
         <Button
             android:id="@+id/btnSair"
             android:layout_width="76dp"
@@ -139,6 +155,13 @@
                     android:id="@+id/btnFinanceiro"
                     style="@style/BotaoAcaoCaronasVertical"
                     android:text="@string/admin_botao_financeiro" />
+
+                <!-- Guia de como monitorar e ajustar o app (ver
+                     OrientacoesAdminConteudo) — abre na mesma tela, abaixo. -->
+                <TextView
+                    android:id="@+id/btnOrientacoes"
+                    style="@style/BotaoAcaoCaronasVertical"
+                    android:text="@string/admin_botao_orientacoes" />
 
             </LinearLayout>
 
