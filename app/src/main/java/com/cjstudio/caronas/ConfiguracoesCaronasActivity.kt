@@ -31,7 +31,8 @@ import javax.inject.Inject
 // Aberta também pelo ⚙️ do painel Administração (EXTRA_MODO_ADMIN): aí só
 // mostra o que serve a um administrador — Termos de Uso e Privacidade. Sem
 // "Pagamentos" (acesso pago é do motorista) e sem "Reclamações, Sugestões e
-// Denúncias" (o admin recebe essas mensagens, não as envia).
+// Denúncias" (o admin recebe essas mensagens, não as envia) — e ganha
+// "Orientações" (guia de como monitorar e ajustar o app), abaixo dos Termos.
 @AndroidEntryPoint
 class ConfiguracoesCaronasActivity : AppCompatActivity() {
 
@@ -52,6 +53,10 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
         if (modoAdmin) {
             cardPagamentos.visibility = View.GONE
             findViewById<View>(R.id.cardConfigManifestacoes).visibility = View.GONE
+            findViewById<View>(R.id.cardConfigOrientacoes).visibility = View.VISIBLE
+        }
+        findViewById<View>(R.id.btnConfigOrientacoes).setOnClickListener {
+            startActivity(Intent(this, OrientacoesAdminCaronasActivity::class.java))
         }
 
         findViewById<View>(R.id.btnConfigPagamentos).setOnClickListener {

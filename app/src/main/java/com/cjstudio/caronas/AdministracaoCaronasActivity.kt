@@ -142,7 +142,6 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnPassageiros).setOnClickListener { mostrarPassageiros() }
         findViewById<TextView>(R.id.btnViagens).setOnClickListener { abrirDialogEscolherViagens() }
         findViewById<TextView>(R.id.btnFinanceiro).setOnClickListener { mostrarFinanceiro() }
-        findViewById<TextView>(R.id.btnOrientacoes).setOnClickListener { mostrarOrientacoes() }
         findViewById<TextView>(R.id.tvConfiguracoesAdmin).setOnClickListener {
             startActivity(
                 Intent(this, ConfiguracoesCaronasActivity::class.java)
@@ -450,13 +449,6 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
 
         btnFiltrarFinanceiro.setOnClickListener { aplicarFiltroFinanceiro() }
         btnGerarRelatorioFinanceiro.setOnClickListener { mostrarDialogMesAnoFinanceiro() }
-    }
-
-    // Guia de como monitorar e ajustar o app — texto estático (ver
-    // OrientacoesAdminConteudo), mostrado na mesma área das outras seções.
-    private fun mostrarOrientacoes() {
-        prepararSecao(getString(R.string.admin_orientacoes_titulo), getString(R.string.admin_orientacoes_vazio))
-        exibirResultadoSecao(OrientacoesAdminConteudo.secoes()) { secoes -> OrientacaoAdminAdapter(secoes) }
     }
 
     private fun mostrarFinanceiro() {

@@ -49,6 +49,9 @@
             android:name=".TermosPrivacidadeCaronasActivity"
             android:exported="false" />
         <activity
+            android:name=".OrientacoesAdminCaronasActivity"
+            android:exported="false" />
+        <activity
             android:name=".EditarCadastroCaronasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

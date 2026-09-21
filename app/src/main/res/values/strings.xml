@@ -433,7 +433,7 @@
     <string name="admin_botao_financeiro">💰 Financeiro</string>
     <string name="admin_botao_orientacoes">Orientações</string>
     <string name="admin_orientacoes_titulo">Orientações — monitorar e ajustar o app</string>
-    <string name="admin_orientacoes_vazio">Nenhuma orientação disponível.</string>
+    <string name="admin_orientacoes_dica">Toque num item para abrir.</string>
     <string name="financeiro_titulo">Financeiro</string>
     <string name="financeiro_botao_filtrar">Filtrar</string>
     <string name="financeiro_data_inicial">De:</string>

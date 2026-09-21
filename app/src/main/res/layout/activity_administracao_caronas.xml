@@ -156,12 +156,6 @@
                     style="@style/BotaoAcaoCaronasVertical"
                     android:text="@string/admin_botao_financeiro" />
 
-                <!-- Guia de como monitorar e ajustar o app (ver
-                     OrientacoesAdminConteudo) — abre na mesma tela, abaixo. -->
-                <TextView
-                    android:id="@+id/btnOrientacoes"
-                    style="@style/BotaoAcaoCaronasVertical"
-                    android:text="@string/admin_botao_orientacoes" />
 
             </LinearLayout>
 
