@@ -58,15 +58,43 @@
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvDataHoraOferta"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#555555"
-            android:textSize="12sp"
+            android:orientation="vertical"
             android:layout_marginTop="2dp"
-            android:layout_marginBottom="10dp"
-            android:text="dd/MM/yyyy às HH:mm" />
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvDataHoraOferta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:text="dd/MM/yyyy às HH:mm" />
+
+            <!-- Tempo aproximado até o destino (TempoViagemUtil) — mesma
+                 fonte/cor da data, só em negrito; some se não houver distância. -->
+            <TextView
+                android:id="@+id/tvTempoViagemOferta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:text="Tempo aproximado: 0h00" />
+
+        </LinearLayout>
+
+        <!-- Vagas, valor e total recebido. Viagem já concluída começa
+             recolhida (só cabeçalho + data/tempo) e abre ao tocar no
+             cabeçalho, igual às Solicitações Recebidas (ver MinhaOfertaAdapter). -->
+        <LinearLayout
+            android:id="@+id/corpoResumoOferta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -109,6 +137,8 @@
             android:visibility="gone"
             android:text="Total recebido: R$ 0,00" />
 
+        </LinearLayout>
+
         <!-- Detalhes completos da rota (origem/paradas/destino, com
              endereço quando houver) — só aparece ao tocar no cabeçalho
              (ver MinhaOfertaAdapter, mesmo espírito de expandir/recolher
@@ -124,6 +154,7 @@
             android:visibility="gone" />
 
         <LinearLayout
+            android:id="@+id/linhaBotoesOferta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

@@ -60,12 +60,60 @@ service cloud.firestore {
       // numa escrita no Firestore, sem pagar nada. ".get(campo, padrão)"
       // em vez de ".campo" pra não quebrar em contas antigas que ainda
       // não têm esses dois campos (criadas antes dessa regra existir).
+      //
+      // Motorista com CPF vinculado (motoristasVinculo, abaixo): nome,
+      // telefone e e-mail do perfil têm que continuar iguais aos do vínculo
+      // — a única forma de mudá-los é pela Cloud Function registrarMotorista
+      // (que confere a unicidade entre motoristas ANTES de gravar o vínculo).
+      // Sem isso, dava pra editar o perfil direto e repetir o telefone/nome
+      // de outro motorista, burlando a regra de "nenhum campo repetido".
       allow update: if request.auth != null && request.auth.uid == usuarioId
         && request.resource.data.get('acessoMotoristaExpiraEm', null) == resource.data.get('acessoMotoristaExpiraEm', null)
         && (request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0)
-            || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1);
+            || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1)
+        && (!possuiVinculoMotorista(usuarioId) || (
+              request.resource.data.get('nomeCompleto', null) == vinculoMotorista(usuarioId).nomeCompleto
+              && request.resource.data.get('telefone', null) == vinculoMotorista(usuarioId).telefone
+              && request.resource.data.get('email', '').lower() == vinculoMotorista(usuarioId).email.lower()));
 
       allow delete: if request.auth != null && request.auth.uid == usuarioId;
+    }
+
+    // Vínculo de identidade do MOTORISTA: CPF (que não vai pro documento
+    // público usuarios/{uid}), nome, telefone e e-mail, todos únicos entre
+    // motoristas (ver vincularIdentidadeMotorista em functions/index.js).
+    // Só a Cloud Function escreve (Admin SDK); o dono lê o próprio (tela
+    // Editar Cadastro mostra o CPF) e o admin lê qualquer um. As travas de
+    // unicidade (motoristasUnicos) não são legíveis por ninguém do app.
+    function possuiVinculoMotorista(uid) {
+      return exists(/databases/$(database)/documents/motoristasVinculo/$(uid));
+    }
+
+    function vinculoMotorista(uid) {
+      return get(/databases/$(database)/documents/motoristasVinculo/$(uid)).data;
+    }
+
+    match /motoristasVinculo/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || ehAdmin());
+      allow write: if false;
+    }
+
+    match /motoristasUnicos/{chave} {
+      allow read, write: if false;
+    }
+
+    // Chat entre motorista e passageiro de uma solicitação: aberto desde
+    // que a vaga é solicitada (a conversa tem o mesmo id da solicitação)
+    // até 6 horas depois da chegada prevista, e fechado pra sempre se a
+    // solicitação for cancelada (por qualquer um dos dois). Fechado = só
+    // leitura. chegadaPrevistaEm é gravado na solicitação (partida + tempo
+    // aproximado de viagem — ver SolicitacaoRepository.solicitarVaga);
+    // solicitações antigas, sem o campo, usam o próprio horário de partida.
+    // Solicitação apagada = get() falha = chat fechado.
+    function chatAberto(solicitacaoId) {
+      let sol = get(/databases/$(database)/documents/solicitacoes/$(solicitacaoId)).data;
+      return sol.get('status', '') != 'cancelada'
+        && request.time.toMillis() <= sol.get('chegadaPrevistaEm', sol.get('dataHoraPartida', 0)) + 21600000;
     }
 
     // Trava de "10 caronas grátis, depois R$15,99/30 dias" pro motorista
@@ -76,7 +124,11 @@ service cloud.firestore {
       let usuario = get(/databases/$(database)/documents/usuarios/$(uid)).data;
       let ofertas = usuario.get('caronasOferecidas', 0);
       let expiraEm = usuario.get('acessoMotoristaExpiraEm', null);
-      return ofertas < 10 || (expiraEm != null && expiraEm > request.time);
+      // Motorista precisa ter o CPF vinculado (registrarMotorista) —
+      // é o que impede reabrir conta com outro e-mail pra ganhar outras 10
+      // caronas grátis.
+      return possuiVinculoMotorista(uid)
+        && (ofertas < 10 || (expiraEm != null && expiraEm > request.time));
     }
 
     // Caronas oferecidas por um motorista. Leitura liberada pra qualquer
@@ -158,9 +210,24 @@ service cloud.firestore {
       // dos dois participantes.
       allow read: if request.auth != null &&
         (resource == null || resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid || ehAdmin());
-      allow update, delete: if request.auth != null &&
+      // Uma solicitação cancelada não volta a ficar ativa (senão dava pra
+      // reabrir o chat cancelado) e a hora de partida/chegada prevista
+      // (que decide até quando o chat fica aberto) não muda depois de criada.
+      allow update: if request.auth != null &&
+        (resource == null || ((resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid)
+          && (resource.data.get('status', '') != 'cancelada' || request.resource.data.get('status', '') == 'cancelada')
+          && request.resource.data.get('chegadaPrevistaEm', null) == resource.data.get('chegadaPrevistaEm', null)
+          && request.resource.data.get('dataHoraPartida', null) == resource.data.get('dataHoraPartida', null)));
+      allow delete: if request.auth != null &&
         (resource == null || resource.data.passageiroId == request.auth.uid || resource.data.motoristaId == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid;
+      // chegadaPrevistaEm, quando enviado, tem que ser plausível: depois da
+      // partida e até 48h depois dela — impede esticar o chat com uma data
+      // absurda.
+      allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid
+        && (request.resource.data.get('chegadaPrevistaEm', null) == null
+            || (request.resource.data.chegadaPrevistaEm is number
+                && request.resource.data.chegadaPrevistaEm >= request.resource.data.dataHoraPartida
+                && request.resource.data.chegadaPrevistaEm <= request.resource.data.dataHoraPartida + 172800000));
     }
 
     // Conversa entre motorista e passageiro de uma solicitação (só passa a
@@ -228,14 +295,16 @@ service cloud.firestore {
         (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid || ehAdmin());
       allow update: if request.auth != null &&
         (resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+      // Só nasce com o chat aberto (ver chatAberto) — uma conversa nunca
+      // é criada depois de cancelada/encerrada.
       allow create: if request.auth != null &&
-        (request.resource.data.motoristaId == request.auth.uid || request.resource.data.passageiroId == request.auth.uid);
-      // Excluir a conversa inteira (toque e segure na lista de conversas —
-      // ver ChatCaronaRepository.excluirConversa/ConversasCaronaActivity).
-      // "resource == null" pelo mesmo motivo do "get" acima (double-tap,
-      // ou a outra ponta já excluindo a mesma conversa).
-      allow delete: if request.auth != null &&
-        (resource == null || resource.data.motoristaId == request.auth.uid || resource.data.passageiroId == request.auth.uid);
+        (request.resource.data.motoristaId == request.auth.uid || request.resource.data.passageiroId == request.auth.uid)
+        && chatAberto(conversaId);
+      // Conversa e mensagens NUNCA são apagadas pelos participantes: depois
+      // de encerrado (cancelamento ou 6h depois da chegada prevista) o
+      // histórico fica só pra leitura dos dois. Só a Cloud Function
+      // excluirUsuario (Admin SDK, fora destas regras) remove.
+      allow delete: if false;
 
       // Mensagens moram como subcoleção da própria conversa (em vez de uma
       // coleção "mensagens" solta, filtrada por conversaId) — de propósito:
@@ -253,19 +322,20 @@ service cloud.firestore {
           (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
            get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid ||
            ehAdmin());
-        allow update: if request.auth != null &&
-          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
-           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
+        // Única alteração permitida numa mensagem: o DESTINATÁRIO marcar
+        // como lida (o "Lida"/"Não lida" de quem enviou). Conteúdo, remetente
+        // e qualquer flag de "apagada" ficam imutáveis — mensagem não é
+        // editada nem apagada por ninguém.
+        allow update: if request.auth != null
+          && resource.data.destinatarioId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
+        // Mandar mensagem só com o chat aberto (ver chatAberto).
         allow create: if request.auth != null &&
           request.resource.data.remetenteId == request.auth.uid &&
           (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
-           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
-        // Apagadas em lote junto com a conversa (ver
-        // ChatCaronaRepository.excluirConversa) — mesma checagem de
-        // participante via get() no documento pai.
-        allow delete: if request.auth != null &&
-          (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
-           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid);
+           get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid) &&
+          chatAberto(conversaId);
+        allow delete: if false;
       }
     }
 

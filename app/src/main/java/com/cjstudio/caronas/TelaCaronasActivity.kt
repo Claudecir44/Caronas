@@ -83,7 +83,10 @@ class TelaCaronasActivity : AppCompatActivity() {
     private lateinit var tvSemResultadosBusca: TextView
     private lateinit var rvResultadosBusca: RecyclerView
     private lateinit var progressBarBusca: ProgressBar
-    private lateinit var tvTituloSecaoDois: TextView
+    private lateinit var layoutAbasOfertas: LinearLayout
+    private lateinit var tvAbaOfertas: TextView
+    private lateinit var tvAbaRecebidas: TextView
+    private lateinit var containerSecaoDois: LinearLayout
     private lateinit var progressBarSecaoDois: ProgressBar
     private lateinit var tvSemResultadosSecaoDois: TextView
     private lateinit var rvSecaoDois: RecyclerView
@@ -97,6 +100,8 @@ class TelaCaronasActivity : AppCompatActivity() {
     private var usuarioAtual: Usuario? = null
     private var mostrandoMinhasViagens = false
     private var mostrandoMinhasOfertas = false
+    // Aba aberta em "Minhas Ofertas": só uma lista aparece por vez.
+    private var abaOfertaAtual = ABA_OFERTAS
     private var mostrandoAvaliacoes = false
     private var adapterResultadosBusca: CaronaResultadoAdapter? = null
     // Evita registrar um segundo listener de badge a cada carregarPerfil()
@@ -140,7 +145,12 @@ class TelaCaronasActivity : AppCompatActivity() {
         rvResultadosBusca = findViewById(R.id.rvResultadosBusca)
         progressBarBusca = findViewById(R.id.progressBarBusca)
         rvResultadosBusca.layoutManager = LinearLayoutManager(this)
-        tvTituloSecaoDois = findViewById(R.id.tvTituloSecaoDois)
+        layoutAbasOfertas = findViewById(R.id.layoutAbasOfertas)
+        tvAbaOfertas = findViewById(R.id.tvAbaViagensOfertadas)
+        tvAbaRecebidas = findViewById(R.id.tvAbaSolicitacoesRecebidas)
+        containerSecaoDois = findViewById(R.id.containerSecaoDois)
+        tvAbaOfertas.setOnClickListener { selecionarAbaOfertas(ABA_OFERTAS) }
+        tvAbaRecebidas.setOnClickListener { selecionarAbaOfertas(ABA_RECEBIDAS) }
         progressBarSecaoDois = findViewById(R.id.progressBarSecaoDois)
         tvSemResultadosSecaoDois = findViewById(R.id.tvSemResultadosSecaoDois)
         rvSecaoDois = findViewById(R.id.rvSecaoDois)
@@ -204,7 +214,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         // Também cobre a volta do chat com um passageiro, sem precisar
         // fechar e reabrir a seção (mesmo comentário que existia em
         // MinhasOfertasActivity.onResume, agora embutida aqui).
-        if (mostrandoMinhasOfertas) carregarSolicitacoesRecebidas()
+        if (mostrandoMinhasOfertas && abaOfertaAtual == ABA_RECEBIDAS) carregarSolicitacoesRecebidas()
     }
 
     // Só quem está cadastrado como motorista (com veículo) pode oferecer
@@ -358,22 +368,30 @@ class TelaCaronasActivity : AppCompatActivity() {
         // sugerido recalculado). Só cai pro cálculo antigo (sugestão pura)
         // se a carona não tiver distanciaKm/valorPorVaga salvos (ofertas
         // publicadas antes desses campos existirem).
-        val valorTrecho = if (indiceOrigem == 0 && indiceDestino == carona.paradas.lastIndex) {
+        val trechoInteiro = indiceOrigem == 0 && indiceDestino == carona.paradas.lastIndex
+        val paradaOrigem = carona.paradas.getOrNull(indiceOrigem)
+        val paradaDestino = carona.paradas.getOrNull(indiceDestino)
+        // Distância do trecho buscado — base do tempo aproximado mostrado no
+        // card (TempoViagemUtil). Trecho inteiro reaproveita a que a oferta
+        // já tem gravada; trecho parcial vem da mesma geocodificação usada
+        // pro preço logo abaixo.
+        var distanciaTrechoKm: Double? = if (trechoInteiro) carona.distanciaKm else null
+
+        val valorTrecho = if (trechoInteiro) {
             carona.valorPorVaga ?: 0.0
         } else {
             val calendario = Calendar.getInstance().apply { timeInMillis = carona.dataHoraPartida ?: System.currentTimeMillis() }
-            val paradaOrigem = carona.paradas.getOrNull(indiceOrigem)
-            val paradaDestino = carona.paradas.getOrNull(indiceDestino)
             val sugestao = if (paradaOrigem?.cidade != null && paradaDestino?.cidade != null) {
                 runCatching {
                     DistanciaUtil.calcularSugestao(
                         this@TelaCaronasActivity,
-                        paradaOrigem.endereco?.let { "$it, ${paradaOrigem.cidade}" } ?: paradaOrigem.cidade!!,
-                        paradaDestino.endereco?.let { "$it, ${paradaDestino.cidade}" } ?: paradaDestino.cidade!!,
+                        DistanciaUtil.pontoParaGeocoding(paradaOrigem),
+                        DistanciaUtil.pontoParaGeocoding(paradaDestino),
                         calendario
                     )
                 }.getOrNull()
             } else null
+            distanciaTrechoKm = sugestao?.distanciaKm
 
             val distanciaTotal = carona.distanciaKm
             val precoTotal = carona.valorPorVaga
@@ -390,7 +408,59 @@ class TelaCaronasActivity : AppCompatActivity() {
         // outra perna da rota.
         val vagasDisponiveis = solicitacaoRepository.vagasDisponiveis(carona, indiceOrigem, indiceDestino).getOrDefault(carona.vagas)
 
-        return ResultadoBuscaCarona(carona, indiceOrigem, indiceDestino, cidadeEmbarque, cidadeDesembarque, valorTrecho, vagasDisponiveis)
+        // Oferta antiga sem distanciaKm gravada: geocodifica o trecho inteiro
+        // (só nesse caso — se o trecho parcial falhou acima, tentar de novo
+        // falharia igual).
+        if (distanciaTrechoKm == null && trechoInteiro && paradaOrigem != null && paradaDestino != null) {
+            distanciaTrechoKm = distanciaCacheada(
+                DistanciaUtil.pontoParaGeocoding(paradaOrigem),
+                DistanciaUtil.pontoParaGeocoding(paradaDestino)
+            )
+        }
+
+        return ResultadoBuscaCarona(carona, indiceOrigem, indiceDestino, cidadeEmbarque, cidadeDesembarque, valorTrecho, vagasDisponiveis, distanciaTrechoKm)
+    }
+
+    // Distâncias já geocodificadas nesta tela (origem, destino -> km) — o
+    // mesmo trecho aparece em vários cards/listas e o Geocoder é lento e
+    // limitado. Só guarda sucesso (falha tenta de novo na próxima vez).
+    // ConcurrentHashMap porque "Minhas Ofertas" carrega ofertas e
+    // solicitações recebidas ao mesmo tempo.
+    private val distanciaPorTrechoCache = java.util.concurrent.ConcurrentHashMap<Pair<String, String>, Double>()
+
+    private suspend fun distanciaCacheada(origem: String, destino: String): Double? = withContext(Dispatchers.IO) {
+        val chave = origem to destino
+        distanciaPorTrechoCache[chave] ?: runCatching {
+            DistanciaUtil.distanciaAproximadaKm(this@TelaCaronasActivity, origem, destino)
+        }.getOrNull()?.also { distanciaPorTrechoCache[chave] = it }
+    }
+
+    // Ofertas publicadas antes do tempo aproximado existir não têm
+    // distanciaKm gravada: completa em memória (não regrava) DEPOIS que a
+    // lista já está na tela, pra não atrasar a abertura por causa do
+    // Geocoder, e avisa o adapter atual pra redesenhar os cards.
+    private suspend fun completarDistanciaOfertas(ofertas: List<Carona>) {
+        var alterou = false
+        for (oferta in ofertas.filter { it.distanciaKm == null }) {
+            val origem = oferta.paradas.firstOrNull()?.let { DistanciaUtil.pontoParaGeocoding(it) } ?: oferta.cidadeOrigem ?: continue
+            val destino = oferta.paradas.lastOrNull()?.let { DistanciaUtil.pontoParaGeocoding(it) } ?: oferta.cidadeDestino ?: continue
+            oferta.distanciaKm = distanciaCacheada(origem, destino)?.also { alterou = true }
+        }
+        if (alterou) rvResultadosBusca.adapter?.notifyDataSetChanged()
+    }
+
+    // Mesmo para pedidos de vaga antigos (sem distanciaKm) — usados tanto em
+    // "Minhas Viagens" (rvResultadosBusca) quanto em "Solicitações
+    // Recebidas" (rvSecaoDois).
+    private suspend fun completarDistanciaSolicitacoes(solicitacoes: List<Solicitacao>, lista: RecyclerView) {
+        var alterou = false
+        for (solicitacao in solicitacoes.filter { it.distanciaKm == null }) {
+            val origem = DistanciaUtil.pontoParaGeocoding(solicitacao.cidadeOrigem, solicitacao.enderecoOrigem)
+            val destino = DistanciaUtil.pontoParaGeocoding(solicitacao.cidadeDestino, solicitacao.enderecoDestino)
+            if (origem.isBlank() || destino.isBlank()) continue
+            solicitacao.distanciaKm = distanciaCacheada(origem, destino)?.also { alterou = true }
+        }
+        if (alterou) lista.adapter?.notifyDataSetChanged()
     }
 
     private fun solicitarVaga(resultado: ResultadoBuscaCarona) {
@@ -406,7 +476,7 @@ class TelaCaronasActivity : AppCompatActivity() {
             // Índices e preço já vêm resolvidos da busca (ver
             // resolverTrecho) — não recalcula aqui, garante que o valor
             // mostrado na lista é exatamente o valor enviado no pedido.
-            solicitacaoRepository.solicitarVaga(carona, resultado.indiceOrigem, resultado.indiceDestino, resultado.valorTrecho)
+            solicitacaoRepository.solicitarVaga(carona, resultado.indiceOrigem, resultado.indiceDestino, resultado.valorTrecho, resultado.distanciaTrechoKm)
                 .onSuccess {
                     Toast.makeText(this@TelaCaronasActivity, R.string.procurar_solicitacao_enviada, Toast.LENGTH_LONG).show()
                 }
@@ -477,6 +547,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                             onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId, comoMotorista = true) },
                             onExcluirLongClick = { confirmarExcluirViagem(it) }
                         )
+                        completarDistanciaSolicitacoes(viagens, rvResultadosBusca)
                     }
                 }
                 .onFailure { e ->
@@ -486,16 +557,53 @@ class TelaCaronasActivity : AppCompatActivity() {
         }
     }
 
+    // Esconde tudo que é só de "Minhas Ofertas": as abas e a lista de
+    // Solicitações Recebidas. Chamado por todo outro modo da área de
+    // resultados (busca, Minhas Viagens, Avaliações) e ao fechar Minhas Ofertas.
     private fun esconderSecaoDois() {
-        tvTituloSecaoDois.visibility = View.GONE
+        layoutAbasOfertas.visibility = View.GONE
+        containerSecaoDois.visibility = View.GONE
         progressBarSecaoDois.visibility = View.GONE
         tvSemResultadosSecaoDois.visibility = View.GONE
         rvSecaoDois.visibility = View.GONE
     }
 
+    // Só uma aba de Minhas Ofertas aberta por vez: "Viagens Ofertadas" usa a
+    // área compartilhada (rvResultadosBusca...), "Solicitações Recebidas" usa
+    // o container próprio. Tocar numa aba recarrega SÓ aquela lista (dados
+    // sempre frescos e o estado visual dela vem do próprio carregamento).
+    private fun selecionarAbaOfertas(aba: Int) {
+        abaOfertaAtual = aba
+        aplicarVisibilidadeAbas()
+        if (aba == ABA_OFERTAS) carregarOfertas() else carregarSolicitacoesRecebidas()
+    }
+
+    // Reforça qual lista pode aparecer — também chamado pelos carregamentos,
+    // porque um deles pode terminar (ex.: recarga depois de confirmar/cancelar)
+    // com a OUTRA aba aberta e não deve reaparecer por cima.
+    private fun aplicarVisibilidadeAbas() {
+        if (!mostrandoMinhasOfertas) return
+        val naAbaOfertas = abaOfertaAtual == ABA_OFERTAS
+        layoutAbasOfertas.visibility = View.VISIBLE
+        containerSecaoDois.visibility = if (naAbaOfertas) View.GONE else View.VISIBLE
+        if (!naAbaOfertas) {
+            progressBarBusca.visibility = View.GONE
+            tvResumoBusca.visibility = View.GONE
+            tvSemResultadosBusca.visibility = View.GONE
+            rvResultadosBusca.visibility = View.GONE
+        }
+        estilizarAba(tvAbaOfertas, naAbaOfertas)
+        estilizarAba(tvAbaRecebidas, !naAbaOfertas)
+    }
+
+    private fun estilizarAba(aba: TextView, selecionada: Boolean) {
+        aba.setBackgroundResource(if (selecionada) R.drawable.aba_ofertas_selecionada else R.drawable.aba_ofertas_normal)
+        aba.setTextColor(if (selecionada) 0xFF1E90FF.toInt() else 0xFF666666.toInt())
+    }
+
     // "Minhas Ofertas" (motorista) — mesmo espírito de "Minhas Viagens"
-    // acima, só que com uma segunda seção embaixo (Solicitações Recebidas,
-    // ver tvTituloSecaoDois em diante) — reúne o que antes era a tela
+    // acima, só que com duas abas na mesma linha (Viagens Ofertadas e
+    // Solicitações Recebidas, ver selecionarAbaOfertas) — reúne o que antes era a tela
     // separada MinhasOfertasActivity (removida), nesta mesma tela, abaixo
     // do quadro azul.
     private fun toggleMinhasOfertas() {
@@ -510,13 +618,11 @@ class TelaCaronasActivity : AppCompatActivity() {
         }
         mostrandoMinhasViagens = false
         mostrandoMinhasOfertas = true
-        carregarOfertas()
-        // Solicitações Recebidas é buscado separado (não junto de
-        // carregarOfertas) pelo mesmo motivo documentado antes em
-        // MinhasOfertasActivity: rodar os dois em paralelo fazia qualquer
-        // um terminar por último sobrescrever o adapter do outro e fechar
-        // um card que o usuário tivesse acabado de abrir.
-        carregarSolicitacoesRecebidas()
+        // Abre em "Viagens Ofertadas". Só UMA lista é carregada por vez
+        // (a da aba aberta) — o que também evita o problema antigo de rodar
+        // as duas em paralelo, em que a que terminasse por último
+        // sobrescrevia o adapter da outra e fechava um card recém-aberto.
+        selecionarAbaOfertas(ABA_OFERTAS)
     }
 
     private fun carregarOfertas() {
@@ -526,6 +632,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         tvResumoBusca.visibility = View.GONE
         tvSemResultadosBusca.visibility = View.GONE
         rvResultadosBusca.visibility = View.GONE
+        aplicarVisibilidadeAbas()
 
         lifecycleScope.launch {
             caronaRepository.buscarMinhasOfertas()
@@ -560,6 +667,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                     if (ofertas.isEmpty()) {
                         tvSemResultadosBusca.visibility = View.VISIBLE
                         tvSemResultadosBusca.text = getString(R.string.minhas_ofertas_vazio)
+                        aplicarVisibilidadeAbas()
                     } else {
                         rvResultadosBusca.visibility = View.VISIBLE
                         rvResultadosBusca.adapter = MinhaOfertaAdapter(
@@ -569,17 +677,19 @@ class TelaCaronasActivity : AppCompatActivity() {
                             onEditarClick = { abrirDialogEditarOferta(it) },
                             onExcluirClick = { confirmarExcluirOferta(it) }
                         )
+                        aplicarVisibilidadeAbas()
+                        completarDistanciaOfertas(ofertas)
                     }
                 }
                 .onFailure { e ->
                     progressBarBusca.visibility = View.GONE
+                    aplicarVisibilidadeAbas()
                     Toast.makeText(this@TelaCaronasActivity, getString(R.string.minhas_ofertas_erro_carregar, e.message), Toast.LENGTH_LONG).show()
                 }
         }
     }
 
     private fun carregarSolicitacoesRecebidas() {
-        tvTituloSecaoDois.visibility = View.VISIBLE
         progressBarSecaoDois.visibility = View.VISIBLE
         tvSemResultadosSecaoDois.visibility = View.GONE
         rvSecaoDois.visibility = View.GONE
@@ -610,6 +720,7 @@ class TelaCaronasActivity : AppCompatActivity() {
                             onPerfilClick = { usuarioId -> abrirPerfilPublico(usuarioId, comoMotorista = false) },
                             onCancelarClick = { confirmarCancelarComoMotorista(it) }
                         )
+                        completarDistanciaSolicitacoes(solicitacoes, rvSecaoDois)
                     }
                 }
                 .onFailure { e ->
@@ -917,7 +1028,16 @@ class TelaCaronasActivity : AppCompatActivity() {
 
             dialog.dismiss()
             lifecycleScope.launch {
-                caronaRepository.atualizarOferta(caronaId, rota, calendario.timeInMillis, vagas, valor)
+                val distanciaKm = withContext(Dispatchers.IO) {
+                    runCatching {
+                        DistanciaUtil.distanciaAproximadaKm(
+                            this@TelaCaronasActivity,
+                            DistanciaUtil.pontoParaGeocoding(rota.first()),
+                            DistanciaUtil.pontoParaGeocoding(rota.last())
+                        )
+                    }.getOrNull()
+                }
+                caronaRepository.atualizarOferta(caronaId, rota, calendario.timeInMillis, vagas, valor, distanciaKm)
                     .onSuccess {
                         Toast.makeText(this@TelaCaronasActivity, R.string.minhas_ofertas_salva_sucesso, Toast.LENGTH_SHORT).show()
                         carregarOfertas()
@@ -1216,5 +1336,11 @@ class TelaCaronasActivity : AppCompatActivity() {
                 finish()
             }
         }
+    }
+
+    private companion object {
+        // Abas de "Minhas Ofertas" (ver selecionarAbaOfertas).
+        const val ABA_OFERTAS = 0
+        const val ABA_RECEBIDAS = 1
     }
 }

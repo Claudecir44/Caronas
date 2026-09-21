@@ -46,6 +46,7 @@ class CaronaResultadoAdapter(
         val ivFoto: ImageView = view.findViewById(R.id.ivFotoMotoristaResultado)
         val tvRota: TextView = view.findViewById(R.id.tvRotaResultado)
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraResultado)
+        val tvTempoViagem: TextView = view.findViewById(R.id.tvTempoViagemResultado)
         val tvNomeMotorista: TextView = view.findViewById(R.id.tvNomeMotoristaResultado)
         val tvCarroMotorista: TextView = view.findViewById(R.id.tvCarroMotoristaResultado)
         val tvVagas: TextView = view.findViewById(R.id.tvVagasResultado)
@@ -69,6 +70,8 @@ class CaronaResultadoAdapter(
         // deste trecho pra cá.
         holder.tvRota.text = RotaTextoUtil.formatar(context, resultado.cidadeEmbarque, resultado.cidadeDesembarque)
         holder.tvDataHora.text = carona.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
+        // Tempo só do TRECHO buscado, como a rota e o valor acima.
+        TempoViagemUtil.preencher(holder.tvTempoViagem, resultado.distanciaTrechoKm)
 
         // Só o primeiro nome do motorista aqui — nome completo só depois de
         // confirmada a solicitação (ver MinhaViagemAdapter).

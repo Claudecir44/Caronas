@@ -113,7 +113,7 @@ class CaronaRepository @Inject constructor(
         }
     }
 
-    override suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double): Result<Unit> {
+    override suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double, distanciaKm: Double?): Result<Unit> {
         return try {
             val rotaComBusca = rota.mapIndexed { indice, parada ->
                 parada.copy(ordem = indice, cidadeBusca = parada.cidade?.let { TextoUtil.normalizar(it) })
@@ -128,7 +128,12 @@ class CaronaRepository @Inject constructor(
                     "cidadesBusca" to rotaComBusca.mapNotNull { it.cidadeBusca },
                     "dataHoraPartida" to dataHoraPartida,
                     "vagas" to vagas,
-                    "valorPorVaga" to valorPorVaga
+                    "valorPorVaga" to valorPorVaga,
+                    // A rota pode ter mudado: a distância gravada (base do
+                    // tempo aproximado) é sempre a da rota nova. Sem valor
+                    // (geocodificação falhou), apaga o campo em vez de deixar
+                    // a distância da rota antiga — as telas recalculam.
+                    "distanciaKm" to (distanciaKm ?: FieldValue.delete())
                 )
             ).await()
             Result.success(Unit)

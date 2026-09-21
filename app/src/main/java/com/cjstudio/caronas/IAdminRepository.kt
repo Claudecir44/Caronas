@@ -30,13 +30,18 @@ interface IAdminRepository {
     // normalmente só é legível pelos dois participantes).
     suspend fun listarTodasSolicitacoes(): Result<List<Solicitacao>>
 
-    // Usuários cujo nome completo, telefone ou e-mail contém o texto
+    // Usuários cujo nome completo, telefone, e-mail ou CPF (motorista; texto
+    // com 11 dígitos, com ou sem máscara) contém o texto
     // buscado (sem diferenciar maiúsculas/acentos no nome) — busca
     // client-side em cima de listarTodosUsuarios (mesmo espírito "sem
     // paginação" do resto do painel, adequado ao volume atual do Caronas).
     // Usado pela seção "Mensagens" do painel admin, pra achar de quem ver
     // as conversas.
     suspend fun buscarUsuariosPorTexto(texto: String): Result<List<Usuario>>
+
+    // Vínculo de identidade (com o CPF) de um motorista — sucesso com null =
+    // sem vínculo (passageiro, ou motorista antigo sem CPF informado).
+    suspend fun buscarVinculoMotorista(uid: String): Result<VinculoMotorista?>
 
     // Todas as mensagens de TODAS as conversas de um usuário (como
     // motorista ou como passageiro), mais recentes primeiro, cada uma já

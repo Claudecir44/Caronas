@@ -122,6 +122,29 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
+            <!-- CPF só do motorista: obrigatório e vinculado à conta no
+                 servidor (nenhum campo repetido entre motoristas). Depois
+                 de vinculado não muda mais (ver EditarCadastroCaronasActivity). -->
+            <EditText
+                android:id="@+id/etCpf"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/cadastro_cpf"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#8899AA"
+                android:inputType="number"
+                android:digits="0123456789.-"
+                android:maxLength="14"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/cadastro_cpf_aviso"
+                android:textColor="#8899AA"
+                android:textSize="11sp"
+                android:layout_marginBottom="8dp" />
+
             <EditText
                 android:id="@+id/etVeiculoModelo"
                 android:layout_width="match_parent"

@@ -18,5 +18,9 @@ data class ResultadoBuscaCarona(
     // Vagas ainda livres pro trecho buscado (ver
     // SolicitacaoRepository.vagasDisponiveis) — nunca a capacidade total do
     // carro (carona.vagas), que não desconta quem já ocupou esse trecho.
-    val vagasDisponiveis: Int
+    val vagasDisponiveis: Int,
+    // Distância aproximada só do trecho buscado (km) — base do tempo
+    // aproximado mostrado no card (TempoViagemUtil). Null se não deu pra
+    // calcular (carona antiga sem distanciaKm e geocodificação falhou).
+    val distanciaTrechoKm: Double? = null
 )

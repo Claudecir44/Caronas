@@ -34,6 +34,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
     private lateinit var etConfirmarSenha: EditText
     private lateinit var cbSouMotorista: CheckBox
     private lateinit var layoutVeiculo: LinearLayout
+    private lateinit var etCpf: EditText
     private lateinit var etVeiculoModelo: EditText
     private lateinit var etVeiculoMarca: EditText
     private lateinit var etVeiculoCor: EditText
@@ -66,6 +67,8 @@ class CadastroCaronasActivity : AppCompatActivity() {
         etConfirmarSenha.habilitarToggleSenha()
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
+        etCpf = findViewById(R.id.etCpf)
+        CpfUtil.aplicarMascara(etCpf)
         etVeiculoModelo = findViewById(R.id.etVeiculoModelo)
         etVeiculoMarca = findViewById(R.id.etVeiculoMarca)
         etVeiculoCor = findViewById(R.id.etVeiculoCor)
@@ -86,6 +89,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
         cbSouMotorista.setOnCheckedChangeListener { _, marcado ->
             layoutVeiculo.visibility = if (marcado) View.VISIBLE else View.GONE
             if (!marcado) {
+                etCpf.text.clear()
                 etVeiculoModelo.text.clear()
                 etVeiculoMarca.text.clear()
                 etVeiculoCor.text.clear()
@@ -131,6 +135,13 @@ class CadastroCaronasActivity : AppCompatActivity() {
 
         var veiculo: Veiculo? = null
         if (souMotorista) {
+            // CPF só do motorista — passageiro não informa. A unicidade
+            // (nenhum campo repetido entre motoristas) é checada no
+            // servidor dentro de cadastrar().
+            if (!CpfUtil.valido(etCpf.text.toString())) {
+                Toast.makeText(this, R.string.cadastro_erro_cpf_invalido, Toast.LENGTH_SHORT).show()
+                return
+            }
             val modelo = etVeiculoModelo.text.toString().trim()
             val marca = etVeiculoMarca.text.toString().trim()
             val cor = etVeiculoCor.text.toString().trim()
@@ -154,7 +165,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
         btnCadastrar.isEnabled = false
 
         lifecycleScope.launch {
-            val resultadoCadastro = usuarioRepository.cadastrar(usuario, senha)
+            val resultadoCadastro = usuarioRepository.cadastrar(usuario, senha, if (souMotorista) CpfUtil.somenteDigitos(etCpf.text.toString()) else null)
             resultadoCadastro.onSuccess { uid ->
                 val uriFoto = fotoUriSelecionada
                 if (uriFoto != null) {

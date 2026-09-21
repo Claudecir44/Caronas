@@ -80,6 +80,27 @@
             android:enabled="false"
             android:layout_marginBottom="14dp" />
 
+        <!-- CPF só existe pra motorista (vínculo de identidade, ver
+             VinculoMotorista) — escondido pra conta só de passageiro. -->
+        <TextView
+            android:id="@+id/tvDetalhesCpfRotulo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/admin_detalhes_cpf"
+            android:textColor="#999999"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvDetalhesCpf"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#555555"
+            android:textSize="15sp"
+            android:layout_marginBottom="14dp"
+            android:visibility="gone" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

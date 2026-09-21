@@ -42,6 +42,9 @@
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
     <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, escolha um plano de acesso: 30 dias por R$ 17,99 ou 90 dias por R$ 44,99.</string>
     <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
+    <string name="oferecer_cpf_titulo">CPF obrigatório</string>
+    <string name="oferecer_cpf_mensagem">Para oferecer caronas você precisa ter o CPF vinculado ao seu cadastro de motorista. Complete seu cadastro.</string>
+    <string name="oferecer_cpf_botao">Completar cadastro</string>
     <string name="tela_contador_viagens_gratis_formato">Grátis: %1$02d/%2$02d</string>
     <string name="tela_contador_viagens_gratis_pago_formato">Acesso pago até %1$s</string>
     <string name="tela_contador_viagens_realizadas_formato">Realizadas: %1$d</string>
@@ -49,6 +52,8 @@
     <!-- Detalhes/edição de cadastro pelo admin -->
     <string name="admin_detalhes_usuario_titulo">Cadastro completo</string>
     <string name="admin_detalhes_cadastrado_em">Cadastrado em</string>
+    <string name="admin_detalhes_cpf">CPF (motorista)</string>
+    <string name="admin_detalhes_cpf_nao_informado">Não informado</string>
     <string name="admin_detalhes_veiculo_titulo">Veículo</string>
     <string name="admin_detalhes_salvar_titulo">Salvar alterações</string>
     <string name="admin_detalhes_salvar_mensagem">Confirme a senha do administrador master para salvar as alterações no cadastro de %1$s.</string>
@@ -101,7 +106,7 @@
     <string name="notificacao_canal_manifestacao">Reclamações, sugestões e denúncias</string>
     <string name="login_entrar_como">Entrar como:</string>
     <string name="login_erro_selecionar_papel">Selecione se você vai entrar como motorista ou passageiro.</string>
-    <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter um veículo cadastrado. Complete seu cadastro.</string>
+    <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter veículo e CPF cadastrados. Complete seu cadastro.</string>
 
     <!-- Cadastro -->
     <string name="cadastro_titulo">Criar Conta</string>
@@ -112,7 +117,10 @@
     <string name="cadastro_senha">Senha</string>
     <string name="cadastro_confirmar_senha">Confirmar senha</string>
     <string name="cadastro_sou_motorista">Sou motorista</string>
-    <string name="cadastro_veiculo_titulo">Dados do veículo</string>
+    <string name="cadastro_veiculo_titulo">Dados do motorista</string>
+    <string name="cadastro_cpf">CPF</string>
+    <string name="cadastro_cpf_aviso">Obrigatório para motorista. Fica vinculado ao seu cadastro (nome, CPF, e-mail e telefone) e não pode ser usado em outra conta.</string>
+    <string name="cadastro_cpf_travado_aviso">CPF já vinculado ao seu cadastro — não pode ser alterado.</string>
     <string name="cadastro_veiculo_modelo">Modelo do veículo</string>
     <string name="cadastro_veiculo_marca">Marca</string>
     <string name="cadastro_veiculo_cor">Cor</string>
@@ -125,6 +133,7 @@
     <string name="cadastro_erro_senhas_diferentes">As senhas não coincidem.</string>
     <string name="cadastro_erro_foto_obrigatoria">Escolha uma foto de perfil para continuar.</string>
     <string name="cadastro_erro_veiculo_obrigatorio">Preencha todos os dados do veículo.</string>
+    <string name="cadastro_erro_cpf_invalido">Informe um CPF válido (obrigatório para motorista).</string>
     <string name="cadastro_erro_generico">Erro ao cadastrar: %1$s</string>
     <string name="cadastro_sucesso">Cadastro realizado com sucesso! Valide seu cadastro no e-mail.</string>
 
@@ -200,7 +209,8 @@
     <string name="procurar_erro_solicitar">Erro ao solicitar vaga: %1$s</string>
 
     <!-- Minhas Ofertas (motorista) -->
-    <string name="minhas_ofertas_secao_titulo">Viagens Ofertadas</string>
+    <string name="minhas_ofertas_aba_ofertas">Viagens Ofertadas</string>
+    <string name="minhas_ofertas_aba_recebidas">Solicitações Recebidas</string>
     <string name="minhas_ofertas_vazio">Você ainda não publicou nenhuma carona.</string>
     <string name="minhas_ofertas_erro_carregar">Erro ao carregar suas ofertas: %1$s</string>
     <string name="minhas_ofertas_status_ativa">ATIVA</string>
@@ -298,17 +308,10 @@
     <string name="chat_carona_botao_enviar">Enviar</string>
     <string name="chat_carona_erro_generico">Erro ao abrir conversa: %1$s</string>
     <string name="chat_carona_erro_enviar">Erro ao enviar mensagem: %1$s</string>
-    <string name="chat_carona_mensagem_apagada">Mensagem apagada</string>
-    <string name="chat_carona_apagar_titulo">Apagar mensagem</string>
-    <string name="chat_carona_apagar_para_mim">Apagar só pra mim</string>
-    <string name="chat_carona_apagar_para_todos">Apagar pra todos</string>
-    <string name="chat_carona_erro_apagar">Erro ao apagar mensagem: %1$s</string>
     <string name="chat_carona_status_lida">Lida</string>
     <string name="chat_carona_status_nao_lida">Não lida</string>
-    <string name="chat_conversa_excluir_titulo">Excluir conversa</string>
-    <string name="chat_conversa_excluir_mensagem">Tem certeza que deseja excluir essa conversa? Todas as mensagens serão apagadas e essa ação não pode ser desfeita.</string>
-    <string name="chat_conversa_excluida_sucesso">Conversa excluída.</string>
-    <string name="chat_conversa_erro_excluir">Erro ao excluir conversa: %1$s</string>
+    <string name="chat_carona_fechado_cancelado">Chat bloqueado: a solicitação de vaga foi cancelada. As mensagens ficam guardadas só para consulta.</string>
+    <string name="chat_carona_fechado_encerrado">Chat encerrado: a viagem já terminou. As mensagens ficam guardadas só para consulta.</string>
 
     <!-- Editar cadastro -->
     <string name="editar_titulo">Editar Cadastro</string>
@@ -473,4 +476,10 @@
     <string name="admin_usuario_viagens_formato">Viagens: %1$d</string>
     <string name="admin_usuario_valor_formato">💰 R$ %.2f</string>
     <string name="cd_foto_perfil">Foto de perfil</string>
+
+    <!-- Tempo aproximado de viagem (TempoViagemUtil) -->
+    <string name="tempo_viagem_formato">Tempo aproximado: %1$s</string>
+    <string name="tempo_viagem_minutos">%1$d min</string>
+    <string name="tempo_viagem_horas">%1$dh</string>
+    <string name="tempo_viagem_horas_minutos">%1$dh%2$02d</string>
 </resources>

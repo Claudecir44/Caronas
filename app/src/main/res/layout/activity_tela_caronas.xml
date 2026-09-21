@@ -282,6 +282,50 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Só em "Minhas Ofertas" (motorista): duas abas na mesma linha,
+                 "Viagens Ofertadas" e "Solicitações Recebidas". Tocar numa
+                 abre SÓ aquela lista abaixo (ver TelaCaronasActivity.
+                 selecionarAbaOfertas). -->
+            <LinearLayout
+                android:id="@+id/layoutAbasOfertas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvAbaViagensOfertadas"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/minhas_ofertas_aba_ofertas"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/tvAbaSolicitacoesRecebidas"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/minhas_ofertas_aba_recebidas"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
             <!-- Só aparece na seção "Avaliações" (ver
                  TelaCaronasActivity.mostrarAvaliacoes) — resumo fixo acima
                  da lista de comentários (que usa a mesma
@@ -412,13 +456,14 @@
                 android:clipToPadding="false"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/tvTituloSecaoDois"
-                style="@style/TituloSecaoCaronas"
-                android:text="@string/solicitacoes_recebidas_titulo"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="10dp"
-                android:visibility="gone" />
+            <!-- Aba "Solicitações Recebidas": container próprio pra mostrar/
+                 esconder a seção inteira de uma vez. -->
+            <LinearLayout
+                android:id="@+id/containerSecaoDois"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
 
             <ProgressBar
                 android:id="@+id/progressBarSecaoDois"
@@ -445,6 +490,8 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:visibility="gone" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

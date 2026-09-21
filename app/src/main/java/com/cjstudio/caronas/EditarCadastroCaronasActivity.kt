@@ -40,6 +40,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
     // o cadastro não tinha veículo) — ver LoginCaronasActivity.
     private var vemDoLoginComoMotorista = false
     private lateinit var layoutVeiculo: LinearLayout
+    private lateinit var etCpf: EditText
     private lateinit var etVeiculoModelo: EditText
     private lateinit var etVeiculoMarca: EditText
     private lateinit var etVeiculoCor: EditText
@@ -49,6 +50,11 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
 
     private var usuarioAtual: Usuario? = null
+    // Vínculo de identidade do motorista (com o CPF) — null = conta sem CPF
+    // vinculado ainda (passageiro, ou motorista antigo). Com vínculo, o CPF
+    // aparece travado e nome/telefone passam pelo servidor ao salvar (ver
+    // validarESalvar).
+    private var vinculoAtual: VinculoMotorista? = null
     private var fotoUriSelecionada: Uri? = null
 
     private val seletorFoto = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -71,6 +77,8 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         vemDoLoginComoMotorista = intent.getBooleanExtra(EXTRA_VEM_DO_LOGIN_COMO_MOTORISTA, false)
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
+        etCpf = findViewById(R.id.etCpf)
+        CpfUtil.aplicarMascara(etCpf)
         etVeiculoModelo = findViewById(R.id.etVeiculoModelo)
         etVeiculoMarca = findViewById(R.id.etVeiculoMarca)
         etVeiculoCor = findViewById(R.id.etVeiculoCor)
@@ -89,6 +97,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         cbSouMotorista.setOnCheckedChangeListener { _, marcado ->
             layoutVeiculo.visibility = if (marcado) View.VISIBLE else View.GONE
             if (!marcado) {
+                if (vinculoAtual == null) etCpf.text.clear()
                 etVeiculoModelo.text.clear()
                 etVeiculoMarca.text.clear()
                 etVeiculoCor.text.clear()
@@ -106,6 +115,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
+                vinculoAtual = usuarioRepository.buscarMeuVinculoMotorista().getOrNull()
                 progressBar.visibility = View.GONE
                 preencherCampos(usuario)
             }.onFailure { e ->
@@ -136,6 +146,13 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         // à mostra — é exatamente pra isso que a pessoa caiu aqui.
         val marcarComoMotorista = temVeiculoCadastrado || vemDoLoginComoMotorista
         cbSouMotorista.isChecked = marcarComoMotorista
+        vinculoAtual?.cpf?.let { cpf ->
+            // Já vinculado: mostra e trava. O CPF nunca muda depois do
+            // vínculo (o servidor também recusa) — mudar seria a forma de
+            // "trocar de identidade" e recomeçar as caronas grátis.
+            etCpf.setText(CpfUtil.formatar(cpf))
+            etCpf.isEnabled = false
+        }
         layoutVeiculo.visibility = if (marcarComoMotorista) View.VISIBLE else View.GONE
         usuario.veiculo?.let { veiculo ->
             etVeiculoModelo.setText(veiculo.modelo)
@@ -164,6 +181,15 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         }
         if (telefone.isEmpty()) {
             Toast.makeText(this, R.string.cadastro_erro_telefone_obrigatorio, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Motorista precisa de CPF: o do vínculo já existente (travado) ou
+        // um válido digitado agora. A unicidade é checada no servidor,
+        // logo antes de salvar.
+        val cpfMotorista = vinculoAtual?.cpf ?: CpfUtil.somenteDigitos(etCpf.text.toString())
+        if (souMotorista && !CpfUtil.valido(cpfMotorista)) {
+            Toast.makeText(this, R.string.cadastro_erro_cpf_invalido, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -198,28 +224,43 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val uid = usuarioAtualizado.id!!
-            val uriFoto = fotoUriSelecionada
-            // uploadFotoPerfil já grava fotoUrl no Firestore sozinho (update
-            // direto desse campo), mas atualizarPerfil logo abaixo grava o
-            // Usuario INTEIRO (com merge) — sem atualizar fotoUrl aqui
-            // também, esse merge reescrevia o campo de volta pro valor
-            // antigo (o de "usuarioAtualizado", carregado ANTES do upload),
-            // desfazendo a troca de foto na hora seguinte. Por isso a foto
-            // nunca aparecia salva depois de editar.
-            var usuarioParaSalvar = usuarioAtualizado
-            if (uriFoto != null) {
-                usuarioRepository.uploadFotoPerfil(uid, uriFoto)
-                    .onSuccess { url -> usuarioParaSalvar = usuarioParaSalvar.copy(fotoUrl = url) }
-                    .onFailure { e ->
-                        Toast.makeText(
-                            this@EditarCadastroCaronasActivity,
-                            getString(R.string.editar_erro_generico, e.message),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+
+            // Vínculo do motorista (nome completo, CPF, e-mail e telefone
+            // únicos entre motoristas): antes de qualquer gravação, e também
+            // pra quem já tem vínculo e só mudou nome/telefone (o servidor
+            // mantém o vínculo igual ao perfil — firestore.rules recusa o
+            // contrário). Repetido em outro motorista = não salva nada.
+            if (souMotorista || vinculoAtual != null) {
+                val resultadoVinculo = usuarioRepository.registrarMotorista(nome, cpfMotorista, telefone)
+                if (resultadoVinculo.isFailure) {
+                    progressBar.visibility = View.GONE
+                    btnSalvar.isEnabled = true
+                    Toast.makeText(
+                        this@EditarCadastroCaronasActivity,
+                        getString(R.string.editar_erro_generico, resultadoVinculo.exceptionOrNull()?.message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
             }
 
+            // Perfil ANTES da foto: uploadFotoPerfil grava fotoUrl sozinho no
+            // fim, então a foto nova nunca é desfeita por este merge (que
+            // levaria o fotoUrl antigo) — e o perfil já bate com o vínculo
+            // quando o upload faz o update dele (firestore.rules).
+            val usuarioParaSalvar = usuarioAtualizado
             usuarioRepository.atualizarPerfil(usuarioParaSalvar).onSuccess {
+                val uriFoto = fotoUriSelecionada
+                if (uriFoto != null) {
+                    usuarioRepository.uploadFotoPerfil(uid, uriFoto)
+                        .onFailure { e ->
+                            Toast.makeText(
+                                this@EditarCadastroCaronasActivity,
+                                getString(R.string.editar_erro_generico, e.message),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                }
                 progressBar.visibility = View.GONE
                 btnSalvar.isEnabled = true
                 Toast.makeText(this@EditarCadastroCaronasActivity, R.string.editar_sucesso, Toast.LENGTH_LONG).show()

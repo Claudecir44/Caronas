@@ -21,7 +21,7 @@ interface ICaronaRepository {
     // e valor por vaga. Reconstrói cidadeOrigem/cidadeDestino/cidadesBusca
     // a partir de "rota", mesma normalização de publicarCarona — sem isso,
     // uma edição de rota não apareceria em buscas por trecho novo.
-    suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double): Result<Unit>
+    suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double, distanciaKm: Double?): Result<Unit>
 
     suspend fun excluirOferta(caronaId: String): Result<Unit>
 }

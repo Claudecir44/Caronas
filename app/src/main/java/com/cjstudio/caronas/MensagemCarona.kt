@@ -14,11 +14,8 @@ data class MensagemCarona(
     var conteudo: String? = null,
     @ServerTimestamp
     var timestamp: Date? = null,
-    var lida: Boolean = false,
-    var deletadaParaTodos: Boolean = false,
-    var deletadaParaRemetente: Boolean = false,
-    var deletadaParaDestinatario: Boolean = false
+    var lida: Boolean = false
 ) {
     // Construtor vazio necessário para o Firestore (mesmo padrão de Usuario.kt).
-    constructor() : this(null, null, null, null, null, null, false, false, false, false)
+    constructor() : this(null, null, null, null, null, null, false)
 }

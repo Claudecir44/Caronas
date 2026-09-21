@@ -43,6 +43,7 @@ class MinhaViagemAdapter(
         val tvRota: TextView = view.findViewById(R.id.tvRotaViagem)
         val tvStatus: TextView = view.findViewById(R.id.tvStatusViagem)
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraViagem)
+        val tvTempoViagem: TextView = view.findViewById(R.id.tvTempoViagemViagem)
         val layoutMotorista: LinearLayout = view.findViewById(R.id.layoutMotoristaViagem)
         val ivFotoMotorista: ImageView = view.findViewById(R.id.ivFotoMotoristaViagem)
         val tvNomeMotorista: TextView = view.findViewById(R.id.tvNomeMotoristaViagem)
@@ -64,6 +65,7 @@ class MinhaViagemAdapter(
 
         holder.tvRota.text = RotaTextoUtil.formatar(context, viagem.cidadeOrigem, viagem.cidadeDestino)
         holder.tvDataHora.text = viagem.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
+        TempoViagemUtil.preencher(holder.tvTempoViagem, viagem.distanciaKm)
         holder.tvValorPago.text = context.getString(
             R.string.minhas_viagens_valor_pago_formato,
             String.format(Locale("pt", "BR"), "%.2f", viagem.valorPago ?: 0.0)

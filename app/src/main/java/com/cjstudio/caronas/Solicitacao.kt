@@ -56,6 +56,15 @@ data class Solicitacao(
     var indiceDestinoNaRota: Int = 1,
     var dataHoraPartida: Long? = null,
     var valorPago: Double? = null,
+    // Distância aproximada do trecho (km), copiada no pedido — base do tempo
+    // aproximado mostrado nos cards (TempoViagemUtil). Null em pedidos
+    // antigos, que TelaCaronasActivity completa só em memória ao listar.
+    var distanciaKm: Double? = null,
+    // Hora prevista de chegada (partida + tempo aproximado de viagem, ver
+    // TempoViagemUtil.chegadaPrevistaEm) — o chat fecha 6 horas depois dela
+    // (ver ChatUtil/firestore.rules:chatAberto). Null em pedidos antigos:
+    // aí vale a própria hora de partida.
+    var chegadaPrevistaEm: Long? = null,
     var status: String = "solicitada",
 
     // Preenchido só quando status vira "cancelada" — "passageiro" ou
@@ -92,6 +101,6 @@ data class Solicitacao(
     // Construtor vazio necessário para o Firestore (mesmo padrão de Usuario.kt).
     constructor() : this(
         null, null, null, null, null, null, null, null, null,
-        null, null, null, null, 0, 1, null, null, "solicitada", null, false, false, null
+        null, null, null, null, 0, 1, null, null, null, null, "solicitada", null, false, false, null
     )
 }

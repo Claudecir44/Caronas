@@ -5,7 +5,6 @@ import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -30,8 +29,12 @@ class ChatCaronaActivity : AppCompatActivity() {
     private lateinit var tvRota: TextView
     private lateinit var rvMensagens: RecyclerView
     private lateinit var etMensagem: EditText
+    private lateinit var layoutEntradaMensagem: View
+    private lateinit var tvAvisoChatFechado: TextView
 
     private var conversaAtual: ConversaCarona? = null
+    // Estado atual do chat (ver ChatUtil) — vem do listener da solicitação.
+    private var statusChat = StatusChat.ABERTO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +45,8 @@ class ChatCaronaActivity : AppCompatActivity() {
         tvRota = findViewById(R.id.tvRotaChat)
         rvMensagens = findViewById(R.id.rvMensagensChat)
         etMensagem = findViewById(R.id.etMensagemChat)
+        layoutEntradaMensagem = findViewById(R.id.layoutEntradaMensagemChat)
+        tvAvisoChatFechado = findViewById(R.id.tvAvisoChatFechado)
         val btnEnviar = findViewById<android.widget.Button>(R.id.btnEnviarChat)
         rvMensagens.layoutManager = LinearLayoutManager(this)
         btnEnviar.setOnClickListener { enviarMensagem() }
@@ -67,7 +72,14 @@ class ChatCaronaActivity : AppCompatActivity() {
             chatCaronaRepository.buscarOuCriarConversa(solicitacao)
                 .onSuccess { conversa -> abrirConversa(conversa) }
                 .onFailure { e ->
-                    Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_generico, e.message), Toast.LENGTH_LONG).show()
+                    // Chat já fechado (cancelado/encerrado) e sem conversa
+                    // anterior: nada pra mostrar, só avisa por quê.
+                    val mensagem = if (e is ChatIndisponivelException) {
+                        getString(mensagemDeChatFechado(e.status))
+                    } else {
+                        getString(R.string.chat_carona_erro_generico, e.message)
+                    }
+                    Toast.makeText(this@ChatCaronaActivity, mensagem, Toast.LENGTH_LONG).show()
                     finish()
                 }
         }
@@ -81,6 +93,36 @@ class ChatCaronaActivity : AppCompatActivity() {
 
         lifecycleScope.launch { chatCaronaRepository.marcarConversaComoLida(conversa) }
         escutarMensagens(conversa.id!!)
+        conversa.solicitacaoId?.let { escutarStatus(it) }
+    }
+
+    // Chat aberto: campo de mensagem normal. Cancelado/encerrado: as
+    // mensagens continuam na tela, mas o campo some e entra o aviso do
+    // motivo (ver ChatUtil). O estado muda ao vivo (cancelamento do outro
+    // lado) e é recalculado ao enviar (o relógio passa com a tela aberta).
+    private fun escutarStatus(solicitacaoId: String) {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                chatCaronaRepository.escutarSolicitacao(solicitacaoId)
+                    // Erro de leitura (ex.: sem permissão) = sem como provar
+                    // que o chat está aberto: trata como encerrado.
+                    .catch { emit(null) }
+                    .collect { solicitacao -> aplicarStatus(ChatUtil.status(solicitacao)) }
+            }
+        }
+    }
+
+    private fun aplicarStatus(novo: StatusChat) {
+        statusChat = novo
+        val aberto = novo == StatusChat.ABERTO
+        layoutEntradaMensagem.visibility = if (aberto) View.VISIBLE else View.GONE
+        tvAvisoChatFechado.visibility = if (aberto) View.GONE else View.VISIBLE
+        if (!aberto) tvAvisoChatFechado.setText(mensagemDeChatFechado(novo))
+    }
+
+    private fun mensagemDeChatFechado(status: StatusChat): Int = when (status) {
+        StatusChat.CANCELADO -> R.string.chat_carona_fechado_cancelado
+        else -> R.string.chat_carona_fechado_encerrado
     }
 
     private fun escutarMensagens(conversaId: String) {
@@ -88,9 +130,7 @@ class ChatCaronaActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 chatCaronaRepository.escutarMensagens(conversaId).catch { }.collect { mensagens ->
-                    rvMensagens.adapter = MensagemCaronaAdapter(mensagens, meuId) { mensagem ->
-                        mostrarDialogApagar(mensagem)
-                    }
+                    rvMensagens.adapter = MensagemCaronaAdapter(mensagens, meuId)
                     if (mensagens.isNotEmpty()) {
                         rvMensagens.scrollToPosition(mensagens.size - 1)
                     }
@@ -103,6 +143,7 @@ class ChatCaronaActivity : AppCompatActivity() {
         val conversa = conversaAtual ?: return
         val texto = etMensagem.text.toString().trim()
         if (texto.isEmpty()) return
+        if (statusChat != StatusChat.ABERTO) return
 
         etMensagem.setText("")
         lifecycleScope.launch {
@@ -110,50 +151,6 @@ class ChatCaronaActivity : AppCompatActivity() {
                 .onFailure { e ->
                     Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_enviar, e.message), Toast.LENGTH_SHORT).show()
                 }
-        }
-    }
-
-    // Mensagem própria (que eu mandei): "apagar só pra mim" e "apagar pra
-    // todos". Mensagem do outro: só "apagar só pra mim" — não posso apagar
-    // pra todos uma mensagem que não é minha (mesmo padrão do Match).
-    private fun mostrarDialogApagar(mensagem: MensagemCarona) {
-        val meuId = usuarioRepository.uidLogado()
-        val souRemetente = mensagem.remetenteId == meuId
-
-        if (souRemetente) {
-            val opcoes = arrayOf(
-                getString(R.string.chat_carona_apagar_para_mim),
-                getString(R.string.chat_carona_apagar_para_todos)
-            )
-            AlertDialog.Builder(this)
-                .setTitle(R.string.chat_carona_apagar_titulo)
-                .setItems(opcoes) { _, escolha ->
-                    lifecycleScope.launch {
-                        val resultado = if (escolha == 0) {
-                            chatCaronaRepository.apagarMensagemParaMim(mensagem)
-                        } else {
-                            chatCaronaRepository.apagarMensagemParaTodos(mensagem)
-                        }
-                        resultado.onFailure { e ->
-                            Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_apagar, e.message), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                .setNegativeButton(R.string.cancelar, null)
-                .show()
-        } else {
-            val opcoes = arrayOf(getString(R.string.chat_carona_apagar_para_mim))
-            AlertDialog.Builder(this)
-                .setTitle(R.string.chat_carona_apagar_titulo)
-                .setItems(opcoes) { _, _ ->
-                    lifecycleScope.launch {
-                        chatCaronaRepository.apagarMensagemParaMim(mensagem).onFailure { e ->
-                            Toast.makeText(this@ChatCaronaActivity, getString(R.string.chat_carona_erro_apagar, e.message), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                .setNegativeButton(R.string.cancelar, null)
-                .show()
         }
     }
 

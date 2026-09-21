@@ -49,16 +49,7 @@ class MensagemAdminAdapter(
             R.string.admin_mensagem_remetente_destinatario_formato, nomeRemetente, nomeDestinatario
         )
 
-        // Respeita só o "apagada pra todos" (uma exclusão real, os dois
-        // lados perderam o texto) — o admin, pra fins de suporte, ainda
-        // enxerga o conteúdo mesmo que um dos dois tenha apagado só pra si
-        // (ver MensagemCarona.deletadaParaRemetente/Destinatario, que são
-        // ocultação pessoal, não uma exclusão de verdade).
-        holder.tvConteudo.text = if (mensagem.deletadaParaTodos) {
-            context.getString(R.string.chat_carona_mensagem_apagada)
-        } else {
-            mensagem.conteudo.orEmpty()
-        }
+        holder.tvConteudo.text = mensagem.conteudo.orEmpty()
     }
 
     private fun nomeParticipante(id: String?, conversa: ConversaCarona): String {

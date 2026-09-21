@@ -141,15 +141,6 @@ class OferecerCaronaActivity : AppCompatActivity() {
         return rota.mapIndexed { indice, parada -> parada.copy(ordem = indice) }
     }
 
-    // "endereço, cidade" quando há endereço (geocodifica mais preciso),
-    // senão só a cidade — mesma string usada tanto pra pré-visualizar a
-    // sugestão quanto pra gravar de fato (ver DistanciaUtil.geocodificar).
-    private fun pontoParaGeocoding(parada: ParadaRota): String {
-        val endereco = parada.endereco
-        val cidade = parada.cidade ?: ""
-        return if (!endereco.isNullOrBlank()) "$endereco, $cidade" else cidade
-    }
-
     private fun abrirSeletorData() {
         val c = calendarioSelecionado
         DatePickerDialog(this, { _, ano, mes, dia ->
@@ -209,7 +200,7 @@ class OferecerCaronaActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val sugestoes = withContext(Dispatchers.IO) {
                 runCatching {
-                    DistanciaUtil.calcularSugestoesAPartirDaOrigem(this@OferecerCaronaActivity, rota.map { pontoParaGeocoding(it) }, calendarioSelecionado)
+                    DistanciaUtil.calcularSugestoesAPartirDaOrigem(this@OferecerCaronaActivity, rota.map { DistanciaUtil.pontoParaGeocoding(it) }, calendarioSelecionado)
                 }.getOrNull()
             }
             btnCalcularSugestao.isEnabled = true
@@ -349,7 +340,32 @@ class OferecerCaronaActivity : AppCompatActivity() {
                 return@launch
             }
 
-            caronaRepository.publicarCarona(carona)
+            // Motorista sem CPF vinculado (cadastro antigo) não publica —
+            // firestore.rules também recusa (permiteOferecerCarona).
+            val vinculo = usuarioRepository.buscarMeuVinculoMotorista()
+            if (vinculo.isSuccess && vinculo.getOrNull() == null) {
+                progressBar.visibility = View.GONE
+                btnPublicar.isEnabled = true
+                mostrarBloqueioCpfMotorista()
+                return@launch
+            }
+
+            // Distância (base do tempo aproximado mostrado nos cards) sempre
+            // recalculada da rota FINAL: quem não tocou em "Calcular
+            // sugestão" chegaria aqui sem distância nenhuma, e quem calculou
+            // e depois trocou uma cidade teria a distância da rota antiga.
+            // Se não geocodificar agora, cai pra que já tinha (pode ser null).
+            val distanciaFinalKm = withContext(Dispatchers.IO) {
+                runCatching {
+                    DistanciaUtil.distanciaAproximadaKm(
+                        this@OferecerCaronaActivity,
+                        DistanciaUtil.pontoParaGeocoding(rota.first()),
+                        DistanciaUtil.pontoParaGeocoding(rota.last())
+                    )
+                }.getOrNull()
+            } ?: carona.distanciaKm
+
+            caronaRepository.publicarCarona(carona.copy(distanciaKm = distanciaFinalKm))
                 .onSuccess {
                     Toast.makeText(this@OferecerCaronaActivity, R.string.oferecer_sucesso, Toast.LENGTH_LONG).show()
                     finish()
@@ -368,6 +384,17 @@ class OferecerCaronaActivity : AppCompatActivity() {
 
     private fun formatarReais(valor: Double) = "R$ " + formatarValorEditavel(valor)
     private fun formatarValorEditavel(valor: Double) = String.format(Locale("pt", "BR"), "%.2f", valor)
+
+    private fun mostrarBloqueioCpfMotorista() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.oferecer_cpf_titulo)
+            .setMessage(R.string.oferecer_cpf_mensagem)
+            .setPositiveButton(R.string.oferecer_cpf_botao) { _, _ ->
+                startActivity(Intent(this, EditarCadastroCaronasActivity::class.java))
+            }
+            .setNegativeButton(R.string.cancelar, null)
+            .show()
+    }
 
     private fun mostrarBloqueioAcessoMotorista() {
         MaterialAlertDialogBuilder(this)

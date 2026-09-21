@@ -54,6 +54,25 @@ object DistanciaUtil {
         return LatLngPonto(endereco.latitude, endereco.longitude)
     }
 
+    // "endereço, cidade" quando a parada tem endereço (geocodifica mais
+    // preciso), senão só a cidade — a mesma string em todo lugar que
+    // geocodifica uma parada (sugestão de valor, distância gravada na
+    // oferta, tempo aproximado de viagem).
+    fun pontoParaGeocoding(parada: ParadaRota): String = pontoParaGeocoding(parada.cidade, parada.endereco)
+
+    fun pontoParaGeocoding(cidade: String?, endereco: String?): String {
+        val cidadeTexto = cidade ?: ""
+        return if (!endereco.isNullOrBlank()) "$endereco, $cidadeTexto" else cidadeTexto
+    }
+
+    // Distância aproximada (a mesma da sugestão de valor) entre dois pontos,
+    // ou null se algum não for geocodificado. Bloqueante — Dispatchers.IO.
+    fun distanciaAproximadaKm(context: Context, origem: String, destino: String): Double? {
+        val a = geocodificar(context, origem) ?: return null
+        val b = geocodificar(context, destino) ?: return null
+        return distanciaKm(a, b)
+    }
+
     fun distanciaKm(a: LatLngPonto, b: LatLngPonto): Double {
         return distanciaHaversineKm(a.latitude, a.longitude, b.latitude, b.longitude) * FATOR_ROTA_ESTRADA
     }

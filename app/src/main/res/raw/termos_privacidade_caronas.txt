@@ -9,11 +9,20 @@ PARTE 1 — TERMOS DE USO
 O Caronas é uma plataforma que conecta motoristas e passageiros interessados em compartilhar uma mesma viagem, dividindo os custos do trajeto. O Caronas não é uma empresa de transporte, não possui frota própria e não emprega os motoristas que utilizam o aplicativo — atua apenas como intermediário entre pessoas que já pretendiam fazer o mesmo trajeto.
 
 2. NATUREZA DO SERVIÇO — CARONA SOLIDÁRIA, NÃO TRANSPORTE REMUNERADO
-Os valores sugeridos e cobrados nas caronas oferecidas através do app representam o RATEIO das despesas da viagem (combustível, desgaste do veículo, pedágio) entre o motorista e os passageiros — nunca uma tarifa comercial de transporte. O motorista não pode utilizar o Caronas como fonte de renda ou atividade profissional de transporte remunerado de passageiros; o uso do aplicativo para esse fim é proibido e pode resultar na suspensão da conta.
+2.1. Os valores sugeridos e cobrados nas caronas oferecidas através do app representam o RATEIO das despesas da viagem (combustível, desgaste do veículo, pedágio) entre o motorista e os passageiros — nunca uma tarifa comercial de transporte. O motorista não pode utilizar o Caronas como fonte de renda ou atividade profissional de transporte remunerado de passageiros; o uso do aplicativo para esse fim é proibido e pode resultar na suspensão da conta.
+
+2A. VALORES COBRADOS PELOS MOTORISTAS — A PLATAFORMA NÃO SE ENVOLVE
+2A.1. O valor por vaga de cada carona é definido exclusivamente pelo motorista, no momento em que ele publica ou edita a oferta, e aceito, ou não, pelo passageiro ao solicitar a vaga. O Caronas não estabelece, não impõe, não limita, não negocia nem intermedeia esses valores, e não se manifesta sobre a sua adequação, justiça, proporcionalidade ou regularidade.
+2A.2. O valor que o aplicativo exibe como "sugestão" é apenas uma referência automática de rateio, calculada de forma aproximada a partir da distância estimada da rota. Ela não é uma recomendação, uma tabela de preços nem uma garantia de que o valor sugerido corresponde ao custo real da viagem, e o motorista pode alterá-la livremente.
+2A.3. O Caronas não recebe, não processa, não retém, não custodia nem repassa qualquer pagamento entre passageiro e motorista, e não cobra comissão, taxa ou percentual sobre os valores combinados entre eles. A forma, o momento e as condições do pagamento são acertados diretamente entre as partes, fora do aplicativo, e a responsabilidade por eles é exclusivamente delas.
+2A.4. Os totais de "valor recebido" e "valor pago" exibidos no aplicativo são apenas registros informativos calculados a partir das solicitações de vaga. Eles não comprovam que um pagamento foi efetivamente feito ou recebido, e não substituem recibo, comprovante ou qualquer documento fiscal.
+2A.5. O Caronas não garante o pagamento ao motorista nem o reembolso ao passageiro, não participa de disputas, cobranças indevidas, recusas de pagamento, divergências de valor ou trocos, e não se responsabiliza por prejuízos deles decorrentes. Recomenda-se que motorista e passageiro combinem o valor e a forma de pagamento antes do embarque, pelo chat do aplicativo.
+2A.6. Cada usuário é o único responsável pelas obrigações legais, tributárias e de qualquer outra natureza que possam decorrer dos valores que recebe ou paga entre si.
+2A.7. A única cobrança feita pelo Caronas é a do plano de acesso do motorista à plataforma, exigido depois das caronas gratuitas, que remunera o uso do aplicativo e não tem relação com os valores acertados entre motorista e passageiro.
 
 3. CADASTRO E CONTA
 3.1. É necessário ter no mínimo 18 anos para se cadastrar no Caronas.
-3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, dados do veículo) devem ser verdadeiras e atualizadas.
+3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, CPF e dados do veículo) devem ser verdadeiras e atualizadas.
 3.3. O cadastro é validado por e-mail — a conta só pode ser usada normalmente depois da confirmação do endereço de e-mail informado.
 3.4. Cada usuário é responsável por manter a confidencialidade da própria senha e por toda atividade realizada através da sua conta.
 3.5. Ao oferecer caronas, o motorista declara possuir habilitação válida, o veículo em condições seguras de uso e toda a documentação exigida por lei para conduzir o veículo informado.
@@ -67,6 +76,7 @@ PARTE 2 — POLÍTICA DE PRIVACIDADE
 
 1. DADOS QUE COLETAMOS
 • Dados de cadastro: nome completo, e-mail, telefone e foto de perfil.
+• CPF (só para quem se cadastra como motorista): usado para vincular o cadastro a uma única pessoa e impedir contas duplicadas; não é exibido a outros usuários.
 • Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.
 • Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.
 • Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014).

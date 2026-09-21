@@ -46,6 +46,7 @@ class SolicitacaoRecebidaAdapter(
         val tvRota: TextView = view.findViewById(R.id.tvRotaSolicitacao)
         val tvStatus: TextView = view.findViewById(R.id.tvStatusSolicitacao)
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraSolicitacao)
+        val tvTempoViagem: TextView = view.findViewById(R.id.tvTempoViagemSolicitacao)
         val btnConfirmar: Button = view.findViewById(R.id.btnConfirmarSolicitacao)
         val btnCancelar: Button = view.findViewById(R.id.btnCancelarSolicitacao)
         val btnChat: Button = view.findViewById(R.id.btnChatSolicitacao)
@@ -68,6 +69,7 @@ class SolicitacaoRecebidaAdapter(
             corDestino = RotaTextoUtil.COR_DESTINO_VERMELHO
         )
         holder.tvDataHora.text = solicitacao.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
+        TempoViagemUtil.preencher(holder.tvTempoViagem, solicitacao.distanciaKm)
 
         // Só o primeiro nome — o motorista revela isso ao abrir o card,
         // antes de decidir confirmar, sem expor o nome completo aqui.

@@ -6,7 +6,24 @@ import kotlinx.coroutines.flow.Flow
 interface IUsuarioRepository {
     // Cria a conta (Auth + doc Firestore) e devolve o uid criado. Em
     // qualquer falha no meio do caminho, desfaz o que já tiver sido criado.
-    suspend fun cadastrar(usuario: Usuario, senha: String): Result<String>
+    // "cpf" é obrigatório quando usuario.motorista == true (cadastro de
+    // motorista): vira o vínculo de identidade no servidor (ver
+    // registrarMotorista) e, se já existir outro motorista com o mesmo CPF,
+    // nome, telefone ou e-mail, o cadastro inteiro é desfeito e falha com a
+    // mensagem do servidor. Passageiro passa null.
+    suspend fun cadastrar(usuario: Usuario, senha: String, cpf: String?): Result<String>
+
+    // Vincula (ou atualiza, se o nome/telefone mudaram) a identidade do
+    // MOTORISTA logado no servidor — Cloud Function registrarMotorista:
+    // nome completo, CPF, e-mail e telefone não podem se repetir em outro
+    // motorista. Conta que só era de passageiro passa a ser motorista por
+    // aqui, com o mesmo uid, sem conflitar com ela mesma. O CPF de um
+    // vínculo existente não muda. Falha com a mensagem do servidor.
+    suspend fun registrarMotorista(nomeCompleto: String, cpf: String, telefone: String): Result<Unit>
+
+    // Vínculo do motorista logado (com o CPF) — sucesso com null = conta sem
+    // vínculo (passageiro, ou motorista antigo que ainda não informou CPF).
+    suspend fun buscarMeuVinculoMotorista(): Result<VinculoMotorista?>
 
     suspend fun login(email: String, senha: String): Result<Usuario>
 

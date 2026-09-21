@@ -8,14 +8,11 @@ import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// "onLongClick" é chamado tanto pra mensagens enviadas quanto recebidas —
-// quem decide as opções do diálogo (apagar só pra mim / apagar pra todos)
-// é ChatCaronaActivity.mostrarDialogApagar, com base em quem mandou a
-// mensagem (mesmo padrão do Match: só o remetente pode apagar pra todos).
+// Só leitura: mensagem não é apagada por ninguém (nem "só pra mim", nem
+// "pra todos") — o histórico fica igual pros dois (ver firestore.rules).
 class MensagemCaronaAdapter(
     private val mensagens: List<MensagemCarona>,
-    private val meuId: String,
-    private val onLongClick: (MensagemCarona) -> Unit
+    private val meuId: String
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val formatoHora = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
@@ -52,13 +49,8 @@ class MensagemCaronaAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val mensagem = mensagens[position]
         val context = holder.itemView.context
-        val souRemetente = mensagem.remetenteId == meuId
 
-        val apagadaParaMim = mensagem.deletadaParaTodos ||
-            (souRemetente && mensagem.deletadaParaRemetente) ||
-            (!souRemetente && mensagem.deletadaParaDestinatario)
-
-        val texto = if (apagadaParaMim) context.getString(R.string.chat_carona_mensagem_apagada) else mensagem.conteudo.orEmpty()
+        val texto = mensagem.conteudo.orEmpty()
         val hora = mensagem.timestamp?.let { formatoHora.format(it) } ?: ""
 
         when (holder) {
@@ -66,39 +58,23 @@ class MensagemCaronaAdapter(
                 holder.tvConteudo.text = texto
                 holder.tvHora.text = hora
 
-                // Status de leitura (estilo Match) — só faz sentido pra
-                // mensagem enviada de verdade, ainda visível (uma
-                // apagada não tem "lida"/"não lida" pra mostrar).
-                if (apagadaParaTodos(mensagem)) {
-                    holder.tvStatusLeitura.visibility = View.GONE
+                // Status de leitura (estilo Match): "Lida"/"Não lida" embaixo
+                // das mensagens que EU enviei.
+                holder.tvStatusLeitura.visibility = View.VISIBLE
+                if (mensagem.lida) {
+                    holder.tvStatusLeitura.text = context.getString(R.string.chat_carona_status_lida)
+                    holder.tvStatusLeitura.setTextColor(0xFF00C853.toInt())
                 } else {
-                    holder.tvStatusLeitura.visibility = View.VISIBLE
-                    if (mensagem.lida) {
-                        holder.tvStatusLeitura.text = context.getString(R.string.chat_carona_status_lida)
-                        holder.tvStatusLeitura.setTextColor(0xFF00C853.toInt())
-                    } else {
-                        holder.tvStatusLeitura.text = context.getString(R.string.chat_carona_status_nao_lida)
-                        holder.tvStatusLeitura.setTextColor(0xFFFF1744.toInt())
-                    }
-                }
-
-                holder.itemView.setOnLongClickListener {
-                    if (!apagadaParaMim) onLongClick(mensagem)
-                    true
+                    holder.tvStatusLeitura.text = context.getString(R.string.chat_carona_status_nao_lida)
+                    holder.tvStatusLeitura.setTextColor(0xFFFF1744.toInt())
                 }
             }
             is ViewHolderRecebida -> {
                 holder.tvConteudo.text = texto
                 holder.tvHora.text = hora
-                holder.itemView.setOnLongClickListener {
-                    if (!apagadaParaMim) onLongClick(mensagem)
-                    true
-                }
             }
         }
     }
-
-    private fun apagadaParaTodos(mensagem: MensagemCarona) = mensagem.deletadaParaTodos
 
     override fun getItemCount() = mensagens.size
 }

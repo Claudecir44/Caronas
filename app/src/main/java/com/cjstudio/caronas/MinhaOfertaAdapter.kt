@@ -10,17 +10,18 @@ import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// Card vem fechado (rota resumida, status, data, vagas, valor) — tocar no
-// cabeçalho abre o corpo com a rota COMPLETA (origem, cada parada e
-// destino, com endereço quando houver), mesmo espírito de
-// MinhaViagemAdapter. Editar/Excluir continuam sempre visíveis, não
-// dependem de expandir.
+// Oferta ainda ativa: card aberto (rota resumida, status, data, tempo, vagas,
+// valor e Editar/Excluir sempre visíveis) — tocar no cabeçalho só abre o
+// corpo com a rota COMPLETA (origem, cada parada e destino, com endereço
+// quando houver), mesmo espírito de MinhaViagemAdapter. A cidade de chegada
+// vai em verde-água (a de partida já é verde).
 //
-// A primeira linha da lista é o título "Viagens Ofertadas" (view type próprio,
-// item_titulo_secao.xml) — fica dentro do adapter, e não como TextView solto
-// na tela, porque o mesmo RecyclerView é reaproveitado por outros modos
-// (busca, Minhas Viagens, Avaliações) e assim o título nunca aparece fora de
-// Minhas Ofertas. Por isso a posição do adapter é sempre a da oferta + 1.
+// Oferta já concluída: card RECOLHIDO — só cabeçalho + data/tempo, igual às
+// Solicitações Recebidas — e tocar no cabeçalho expande tudo (vagas, valor,
+// total recebido, rota completa e Excluir).
+//
+// O título da seção ("Viagens Ofertadas") agora é a aba de Minhas Ofertas
+// (ver TelaCaronasActivity.selecionarAbaOfertas), não mais uma linha da lista.
 class MinhaOfertaAdapter(
     private val ofertas: List<Carona>,
     // Vagas ainda livres da rota inteira de cada oferta (id -> vagas), já
@@ -35,14 +36,10 @@ class MinhaOfertaAdapter(
     private val totalRecebidoPorOferta: Map<String, Double> = emptyMap(),
     private val onEditarClick: (Carona) -> Unit,
     private val onExcluirClick: (Carona) -> Unit
-) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+) : RecyclerView.Adapter<MinhaOfertaAdapter.ViewHolder>() {
 
     private val formatoDataHora = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR"))
     private var posicaoAberta = -1
-
-    class TituloViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTitulo: TextView = view.findViewById(R.id.tvTituloSecaoLista)
-    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val header: LinearLayout = view.findViewById(R.id.headerMinhaOferta)
@@ -51,35 +48,35 @@ class MinhaOfertaAdapter(
         val tvRota: TextView = view.findViewById(R.id.tvRotaOferta)
         val tvStatus: TextView = view.findViewById(R.id.tvStatusOferta)
         val tvDataHora: TextView = view.findViewById(R.id.tvDataHoraOferta)
+        val tvTempoViagem: TextView = view.findViewById(R.id.tvTempoViagemOferta)
         val tvVagas: TextView = view.findViewById(R.id.tvVagasOferta)
         val tvValor: TextView = view.findViewById(R.id.tvValorOferta)
         val tvTotalRecebido: TextView = view.findViewById(R.id.tvTotalRecebidoOferta)
+        val corpoResumo: LinearLayout = view.findViewById(R.id.corpoResumoOferta)
+        val linhaBotoes: LinearLayout = view.findViewById(R.id.linhaBotoesOferta)
         val btnEditar: Button = view.findViewById(R.id.btnEditarOferta)
         val btnExcluir: Button = view.findViewById(R.id.btnExcluirOferta)
     }
 
-    override fun getItemViewType(position: Int) = if (position == 0) TIPO_TITULO else TIPO_OFERTA
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == TIPO_TITULO) {
-            TituloViewHolder(inflater.inflate(R.layout.item_titulo_secao, parent, false))
-        } else {
-            ViewHolder(inflater.inflate(R.layout.item_minha_oferta, parent, false))
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_minha_oferta, parent, false))
     }
 
-    override fun onBindViewHolder(viewHolder: RecyclerView.ViewHolder, position: Int) {
-        if (viewHolder is TituloViewHolder) {
-            viewHolder.tvTitulo.setText(R.string.minhas_ofertas_secao_titulo)
-            return
-        }
-        val holder = viewHolder as ViewHolder
-        val oferta = ofertas[position - 1]
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val oferta = ofertas[position]
         val context = holder.itemView.context
+        val concluida = StatusViagemUtil.jaConcluida(oferta.dataHoraPartida)
 
-        holder.tvRota.text = RotaTextoUtil.formatar(context, oferta.cidadeOrigem, oferta.cidadeDestino)
+        // Chegada em verde-água só enquanto a viagem ainda está ativa; concluída
+        // volta ao preto do layout.
+        holder.tvRota.text = RotaTextoUtil.formatar(
+            context,
+            oferta.cidadeOrigem,
+            oferta.cidadeDestino,
+            corDestino = if (concluida) null else RotaTextoUtil.COR_DESTINO_VERDE_AGUA
+        )
         holder.tvDataHora.text = oferta.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
+        TempoViagemUtil.preencher(holder.tvTempoViagem, oferta.distanciaKm)
         val vagas = oferta.id?.let { vagasDisponiveisPorOferta[it] } ?: oferta.vagas
         holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, vagas)
         holder.tvValor.text = context.getString(
@@ -110,6 +107,12 @@ class MinhaOfertaAdapter(
         holder.corpoExpandido.visibility = if (aberto) View.VISIBLE else View.GONE
         if (aberto) preencherDetalhesRota(holder.corpoExpandido, oferta)
 
+        // Concluída: recolhida até tocar no cabeçalho. Definido em todo bind
+        // (a view é reaproveitada pelo RecyclerView).
+        val mostrarCorpo = !concluida || aberto
+        holder.corpoResumo.visibility = if (mostrarCorpo) View.VISIBLE else View.GONE
+        holder.linhaBotoes.visibility = if (mostrarCorpo) View.VISIBLE else View.GONE
+
         holder.header.setOnClickListener {
             val anterior = posicaoAberta
             posicaoAberta = if (aberto) -1 else position
@@ -120,7 +123,7 @@ class MinhaOfertaAdapter(
         // Viagem concluída não pode mais ser editada (o servidor também recusa, ver
         // firestore.rules: viagemJaConcluida) — só sobra o Excluir. Visibilidade
         // definida em todo bind, porque a view é reaproveitada pelo RecyclerView.
-        holder.btnEditar.visibility = if (StatusViagemUtil.jaConcluida(oferta.dataHoraPartida)) View.GONE else View.VISIBLE
+        holder.btnEditar.visibility = if (concluida) View.GONE else View.VISIBLE
         holder.btnEditar.setOnClickListener { onEditarClick(oferta) }
         holder.btnExcluir.setOnClickListener { onExcluirClick(oferta) }
     }
@@ -156,12 +159,5 @@ class MinhaOfertaAdapter(
         }
     }
 
-    // +1 pela linha de título "Viagens Ofertadas" — e nenhuma linha quando não
-    // há oferta (a tela mostra a mensagem de lista vazia no lugar).
-    override fun getItemCount() = if (ofertas.isEmpty()) 0 else ofertas.size + 1
-
-    private companion object {
-        const val TIPO_TITULO = 0
-        const val TIPO_OFERTA = 1
-    }
+    override fun getItemCount() = ofertas.size
 }

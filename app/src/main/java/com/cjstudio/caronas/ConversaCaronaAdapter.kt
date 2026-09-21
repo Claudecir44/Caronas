@@ -17,10 +17,7 @@ import java.util.Locale
 class ConversaCaronaAdapter(
     private val conversas: List<ConversaCarona>,
     private val meuId: String,
-    private val onClick: (ConversaCarona) -> Unit,
-    // Toque e segure na linha — apaga a conversa inteira, com confirmação
-    // (ver ConversasCaronaActivity.confirmarExcluirConversa).
-    private val onLongClick: (ConversaCarona) -> Unit
+    private val onClick: (ConversaCarona) -> Unit
 ) : RecyclerView.Adapter<ConversaCaronaAdapter.ViewHolder>() {
 
     private val formatoHora = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
@@ -80,10 +77,6 @@ class ConversaCaronaAdapter(
         }
 
         holder.cliqueRoot.setOnClickListener { onClick(conversa) }
-        holder.cliqueRoot.setOnLongClickListener {
-            onLongClick(conversa)
-            true
-        }
     }
 
     override fun getItemCount() = conversas.size

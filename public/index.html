@@ -238,7 +238,7 @@
     </div>
 
     <div class="aba-conteudo ativa" id="abaMotoristas">
-        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Veículo</th><th>Viagens</th><th>Recebido</th></tr></thead>
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>CPF</th><th>Telefone</th><th>Veículo</th><th>Viagens</th><th>Recebido</th></tr></thead>
             <tbody id="corpoMotoristas"></tbody></table>
         <div class="vazio" id="vazioMotoristas" style="display:none;">Nenhum motorista cadastrado.</div>
     </div>
@@ -430,14 +430,31 @@
         return div.innerHTML;
     }
 
+    // CPF de cada motorista (uid -> só dígitos), preenchido em carregarDados().
+    let cpfPorUsuario = {};
+
+    function formatarCpf(cpf) {
+        const digitos = String(cpf || '').replace(/\D/g, '');
+        if (digitos.length !== 11) return 'Não informado';
+        return digitos.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
     async function carregarDados() {
         // Sem paginação — mesmo padrão já usado nas tabelas do painel do
         // Match, adequado ao volume atual do Caronas (ver plano).
-        const [usuariosSnap, caronasSnap, solicitacoesSnap] = await Promise.all([
+        const [usuariosSnap, caronasSnap, solicitacoesSnap, vinculosSnap] = await Promise.all([
             db.collection('usuarios').orderBy('criadoEm', 'desc').get(),
             db.collection('caronas').orderBy('dataHoraPartida', 'desc').get(),
-            db.collection('solicitacoes').orderBy('dataHoraPartida', 'desc').get()
+            db.collection('solicitacoes').orderBy('dataHoraPartida', 'desc').get(),
+            db.collection('motoristasVinculo').get()
         ]);
+
+        // CPF só existe no vínculo do motorista (motoristasVinculo/{uid},
+        // gravado pela Cloud Function registrarMotorista) — nunca no
+        // documento público do usuário. Sem vínculo = motorista antigo que
+        // ainda não informou o CPF.
+        cpfPorUsuario = {};
+        vinculosSnap.forEach((doc) => { cpfPorUsuario[doc.id] = doc.data().cpf || ''; });
 
         const motoristas = [];
         const passageiros = [];
@@ -493,6 +510,7 @@
                 <td><img class="foto-linha" src="${u.fotoUrl || FOTO_PADRAO}" alt=""></td>
                 <td>${escapar(u.nomeCompleto)}</td>
                 <td>${escapar(u.email)}</td>
+                <td>${escapar(formatarCpf(cpfPorUsuario[u.id]))}</td>
                 <td>
                     ${escapar(u.telefone)}
                     <button class="btn-remover" title="Remover cadastro" data-uid="${escapar(u.id)}" data-nome="${escapar(u.nomeCompleto || u.email || '')}" onclick="event.stopPropagation(); removerUsuario(this)">🗑️</button>
@@ -592,6 +610,8 @@
                 <label>Telefone</label>
                 <input type="text" id="modalTelefone" value="${escapar(u.telefone)}" disabled>
                 ${ehMotorista ? `
+                    <label>CPF</label>
+                    <div class="modal-valor-fixo">${escapar(formatarCpf(cpfPorUsuario[uid]))}</div>
                     <label>Marca</label>
                     <input type="text" id="modalVeiculoMarca" value="${escapar(u.veiculo.marca)}" disabled>
                     <label>Modelo</label>

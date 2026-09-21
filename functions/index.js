@@ -4,6 +4,7 @@ require('dotenv').config();
 const functions = require('firebase-functions');
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const mercadopago = require('mercadopago');
 
@@ -645,11 +646,11 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
 // o mesmo e-mail. Mesma trava só-por-senha do administrador master das
 // outras ações destrutivas do painel.
 //
-// Caronas não guarda CPF nem nenhum outro campo de unicidade pra usuário
-// comum (só admin tem CPF) — então o único jeito de um recadastro "travar"
-// é a conta Firebase Auth antiga ainda existir com o mesmo e-mail; por
-// isso ela é sempre apagada por último, depois de tudo mais já ter sido
-// limpo.
+// Passageiro não tem campo de unicidade além do e-mail (Auth); motorista
+// também tem o vínculo CPF/telefone/nome (ver vincularIdentidadeMotorista),
+// apagado abaixo. O que mais "trava" um recadastro é a conta Firebase Auth
+// antiga ainda existir com o mesmo e-mail; por isso ela é sempre apagada
+// por último, depois de tudo mais já ter sido limpo.
 // ============================================================
 exports.excluirUsuario = functions.https.onCall(async (request) => {
     if (!ADMIN_MASTER_PASSWORD) {
@@ -733,6 +734,11 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
         console.warn('⚠️ Erro ao apagar fotos do Storage:', e.message);
     }
 
+    // Vínculo de identidade de motorista (CPF etc.) e as travas de
+    // unicidade dele — libera CPF/telefone/e-mail/nome pra um recadastro.
+    await apagarDocsDaQuery(db.collection('motoristasUnicos').where('uid', '==', uid));
+    await db.collection('motoristasVinculo').doc(uid).delete();
+
     // Documento de perfil.
     await db.collection('usuarios').doc(uid).delete();
 
@@ -787,6 +793,16 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
         throw new functions.https.HttpsError('not-found', 'Usuário não encontrado.');
     }
 
+    // Motorista vinculado (CPF cadastrado): nome/telefone novos também
+    // precisam ser únicos entre os motoristas e o vínculo acompanha a edição
+    // (ver vincularIdentidadeMotorista) — senão firestore.rules bloquearia
+    // o próprio motorista de salvar depois, por divergir do vínculo.
+    const vinculoDoc = await admin.firestore().collection('motoristasVinculo').doc(uid).get();
+    if (vinculoDoc.exists) {
+        const vinculo = vinculoDoc.data();
+        await vincularIdentidadeMotorista(uid, { nomeCompleto, cpf: vinculo.cpf, telefone, email: vinculo.email });
+    }
+
     const atualizacao = { nomeCompleto, telefone };
     if (veiculo && typeof veiculo === 'object') {
         atualizacao.veiculo = {
@@ -798,6 +814,169 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     }
 
     await ref.update(atualizacao);
+    return { ok: true };
+});
+
+// ============================================================
+// Vínculo de identidade do MOTORISTA (só motorista — conta apenas de
+// passageiro não tem CPF nem reserva nada aqui): nome completo, CPF, e-mail
+// e telefone ficam vinculados a UMA conta e nenhum dos quatro pode se
+// repetir em outro motorista. Existe pra impedir que a mesma pessoa abra
+// outra conta (com outro e-mail) e recomece as 10 caronas grátis.
+//
+// Como funciona: motoristasUnicos/{chave} é uma "trava" por valor
+// (cpf_<11 dígitos>, tel_<dígitos>, email_<sha256>, nome_<sha256 do nome
+// sem acento/caixa>) apontando pro uid dono; motoristasVinculo/{uid} guarda
+// os valores em si (com o CPF, que NÃO vai pro documento público
+// usuarios/{uid}). Ambas só são escritas aqui (Admin SDK) — firestore.rules
+// nega qualquer escrita do cliente. "Repetido" só conta se o dono da trava
+// ainda existe (usuarios/{dono}); trava de uma conta já apagada é
+// reaproveitada, senão quem excluiu a conta ficaria impedido de voltar.
+// Passageiro que vira motorista usa o MESMO uid: as travas dele mesmo nunca
+// contam como conflito, então não há choque com a conta de passageiro.
+// ============================================================
+function somenteDigitos(valor) {
+    return String(valor || '').replace(/\D/g, '');
+}
+
+function cpfValido(cpf) {
+    const d = somenteDigitos(cpf);
+    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+    for (const tamanho of [9, 10]) {
+        let soma = 0;
+        for (let i = 0; i < tamanho; i++) soma += Number(d[i]) * (tamanho + 1 - i);
+        const digito = ((soma * 10) % 11) % 10;
+        if (digito !== Number(d[tamanho])) return false;
+    }
+    return true;
+}
+
+// Sem DDI 55 e sem máscara, pra "(11) 99999-0000" e "+55 11 99999-0000"
+// serem o mesmo telefone.
+function normalizarTelefoneMotorista(valor) {
+    let digitos = somenteDigitos(valor);
+    if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith('55')) digitos = digitos.slice(2);
+    return digitos;
+}
+
+function normalizarNomeMotorista(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function hashChaveMotorista(valor) {
+    return crypto.createHash('sha256').update(valor).digest('hex');
+}
+
+function chavesIdentidadeMotorista({ nomeCompleto, cpf, telefone, email }) {
+    return [
+        { campo: 'CPF', id: `cpf_${somenteDigitos(cpf)}` },
+        { campo: 'telefone', id: `tel_${normalizarTelefoneMotorista(telefone)}` },
+        { campo: 'e-mail', id: `email_${hashChaveMotorista(String(email || '').trim().toLowerCase())}` },
+        { campo: 'nome completo', id: `nome_${hashChaveMotorista(normalizarNomeMotorista(nomeCompleto))}` },
+    ];
+}
+
+async function vincularIdentidadeMotorista(uid, dados) {
+    const db = admin.firestore();
+    const nomeCompleto = String(dados.nomeCompleto || '').trim();
+    const telefone = String(dados.telefone || '').trim();
+    const email = String(dados.email || '').trim().toLowerCase();
+    const cpf = somenteDigitos(dados.cpf);
+
+    if (!nomeCompleto) {
+        throw new functions.https.HttpsError('invalid-argument', 'Informe o nome completo.');
+    }
+    if (!cpfValido(cpf)) {
+        throw new functions.https.HttpsError('invalid-argument', 'CPF inválido.');
+    }
+    if (normalizarTelefoneMotorista(telefone).length < 10) {
+        throw new functions.https.HttpsError('invalid-argument', 'Telefone inválido.');
+    }
+    if (!email) {
+        throw new functions.https.HttpsError('invalid-argument', 'A conta não tem e-mail.');
+    }
+
+    // O dono da trava só conta como "vivo" se o documento dele existe — sem
+    // esse doc, as travas de QUEM ESTÁ VINCULANDO pareceriam abandonadas
+    // pra o próximo cadastro e seriam tomadas.
+    const perfil = await db.collection('usuarios').doc(uid).get();
+    if (!perfil.exists) {
+        throw new functions.https.HttpsError('failed-precondition', 'Cadastro do usuário não encontrado.');
+    }
+
+    const novas = chavesIdentidadeMotorista({ nomeCompleto, cpf, telefone, email });
+    const vinculoRef = db.collection('motoristasVinculo').doc(uid);
+    const travaRef = (chave) => db.collection('motoristasUnicos').doc(chave.id);
+
+    await db.runTransaction(async (tx) => {
+        const vinculoSnap = await tx.get(vinculoRef);
+        if (vinculoSnap.exists && vinculoSnap.data().cpf !== cpf) {
+            throw new functions.https.HttpsError('failed-precondition', 'O CPF já vinculado a este cadastro não pode ser alterado.');
+        }
+
+        const travasNovas = await tx.getAll(...novas.map(travaRef));
+
+        // Travas antigas deste mesmo uid que deixam de valer (nome/telefone
+        // trocados) — liberadas pra outro motorista poder usar.
+        const idsNovos = new Set(novas.map((c) => c.id));
+        const antigas = vinculoSnap.exists
+            ? chavesIdentidadeMotorista(vinculoSnap.data()).filter((c) => !idsNovos.has(c.id))
+            : [];
+        const travasAntigas = antigas.length ? await tx.getAll(...antigas.map(travaRef)) : [];
+
+        const donosOcupados = [...new Set(
+            travasNovas.filter((s) => s.exists && s.data().uid !== uid).map((s) => s.data().uid)
+        )];
+        const donoVivo = {};
+        for (const dono of donosOcupados) {
+            donoVivo[dono] = (await tx.get(db.collection('usuarios').doc(dono))).exists;
+        }
+
+        const conflitos = novas
+            .filter((c, i) => travasNovas[i].exists && travasNovas[i].data().uid !== uid && donoVivo[travasNovas[i].data().uid])
+            .map((c) => c.campo);
+        if (conflitos.length > 0) {
+            throw new functions.https.HttpsError(
+                'already-exists',
+                `Já existe um motorista cadastrado com o mesmo ${conflitos.join(', ')}.`
+            );
+        }
+
+        travasAntigas.forEach((snap) => {
+            if (snap.exists && snap.data().uid === uid) tx.delete(snap.ref);
+        });
+        const agora = admin.firestore.FieldValue.serverTimestamp();
+        novas.forEach((chave) => tx.set(travaRef(chave), { uid, campo: chave.campo, atualizadoEm: agora }));
+        tx.set(vinculoRef, {
+            uid,
+            nomeCompleto,
+            cpf,
+            telefone,
+            email,
+            atualizadoEm: agora,
+            ...(vinculoSnap.exists ? {} : { criadoEm: agora }),
+        }, { merge: true });
+    });
+}
+
+exports.registrarMotorista = functions.https.onCall(async (request) => {
+    const uid = request.auth && request.auth.uid;
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    const email = request.auth.token && request.auth.token.email;
+    const dados = request.data || {};
+    await vincularIdentidadeMotorista(uid, {
+        nomeCompleto: dados.nomeCompleto,
+        cpf: dados.cpf,
+        telefone: dados.telefone,
+        email,
+    });
     return { ok: true };
 });
 

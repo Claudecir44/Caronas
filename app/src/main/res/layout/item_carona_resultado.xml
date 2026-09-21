@@ -23,15 +23,34 @@
             android:textStyle="bold"
             android:text="Origem → Destino" />
 
-        <TextView
-            android:id="@+id/tvDataHoraResultado"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#555555"
-            android:textSize="12sp"
+            android:orientation="vertical"
             android:layout_marginTop="2dp"
-            android:layout_marginBottom="10dp"
-            android:text="dd/MM/yyyy às HH:mm" />
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvDataHoraResultado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:text="dd/MM/yyyy às HH:mm" />
+
+            <!-- Tempo aproximado do TRECHO buscado (embarque → desembarque),
+                 mesma fonte/cor da data, só em negrito (TempoViagemUtil). -->
+            <TextView
+                android:id="@+id/tvTempoViagemResultado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:text="Tempo aproximado: 0h00" />
+
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

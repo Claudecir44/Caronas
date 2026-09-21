@@ -46,6 +46,8 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
     private lateinit var tvEmail: TextView
     private lateinit var etTelefone: EditText
     private lateinit var tvCriadoEm: TextView
+    private lateinit var tvCpfRotulo: TextView
+    private lateinit var tvCpf: TextView
     private lateinit var containerVeiculo: View
     private lateinit var etVeiculoMarca: EditText
     private lateinit var etVeiculoModelo: EditText
@@ -66,6 +68,8 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
         etNome = findViewById(R.id.etDetalhesNome)
         tvEmail = findViewById(R.id.tvDetalhesEmail)
         etTelefone = findViewById(R.id.etDetalhesTelefone)
+        tvCpfRotulo = findViewById(R.id.tvDetalhesCpfRotulo)
+        tvCpf = findViewById(R.id.tvDetalhesCpf)
         tvCriadoEm = findViewById(R.id.tvDetalhesCriadoEm)
         containerVeiculo = findViewById(R.id.containerVeiculoDetalhes)
         etVeiculoMarca = findViewById(R.id.etDetalhesVeiculoMarca)
@@ -92,11 +96,25 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 usuarioAtual = usuario
                 preencherCampos(usuario)
+                carregarCpf(uid, usuario)
             }.onFailure {
                 progressBar.visibility = View.GONE
                 Toast.makeText(this@DetalhesUsuarioAdminActivity, getString(R.string.admin_erro_carregar, it.message), Toast.LENGTH_LONG).show()
                 finish()
             }
+        }
+    }
+
+    // CPF só existe pra motorista (vínculo de identidade). Motorista antigo
+    // que ainda não informou aparece como "Não informado"; conta só de
+    // passageiro não mostra o campo.
+    private fun carregarCpf(uid: String, usuario: Usuario) {
+        lifecycleScope.launch {
+            val vinculo = adminRepository.buscarVinculoMotorista(uid).getOrNull()
+            val ehMotorista = vinculo != null || usuario.veiculo?.estaPreenchido() == true
+            tvCpfRotulo.visibility = if (ehMotorista) View.VISIBLE else View.GONE
+            tvCpf.visibility = if (ehMotorista) View.VISIBLE else View.GONE
+            tvCpf.text = vinculo?.cpf?.let { CpfUtil.formatar(it) } ?: getString(R.string.admin_detalhes_cpf_nao_informado)
         }
     }
 

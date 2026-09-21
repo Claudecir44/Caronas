@@ -90,7 +90,11 @@ class LoginCaronasActivity : AppCompatActivity() {
                 // veículo salvo (ou tem um vazio, sem modelo/marca/cor/
                 // placa) — não deixa entrar assim, manda completar o
                 // cadastro antes. Se já tem veículo de verdade, entra direto.
-                if (entrarComoMotorista && usuario.veiculo?.estaPreenchido() != true) {
+                // Também exige o CPF vinculado (motorista antigo sem CPF cai
+                // aqui e completa o cadastro). Falha ao consultar não bloqueia.
+                val semCpfVinculado = entrarComoMotorista &&
+                    usuarioRepository.buscarMeuVinculoMotorista().fold(onSuccess = { it == null }, onFailure = { false })
+                if (entrarComoMotorista && (usuario.veiculo?.estaPreenchido() != true || semCpfVinculado)) {
                     Toast.makeText(this@LoginCaronasActivity, R.string.login_erro_sem_veiculo, Toast.LENGTH_LONG).show()
                     // Avisa a edição que a pessoa veio do login querendo entrar como
                     // motorista: ao salvar o veículo ela segue direto pra tela

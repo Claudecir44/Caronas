@@ -19,7 +19,7 @@ class SolicitacaoRepository @Inject constructor(
     private fun colecaoSolicitacoes() = db.collection("solicitacoes")
     private fun colecaoOcupacao(caronaId: String) = db.collection("caronas").document(caronaId).collection("ocupacao")
 
-    override suspend fun solicitarVaga(carona: Carona, indiceOrigem: Int, indiceDestino: Int, valorTrecho: Double): Result<String> {
+    override suspend fun solicitarVaga(carona: Carona, indiceOrigem: Int, indiceDestino: Int, valorTrecho: Double, distanciaTrechoKm: Double?): Result<String> {
         return try {
             val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
             val caronaId = carona.id ?: throw IllegalStateException("Carona sem id.")
@@ -46,7 +46,13 @@ class SolicitacaoRepository @Inject constructor(
                 indiceOrigemNaRota = indiceOrigem,
                 indiceDestinoNaRota = indiceDestino,
                 dataHoraPartida = carona.dataHoraPartida,
-                valorPago = valorTrecho
+                valorPago = valorTrecho,
+                distanciaKm = distanciaTrechoKm,
+                // Chegada da viagem INTEIRA (não só do trecho do passageiro):
+                // é o que fecha o chat pros dois, motorista e passageiro.
+                chegadaPrevistaEm = carona.dataHoraPartida?.let {
+                    TempoViagemUtil.chegadaPrevistaEm(it, carona.distanciaKm ?: distanciaTrechoKm)
+                }
             )
 
             // Grava a solicitação e o registro de ocupação (usado só pra

@@ -84,12 +84,32 @@ class AdminRepository @Inject constructor(
             if (termoBusca.isEmpty()) return Result.success(emptyList())
             val termoNormalizado = TextoUtil.normalizar(termoBusca)
             val usuarios = listarTodosUsuarios().getOrThrow()
+
+            // CPF só existe no vínculo do motorista (não no doc público do
+            // usuário): com 11 dígitos digitados, acha o dono do CPF por ele.
+            val digitos = CpfUtil.somenteDigitos(termoBusca)
+            val uidsPorCpf = if (digitos.length == 11) {
+                db.collection("motoristasVinculo").whereEqualTo("cpf", digitos).get().await().documents.map { it.id }.toSet()
+            } else {
+                emptySet()
+            }
+
             val resultado = usuarios.filter { usuario ->
                 (usuario.nomeCompleto?.let { TextoUtil.normalizar(it).contains(termoNormalizado) } == true) ||
                     (usuario.telefone?.contains(termoBusca) == true) ||
-                    (usuario.email?.contains(termoBusca, ignoreCase = true) == true)
+                    (usuario.email?.contains(termoBusca, ignoreCase = true) == true) ||
+                    (usuario.id != null && usuario.id in uidsPorCpf)
             }
             Result.success(resultado)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun buscarVinculoMotorista(uid: String): Result<VinculoMotorista?> {
+        return try {
+            val doc = db.collection("motoristasVinculo").document(uid).get().await()
+            Result.success(if (doc.exists()) doc.toObject(VinculoMotorista::class.java) else null)
         } catch (e: Exception) {
             Result.failure(e)
         }

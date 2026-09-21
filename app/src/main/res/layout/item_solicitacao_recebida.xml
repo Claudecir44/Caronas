@@ -75,6 +75,18 @@
                 android:layout_marginTop="2dp"
                 android:text="dd/MM/yyyy às HH:mm" />
 
+            <!-- Tempo aproximado do trecho do passageiro (TempoViagemUtil) —
+                 mesma fonte/cor da data, só em negrito. -->
+            <TextView
+                android:id="@+id/tvTempoViagemSolicitacao"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:text="Tempo aproximado: 0h00" />
+
         </LinearLayout>
 
         <LinearLayout

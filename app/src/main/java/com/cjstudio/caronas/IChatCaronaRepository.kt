@@ -4,7 +4,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface IChatCaronaRepository {
     // Acha a conversa já existente pra essa solicitação ou cria uma nova
-    // (só na hora que a primeira mensagem é enviada — ver ChatCaronaActivity).
+    // — só se o chat estiver aberto (ver ChatUtil); fechado e sem conversa
+    // falha com ChatIndisponivelException.
     suspend fun buscarOuCriarConversa(solicitacao: Solicitacao): Result<ConversaCarona>
 
     // Mensagens da conversa em tempo real, mais antigas primeiro.
@@ -18,18 +19,10 @@ interface IChatCaronaRepository {
 
     suspend fun marcarConversaComoLida(conversa: ConversaCarona): Result<Unit>
 
-    // Recebe a mensagem inteira (não só o id) porque ela mora numa
-    // subcoleção de conversas/{conversaId} — precisa do conversaId pra
-    // montar o caminho do documento (ver ChatCaronaRepository).
-    suspend fun apagarMensagemParaMim(mensagem: MensagemCarona): Result<Unit>
-
-    suspend fun apagarMensagemParaTodos(mensagem: MensagemCarona): Result<Unit>
-
-    // Apaga a conversa inteira (documento + toda a subcoleção de mensagens)
-    // — toque e segure numa conversa na lista do botão "Chat". Diferente de
-    // apagar mensagem por mensagem: aqui some a conversa inteira da lista
-    // dos dois participantes. Se uma nova mensagem for trocada depois pra
-    // essa mesma solicitação, buscarOuCriarConversa recria o documento do
-    // zero (mesmo id, histórico novo).
-    suspend fun excluirConversa(conversa: ConversaCarona): Result<Unit>
+    // Solicitação dessa conversa em tempo real (null = apagada) — a tela do
+    // chat calcula o estado (aberto/cancelado/encerrado, ver ChatUtil) a
+    // partir dela. Mensagens NÃO são apagadas por ninguém (nem "só pra mim"
+    // nem "pra todos") e a conversa também não: depois de fechado o
+    // histórico fica só pra leitura dos dois (ver firestore.rules).
+    fun escutarSolicitacao(solicitacaoId: String): Flow<Solicitacao?>
 }

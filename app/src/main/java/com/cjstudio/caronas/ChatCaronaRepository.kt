@@ -52,6 +52,14 @@ class ChatCaronaRepository @Inject constructor(
                 return Result.success(conversa)
             }
 
+            // Só cria conversa nova com o chat aberto — lê a solicitação de
+            // novo (a que chegou aqui pode ser de uma lista já velha, ex.:
+            // cancelada depois de carregada).
+            val atual = db.collection("solicitacoes").document(solicitacaoId).get().await()
+                .toObject(Solicitacao::class.java)
+            val status = ChatUtil.status(atual)
+            if (status != StatusChat.ABERTO) throw ChatIndisponivelException(status)
+
             val motoristaId = solicitacao.motoristaId ?: throw IllegalStateException("Solicitação sem motorista.")
             val passageiroId = solicitacao.passageiroId ?: throw IllegalStateException("Solicitação sem passageiro.")
             val perfilMotorista = db.collection("usuarios").document(motoristaId).get().await()
@@ -201,41 +209,15 @@ class ChatCaronaRepository @Inject constructor(
         }
     }
 
-    override suspend fun apagarMensagemParaMim(mensagem: MensagemCarona): Result<Unit> {
-        return try {
-            val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
-            val conversaId = mensagem.conversaId ?: throw IllegalStateException("Mensagem sem conversa.")
-            val mensagemId = mensagem.id ?: throw IllegalStateException("Mensagem sem id.")
-            val campo = if (mensagem.remetenteId == uid) "deletadaParaRemetente" else "deletadaParaDestinatario"
-            colecaoMensagens(conversaId).document(mensagemId).update(campo, true).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun apagarMensagemParaTodos(mensagem: MensagemCarona): Result<Unit> {
-        return try {
-            val conversaId = mensagem.conversaId ?: throw IllegalStateException("Mensagem sem conversa.")
-            val mensagemId = mensagem.id ?: throw IllegalStateException("Mensagem sem id.")
-            colecaoMensagens(conversaId).document(mensagemId).update("deletadaParaTodos", true).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun excluirConversa(conversa: ConversaCarona): Result<Unit> {
-        return try {
-            val conversaId = conversa.id ?: throw IllegalStateException("Conversa sem id.")
-            val mensagens = colecaoMensagens(conversaId).get().await()
-            val batch = db.batch()
-            mensagens.documents.forEach { doc -> batch.delete(doc.reference) }
-            batch.delete(colecaoConversas().document(conversaId))
-            batch.commit().await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override fun escutarSolicitacao(solicitacaoId: String): Flow<Solicitacao?> = callbackFlow {
+        val registro = db.collection("solicitacoes").document(solicitacaoId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.toObject(Solicitacao::class.java)?.also { it.id = snapshot.id })
+            }
+        awaitClose { registro.remove() }
     }
 }

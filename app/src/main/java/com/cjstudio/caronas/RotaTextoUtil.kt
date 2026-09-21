@@ -11,10 +11,12 @@ import android.text.style.ForegroundColorSpan
 // é preto. Compartilhado por Minhas Ofertas, Minhas Viagens, resultados da
 // busca e Solicitações Recebidas — a origem é sempre a primeira parte de
 // procurar_rota_formato. Solicitações Recebidas também pinta a chegada de
-// vermelho (corDestino).
+// vermelho e Minhas Ofertas ainda ativas pinta de verde-água (corDestino).
 object RotaTextoUtil {
     private val COR_ORIGEM: Int = Color.parseColor("#2E7D32")
     val COR_DESTINO_VERMELHO: Int = Color.parseColor("#D32F2F")
+    // Mesmo verde-água dos botões (botao_verde_agua) — chegada das ofertas ainda ativas.
+    val COR_DESTINO_VERDE_AGUA: Int = Color.parseColor("#00897B")
 
     fun formatar(context: Context, origem: String?, destino: String?, corDestino: Int? = null): CharSequence {
         val cidadeOrigem = origem ?: ""

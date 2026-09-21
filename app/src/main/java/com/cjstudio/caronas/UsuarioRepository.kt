@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -30,7 +31,7 @@ class UsuarioRepository @Inject constructor(
 
     private fun colecaoUsuarios() = db.collection("usuarios")
 
-    override suspend fun cadastrar(usuario: Usuario, senha: String): Result<String> {
+    override suspend fun cadastrar(usuario: Usuario, senha: String, cpf: String?): Result<String> {
         var uidCriado: String? = null
         return try {
             val authResult = auth.createUserWithEmailAndPassword(usuario.email!!, senha).await()
@@ -39,6 +40,16 @@ class UsuarioRepository @Inject constructor(
 
             usuario.id = uid
             colecaoUsuarios().document(uid).set(usuario).await()
+
+            // Motorista: CPF obrigatório e vinculado ao cadastro. Depois do
+            // doc (o servidor exige o perfil já criado) e ANTES do e-mail de
+            // verificação: se o CPF/telefone/nome/e-mail já é de outro
+            // motorista, cai no catch abaixo e a conta recém-criada é
+            // desfeita por inteiro.
+            if (usuario.motorista) {
+                if (cpf.isNullOrBlank()) throw IllegalArgumentException("Informe o CPF para se cadastrar como motorista.")
+                chamarRegistrarMotorista(usuario.nomeCompleto.orEmpty(), cpf, usuario.telefone.orEmpty())
+            }
 
             // Best-effort — mesmo padrão do Match: se o envio falhar (sem
             // rede no momento, por ex.), o cadastro em si já está feito e
@@ -58,6 +69,38 @@ class UsuarioRepository @Inject constructor(
             // (ou doc sem conta) — mesmo espírito do rollback do Match, só
             // que direto pelo client (fase 1 não tem Cloud Function ainda).
             uidCriado?.let { excluirContaRecemCriada(it) }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun registrarMotorista(nomeCompleto: String, cpf: String, telefone: String): Result<Unit> {
+        return try {
+            chamarRegistrarMotorista(nomeCompleto, cpf, telefone)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Repassa a mensagem do servidor ("Já existe um motorista cadastrado com
+    // o mesmo CPF, telefone.", "CPF inválido.") em vez do texto genérico do
+    // FirebaseFunctionsException.
+    private suspend fun chamarRegistrarMotorista(nomeCompleto: String, cpf: String, telefone: String) {
+        try {
+            functions.getHttpsCallable("registrarMotorista")
+                .call(mapOf("nomeCompleto" to nomeCompleto, "cpf" to CpfUtil.somenteDigitos(cpf), "telefone" to telefone))
+                .await()
+        } catch (e: FirebaseFunctionsException) {
+            throw IllegalStateException(e.message ?: "Não foi possível vincular o CPF ao cadastro.")
+        }
+    }
+
+    override suspend fun buscarMeuVinculoMotorista(): Result<VinculoMotorista?> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
+            val doc = db.collection("motoristasVinculo").document(uid).get().await()
+            Result.success(if (doc.exists()) doc.toObject(VinculoMotorista::class.java) else null)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

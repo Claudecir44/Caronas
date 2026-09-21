@@ -11,7 +11,7 @@ interface ISolicitacaoRepository {
     // específico, não necessariamente carona.valorPorVaga inteiro. Antes de
     // criar, checa vagasDisponiveis pro trecho pedido e falha se não houver
     // — ver a ressalva de concorrência no comentário de vagasDisponiveis.
-    suspend fun solicitarVaga(carona: Carona, indiceOrigem: Int, indiceDestino: Int, valorTrecho: Double): Result<String>
+    suspend fun solicitarVaga(carona: Carona, indiceOrigem: Int, indiceDestino: Int, valorTrecho: Double, distanciaTrechoKm: Double?): Result<String>
 
     // Vagas ainda livres pro trecho [indiceOrigem, indiceDestino) de uma
     // carona — carona.vagas (capacidade total do carro) menos a maior
