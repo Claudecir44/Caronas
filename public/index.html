@@ -242,6 +242,7 @@
         <button class="aba-botao" data-aba="viagensMotorista" onclick="mostrarAba('viagensMotorista')">Viagens (Motoristas)</button>
         <button class="aba-botao" data-aba="viagensPassageiro" onclick="mostrarAba('viagensPassageiro')">Viagens (Passageiros)</button>
         <button class="aba-botao" data-aba="manifestacoes" onclick="mostrarAba('manifestacoes'); carregarManifestacoes();">📝 Sugestões e Reclamações<span id="badgeManifestacoesTab" class="badge-tab"></span></button>
+        <button class="aba-botao" data-aba="mensagens" onclick="mostrarAba('mensagens')">💬 Mensagens</button>
         <button class="aba-botao" data-aba="financeiro" onclick="mostrarAba('financeiro'); carregarFinanceiro();">💰 Financeiro</button>
         <button class="aba-botao" data-aba="orientacoes" onclick="mostrarAba('orientacoes'); carregarOrientacoes();">🧭 Orientações</button>
         <button class="aba-botao" data-aba="configuracoes" onclick="mostrarAba('configuracoes'); carregarConfiguracoes();">⚙️ Configurações</button>
@@ -277,6 +278,47 @@
         <table><thead><tr><th>Tipo</th><th>Nome / Contato</th><th>Mensagem</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="corpoManifestacoes"></tbody></table>
         <div class="vazio" id="vazioManifestacoes" style="display:none;">Nada recebido ainda.</div>
+    </div>
+
+    <!-- Busca por nome completo ou CPF (mesma lógica de
+         AdminRepository.buscarUsuariosPorTexto no app nativo) pra achar de
+         quem ver as conversas; depois de achar, filtro de período (mesmo
+         padrão do Financeiro) + relatório imprimível. -->
+    <div class="aba-conteudo" id="abaMensagens">
+        <h3 style="color:#0D47A1; margin-bottom:12px;">💬 Mensagens</h3>
+
+        <div class="filtro-financeiro">
+            <input type="text" id="buscaMensagens" placeholder="Nome completo ou CPF" style="flex:1; min-width:200px; padding:8px; border:1px solid #ccc; border-radius:6px;">
+            <button onclick="buscarMensagensPainel()">Buscar</button>
+        </div>
+        <div class="vazio" id="vazioMensagensBusca" style="display:none;">Nenhum usuário encontrado com esse termo.</div>
+        <div id="listaSelecaoMensagens"></div>
+
+        <div id="resultadoMensagens" style="display:none;">
+            <h4 id="tituloMensagensUsuario" style="color:#455A64; margin:14px 0 8px;"></h4>
+            <div class="filtro-financeiro">
+                <label>Período:</label>
+                <select id="selectPeriodoMensagens" onchange="onMudarPeriodoMensagens()">
+                    <option value="todos">Todos</option>
+                    <option value="diario">Diário (hoje)</option>
+                    <option value="semanal">Semanal (7 dias)</option>
+                    <option value="mensal">Mensal (30 dias)</option>
+                    <option value="trimestral">Trimestral (3 meses)</option>
+                    <option value="semestral">Semestral (6 meses)</option>
+                    <option value="anual">Anual (12 meses)</option>
+                    <option value="personalizado">Personalizado</option>
+                </select>
+                <span id="datasPersonalizadasMensagens" style="display:none; gap:10px; align-items:center;">
+                    <label>De:</label> <input type="date" id="dataInicialMensagens">
+                    <label>Até:</label> <input type="date" id="dataFinalMensagens">
+                </span>
+                <button onclick="aplicarFiltroMensagensPainel()">Filtrar</button>
+                <button style="background:#00897B;" onclick="gerarRelatorioMensagensPainel()">📄 Gerar Relatório</button>
+            </div>
+            <table><thead><tr><th>Rota</th><th>De → Para</th><th>Mensagem</th><th>Data</th></tr></thead>
+                <tbody id="corpoMensagens"></tbody></table>
+            <div class="vazio" id="vazioMensagens" style="display:none;">Nenhuma mensagem encontrada nesse período.</div>
+        </div>
     </div>
 
     <div class="aba-conteudo" id="abaFinanceiro">
@@ -356,6 +398,42 @@
     // pra não precisar reconsultar o Firestore ao abrir o modal.
     let usuariosCache = {};
 
+    // Doc completo (nome/email/cpf/role/permissoes) do admin logado —
+    // preenchido em carregarAdminLogado(), usado por aplicarPermissoesPainel()
+    // pra decidir quais abas mostrar. Antes deste sistema, nada guardava
+    // esses dados: eram lidos só pra exibir nome/foto e descartados.
+    let adminAtual = {};
+
+    // Admin master de verdade, identificado por CPF fixo — mesmo CPF usado
+    // no Match e no backend do Caronas (ver CPF_ADMIN_MASTER em
+    // functions/index.js). Tem permissão total e irrestrita sempre.
+    const CPF_ADMIN_MASTER_WEB = '56413025034';
+
+    function ehMasterWeb(admin) {
+        return !!admin && admin.cpf === CPF_ADMIN_MASTER_WEB;
+    }
+
+    function temPermissaoWeb(chave) {
+        if (ehMasterWeb(adminAtual)) return true;
+        if (!adminAtual.permissoes) return true; // legado = acesso total
+        return adminAtual.permissoes[chave] === true;
+    }
+
+    // Esconde as abas cuja permissão o admin logado não tem — chamado logo
+    // depois de carregarAdminLogado() no login. Orientações/Configurações
+    // ficam sempre visíveis (mesmo critério do app nativo).
+    function aplicarPermissoesPainel() {
+        const chavePorAba = {
+            motoristas: 'usuarios', passageiros: 'usuarios',
+            viagensMotorista: 'viagens', viagensPassageiro: 'viagens',
+            manifestacoes: 'manifestacoes', mensagens: 'mensagens', financeiro: 'financeiro',
+        };
+        document.querySelectorAll('.aba-botao').forEach((botao) => {
+            const chave = chavePorAba[botao.dataset.aba];
+            botao.style.display = (!chave || temPermissaoWeb(chave)) ? '' : 'none';
+        });
+    }
+
     function fazerLogin() {
         const email = document.getElementById('loginEmail').value.trim();
         const senha = document.getElementById('loginSenha').value;
@@ -428,10 +506,12 @@
     async function carregarAdminLogado(uid) {
         const doc = await db.collection('admins').doc(uid).get();
         const dados = doc.data() || {};
+        adminAtual = dados;
         // Só o primeiro nome aqui embaixo da foto — o sobrenome completo
         // não cabe bem nesse espaço pequeno do topo.
         document.getElementById('adminNome').textContent = dados.nome || dados.email || '';
         document.getElementById('adminFoto').src = dados.fotoUrl || FOTO_PADRAO;
+        aplicarPermissoesPainel();
     }
 
     function mostrarAba(nome) {
@@ -851,6 +931,171 @@
         excluir({ manifestacaoId: id, senhaAutorizacao: senha })
             .then(() => { alert('Excluído.'); carregarManifestacoes(); })
             .catch((e) => alert('Erro ao excluir: ' + e.message));
+    }
+
+    // ===== MENSAGENS — busca por nome/CPF (mesma lógica de
+    // AdminRepository.buscarUsuariosPorTexto no app nativo), depois lista as
+    // conversas do usuário achado (mesma lógica de
+    // AdminRepository.listarMensagensDoUsuario: conversas por motoristaId OU
+    // passageiroId, mensagens de cada uma) com filtro de período (mesmo
+    // padrão client-side do Financeiro) e relatório imprimível. =====
+    let mensagensPainelCache = [];
+
+    function normalizarTextoBusca(v) {
+        return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    }
+
+    async function buscarMensagensPainel() {
+        const termo = document.getElementById('buscaMensagens').value.trim();
+        document.getElementById('vazioMensagensBusca').style.display = 'none';
+        document.getElementById('listaSelecaoMensagens').innerHTML = '';
+        document.getElementById('resultadoMensagens').style.display = 'none';
+        if (!termo) return;
+
+        const digitos = termo.replace(/\D/g, '');
+        const termoNorm = normalizarTextoBusca(termo);
+        const candidatos = Object.values(usuariosCache).filter((u) => {
+            const nomeBate = u.nomeCompleto && normalizarTextoBusca(u.nomeCompleto).includes(termoNorm);
+            const cpfBate = digitos.length === 11 && cpfPorUsuario[u.id] === digitos;
+            return nomeBate || cpfBate;
+        });
+
+        if (candidatos.length === 0) {
+            document.getElementById('vazioMensagensBusca').style.display = 'block';
+        } else if (candidatos.length === 1) {
+            await carregarMensagensDoUsuarioPainel(candidatos[0]);
+        } else {
+            const lista = document.getElementById('listaSelecaoMensagens');
+            candidatos.forEach((u) => {
+                const item = document.createElement('div');
+                item.className = 'linha-clicavel';
+                item.style.cssText = 'padding:10px; border:1px solid #E0E0E0; border-radius:6px; margin-top:6px; cursor:pointer;';
+                item.textContent = (u.nomeCompleto || u.email || '?') + (u.email ? ' — ' + u.email : '');
+                item.onclick = () => carregarMensagensDoUsuarioPainel(u);
+                lista.appendChild(item);
+            });
+        }
+    }
+
+    async function carregarMensagensDoUsuarioPainel(usuario) {
+        document.getElementById('listaSelecaoMensagens').innerHTML = '';
+        document.getElementById('tituloMensagensUsuario').textContent = '💬 Mensagens de ' + (usuario.nomeCompleto || usuario.email || '?');
+        document.getElementById('resultadoMensagens').style.display = 'block';
+
+        const [comoMotorista, comoPassageiro] = await Promise.all([
+            db.collection('conversas').where('motoristaId', '==', usuario.id).get(),
+            db.collection('conversas').where('passageiroId', '==', usuario.id).get(),
+        ]);
+        const conversas = [...comoMotorista.docs, ...comoPassageiro.docs].map((d) => ({ id: d.id, ...d.data() }));
+
+        const listasMensagens = await Promise.all(
+            conversas.map((c) => db.collection('conversas').doc(c.id).collection('mensagens').get())
+        );
+
+        mensagensPainelCache = [];
+        listasMensagens.forEach((snap, i) => {
+            const conversa = conversas[i];
+            snap.forEach((doc) => {
+                const m = doc.data();
+                const ts = m.timestamp && m.timestamp.toMillis ? m.timestamp.toMillis() : null;
+                const nomeDe = m.remetenteId === conversa.motoristaId ? conversa.motoristaNome : conversa.passageiroNome;
+                const nomePara = m.destinatarioId === conversa.motoristaId ? conversa.motoristaNome : conversa.passageiroNome;
+                mensagensPainelCache.push({
+                    rota: (conversa.cidadeOrigem || '') + ' → ' + (conversa.cidadeDestino || ''),
+                    participantes: (nomeDe || '?') + ' → ' + (nomePara || '?'),
+                    conteudo: m.conteudo || '',
+                    timestamp: ts,
+                });
+            });
+        });
+
+        document.getElementById('selectPeriodoMensagens').value = 'todos';
+        document.getElementById('datasPersonalizadasMensagens').style.display = 'none';
+        aplicarFiltroMensagensPainel();
+    }
+
+    function onMudarPeriodoMensagens() {
+        const personalizado = document.getElementById('selectPeriodoMensagens').value === 'personalizado';
+        document.getElementById('datasPersonalizadasMensagens').style.display = personalizado ? 'inline-flex' : 'none';
+    }
+
+    function filtrarPorPeriodo(itens, periodo, idInicial, idFinal) {
+        const agora = Date.now();
+        let dataInicialMs = 0, dataFinalMs = Infinity, dataLimite = 0;
+
+        if (periodo === 'personalizado') {
+            const dataInicialStr = document.getElementById(idInicial).value;
+            const dataFinalStr = document.getElementById(idFinal).value;
+            if (!dataInicialStr || !dataFinalStr) { alert('Preencha as duas datas.'); return null; }
+            dataInicialMs = new Date(dataInicialStr + 'T00:00:00').getTime();
+            dataFinalMs = new Date(dataFinalStr + 'T23:59:59').getTime();
+        } else {
+            const dias = { diario: 1, semanal: 7, mensal: 30, trimestral: 90, semestral: 180, anual: 365 }[periodo];
+            dataLimite = dias ? agora - dias * 24 * 60 * 60 * 1000 : 0;
+        }
+
+        return itens.filter((item) => {
+            if (!item.timestamp) return false;
+            if (periodo === 'personalizado') return item.timestamp >= dataInicialMs && item.timestamp <= dataFinalMs;
+            return dataLimite === 0 || item.timestamp >= dataLimite;
+        });
+    }
+
+    function aplicarFiltroMensagensPainel() {
+        const periodo = document.getElementById('selectPeriodoMensagens').value;
+        const filtradas = filtrarPorPeriodo(mensagensPainelCache, periodo, 'dataInicialMensagens', 'dataFinalMensagens');
+        if (filtradas === null) return;
+
+        filtradas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const corpo = document.getElementById('corpoMensagens');
+        corpo.innerHTML = '';
+        document.getElementById('vazioMensagens').style.display = filtradas.length === 0 ? 'block' : 'none';
+        filtradas.forEach((m) => {
+            const tr = document.createElement('tr');
+            const dataTexto = m.timestamp ? new Date(m.timestamp).toLocaleString('pt-BR') : '-';
+            tr.innerHTML = '<td>' + escapar(m.rota) + '</td><td>' + escapar(m.participantes) + '</td><td>' + escapar(m.conteudo) + '</td><td>' + dataTexto + '</td>';
+            corpo.appendChild(tr);
+        });
+    }
+
+    // Relatório imprimível (mesmo padrão de gerarHtmlRelatorioFinanceiro
+    // abaixo — window.open + document.write + print(), sem biblioteca de
+    // PDF, "Salvar como PDF" na caixa de impressão do navegador vira o
+    // export de verdade).
+    function gerarRelatorioMensagensPainel() {
+        const periodo = document.getElementById('selectPeriodoMensagens').value;
+        const filtradas = filtrarPorPeriodo(mensagensPainelCache, periodo, 'dataInicialMensagens', 'dataFinalMensagens');
+        if (filtradas === null) return;
+        if (filtradas.length === 0) { alert('Nenhuma mensagem encontrada nesse período.'); return; }
+        filtradas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        const titulo = document.getElementById('tituloMensagensUsuario').textContent;
+        const linhas = filtradas.map((m) => {
+            const dataTexto = m.timestamp ? new Date(m.timestamp).toLocaleString('pt-BR') : '-';
+            return '<tr><td>' + escapar(m.rota) + '</td><td>' + escapar(m.participantes) + '</td><td>' + escapar(m.conteudo) + '</td><td>' + dataTexto + '</td></tr>';
+        }).join('');
+
+        const html = `
+            <html><head><meta charset="utf-8"><style>
+                body { font-family: sans-serif; color: #222; padding: 24px; }
+                h1 { color: #0D47A1; margin-bottom: 0; }
+                .subtitulo { color: #666; margin-top: 4px; margin-bottom: 24px; }
+                table { width: 100%; border-collapse: collapse; }
+                th { text-align: left; padding: 6px 4px; border-bottom: 2px solid #ccc; font-size: 12px; color: #666; }
+                td { padding: 6px 4px; border-bottom: 1px solid #eee; }
+            </style></head><body>
+                <h1>Caronas — Relatório de Mensagens</h1>
+                <div class="subtitulo">${escapar(titulo)}</div>
+                <div class="subtitulo">Período: ${document.getElementById('selectPeriodoMensagens').selectedOptions[0].textContent}</div>
+                <table><thead><tr><th>Rota</th><th>De → Para</th><th>Mensagem</th><th>Data</th></tr></thead><tbody>${linhas}</tbody></table>
+                <div class="subtitulo" style="margin-top:24px; text-align:right;">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+            </body></html>
+        `;
+        const aba = window.open('', '_blank');
+        if (!aba) { alert('O navegador bloqueou a nova aba do relatório. Permita pop-ups para este site e tente de novo.'); return; }
+        aba.document.write(html);
+        aba.document.close();
+        setTimeout(() => aba.print(), 300);
     }
 
     // ===== FINANCEIRO — histórico de cobranças dos R$15,99/30 dias do

@@ -375,6 +375,22 @@
     <string name="gerenciar_admins_botao_novo">+ Novo Admin</string>
     <string name="gerenciar_admins_erro_sem_permissao">Você não tem permissão para gerenciar administradores.</string>
     <string name="admin_senha_autorizacao_usuario_hint">Sua senha de admin ou a senha master</string>
+
+    <!-- Filtro de período + relatório da seção Mensagens (ver
+         AdministracaoCaronasActivity.aplicarFiltroMensagens/
+         gerarRelatorioMensagens) -->
+    <string name="admin_mensagens_gerar_relatorio">📄 Gerar Relatório</string>
+    <string name="admin_mensagens_relatorio_sem_dados">Carregue as mensagens de um usuário antes de gerar o relatório.</string>
+    <string name="admin_mensagens_pdf_titulo">Mensagens — %1$s</string>
+    <string name="admin_mensagens_pdf_coluna_rota">Rota</string>
+    <string name="admin_mensagens_pdf_coluna_participantes">De → Para</string>
+    <string name="admin_mensagens_pdf_coluna_conteudo">Mensagem</string>
+    <string name="admin_mensagens_pdf_coluna_data">Data</string>
+    <string name="admin_mensagens_pdf_nome_arquivo">relatorio_mensagens</string>
+
+    <!-- Card "Ver Mensagens" em Configurações (ver
+         ConfiguracoesCaronasActivity) -->
+    <string name="admin_botao_ver_mensagens">Ver Mensagens</string>
     <string name="admin_lista_motoristas_titulo">Motoristas</string>
     <string name="admin_lista_passageiros_titulo">Passageiros</string>
     <string name="admin_lista_viagens_titulo">Viagens (Motoristas)</string>

@@ -81,6 +81,17 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private lateinit var containerBuscaMensagens: LinearLayout
     private lateinit var etBuscaMensagens: EditText
     private lateinit var btnArquivadosManifestacoes: Button
+    // ===== Seção "Mensagens" — filtro de período + relatório (ver
+    // carregarMensagensDoUsuario/aplicarFiltroMensagens) =====
+    private lateinit var containerFiltroMensagens: LinearLayout
+    private lateinit var spinnerPeriodoMensagens: Spinner
+    private lateinit var btnFiltrarMensagens: Button
+    private lateinit var layoutDataPersonalizadaMensagens: LinearLayout
+    private lateinit var etDataInicialMensagens: EditText
+    private lateinit var etDataFinalMensagens: EditText
+    private lateinit var btnGerarRelatorioMensagens: Button
+    private var mensagensUsuarioCache: List<MensagemAdminInfo> = emptyList()
+    private var nomeUsuarioMensagensCache: String = ""
     private lateinit var badgeManifestacoes: TextView
     private lateinit var tvContadorSecao: TextView
     private var mostrandoArquivadas = false
@@ -123,6 +134,14 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
         badgeManifestacoes = findViewById(R.id.badgeManifestacoes)
         escutarBadgeManifestacoes()
+        containerFiltroMensagens = findViewById(R.id.containerFiltroMensagens)
+        spinnerPeriodoMensagens = findViewById(R.id.spinnerPeriodoMensagens)
+        btnFiltrarMensagens = findViewById(R.id.btnFiltrarMensagens)
+        layoutDataPersonalizadaMensagens = findViewById(R.id.layoutDataPersonalizadaMensagens)
+        etDataInicialMensagens = findViewById(R.id.etDataInicialMensagens)
+        etDataFinalMensagens = findViewById(R.id.etDataFinalMensagens)
+        btnGerarRelatorioMensagens = findViewById(R.id.btnGerarRelatorioMensagens)
+        configurarFiltroMensagens()
         containerFiltroFinanceiro = findViewById(R.id.containerFiltroFinanceiro)
         spinnerPeriodoFinanceiro = findViewById(R.id.spinnerPeriodoFinanceiro)
         btnFiltrarFinanceiro = findViewById(R.id.btnFiltrarFinanceiro)
@@ -174,6 +193,14 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
             }
         }
         solicitarPermissaoNotificacaoSeNecessario()
+
+        // Entrada vinda do card "Ver Mensagens" em Configurações (ver
+        // ConfiguracoesCaronasActivity) — reaproveita a MESMA seção inline
+        // de sempre, só abre ela automaticamente em vez do admin precisar
+        // tocar em "Mensagens" de novo.
+        if (intent.getStringExtra(EXTRA_ABRIR_SECAO) == SECAO_MENSAGENS) {
+            abrirBuscaMensagens()
+        }
     }
 
     private fun solicitarPermissaoNotificacaoSeNecessario() {
@@ -727,6 +754,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         mostrarFiltroFinanceiro: Boolean = false
     ) {
         containerBuscaMensagens.visibility = if (mostrarBusca) View.VISIBLE else View.GONE
+        containerFiltroMensagens.visibility = View.GONE
         btnArquivadosManifestacoes.visibility = if (mostrarArquivados) View.VISIBLE else View.GONE
         containerFiltroFinanceiro.visibility = if (mostrarFiltroFinanceiro) View.VISIBLE else View.GONE
         tvTituloSecao.text = titulo
@@ -751,12 +779,37 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     // nada (precisa do admin digitar e tocar em Buscar/Enter primeiro).
     private fun abrirBuscaMensagens() {
         containerBuscaMensagens.visibility = View.VISIBLE
+        containerFiltroMensagens.visibility = View.GONE
         btnArquivadosManifestacoes.visibility = View.GONE
         containerFiltroFinanceiro.visibility = View.GONE
         tvTituloSecao.visibility = View.GONE
         tvVazioSecao.visibility = View.GONE
         rvSecao.visibility = View.GONE
         progressBarSecao.visibility = View.GONE
+    }
+
+    private fun configurarFiltroMensagens() {
+        val spinnerAdapter = ArrayAdapter.createFromResource(
+            this, R.array.periodos_array, android.R.layout.simple_spinner_item
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerPeriodoMensagens.adapter = spinnerAdapter
+        spinnerPeriodoMensagens.setSelection(PERIODO_FINANCEIRO_TODOS)
+
+        spinnerPeriodoMensagens.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                layoutDataPersonalizadaMensagens.visibility = if (position == PERIODO_FINANCEIRO_PERSONALIZADO) View.VISIBLE else View.GONE
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                layoutDataPersonalizadaMensagens.visibility = View.GONE
+            }
+        }
+
+        aplicarMascaraDataFinanceiro(etDataInicialMensagens)
+        aplicarMascaraDataFinanceiro(etDataFinalMensagens)
+
+        btnFiltrarMensagens.setOnClickListener { aplicarFiltroMensagens() }
+        btnGerarRelatorioMensagens.setOnClickListener { gerarRelatorioMensagens() }
     }
 
     private fun mostrarManifestacoes() {
@@ -917,25 +970,131 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         progressBarSecao.visibility = View.VISIBLE
 
         val nomeExibido = usuario.nomeCompleto?.ifBlank { null } ?: usuario.email ?: usuario.telefone ?: "?"
+        nomeUsuarioMensagensCache = nomeExibido
         lifecycleScope.launch {
             adminRepository.listarMensagensDoUsuario(usuarioId)
                 .onSuccess { mensagens ->
-                    progressBarSecao.visibility = View.GONE
+                    mensagensUsuarioCache = mensagens
                     tvTituloSecao.text = getString(R.string.admin_mensagens_titulo_formato, nomeExibido)
                     tvTituloSecao.visibility = View.VISIBLE
-                    if (mensagens.isEmpty()) {
-                        tvVazioSecao.text = getString(R.string.admin_mensagens_vazio)
-                        tvVazioSecao.visibility = View.VISIBLE
-                    } else {
-                        rvSecao.visibility = View.VISIBLE
-                        rvSecao.adapter = MensagemAdminAdapter(mensagens)
-                    }
+                    containerFiltroMensagens.visibility = View.VISIBLE
+                    aplicarFiltroMensagens()
                 }
                 .onFailure { e ->
                     progressBarSecao.visibility = View.GONE
                     Toast.makeText(this@AdministracaoCaronasActivity, getString(R.string.admin_mensagens_erro_buscar, e.message), Toast.LENGTH_LONG).show()
                 }
         }
+    }
+
+    // Filtro de período (mesmo padrão de aplicarFiltroFinanceiro) aplicado
+    // sobre mensagensUsuarioCache já carregada — nenhuma consulta nova ao
+    // Firestore, só recorta o que já está em memória.
+    private fun aplicarFiltroMensagens() {
+        val periodoSelecionado = spinnerPeriodoMensagens.selectedItemPosition
+        val agora = System.currentTimeMillis()
+        var dataInicialMillis = 0L
+        var dataFinalMillis = Long.MAX_VALUE
+        var dataLimite = 0L
+
+        if (periodoSelecionado == PERIODO_FINANCEIRO_PERSONALIZADO) {
+            val dataInicialStr = etDataInicialMensagens.text.toString().trim()
+            val dataFinalStr = etDataFinalMensagens.text.toString().trim()
+            if (TextUtils.isEmpty(dataInicialStr) || TextUtils.isEmpty(dataFinalStr)) {
+                Toast.makeText(this, R.string.financeiro_preencha_datas, Toast.LENGTH_SHORT).show()
+                return
+            }
+            try {
+                val dataInicial = sdfFinanceiro.parse(dataInicialStr)
+                val dataFinal = sdfFinanceiro.parse(dataFinalStr)
+                if (dataInicial == null || dataFinal == null) {
+                    Toast.makeText(this, R.string.financeiro_erro_data_invalida, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                if (dataInicial.after(dataFinal)) {
+                    Toast.makeText(this, R.string.financeiro_erro_data_maior, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                dataInicialMillis = dataInicial.time
+                dataFinalMillis = dataFinal.time + 24 * 60 * 60 * 1000 - 1
+            } catch (e: ParseException) {
+                Toast.makeText(this, R.string.financeiro_erro_data_invalida, Toast.LENGTH_SHORT).show()
+                return
+            }
+        } else {
+            dataLimite = when (periodoSelecionado) {
+                PERIODO_FINANCEIRO_DIARIO -> agora - 1L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_SEMANAL -> agora - 7L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_MENSAL -> agora - 30L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_TRIMESTRAL -> agora - 90L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_SEMESTRAL -> agora - 180L * 24 * 60 * 60 * 1000
+                PERIODO_FINANCEIRO_ANUAL -> agora - 365L * 24 * 60 * 60 * 1000
+                else -> 0L
+            }
+        }
+
+        val filtradas = mensagensUsuarioCache.filter { info ->
+            val millis = info.mensagem.timestamp?.time ?: return@filter false
+            if (periodoSelecionado == PERIODO_FINANCEIRO_PERSONALIZADO) {
+                millis in dataInicialMillis..dataFinalMillis
+            } else {
+                dataLimite == 0L || millis >= dataLimite
+            }
+        }
+
+        progressBarSecao.visibility = View.GONE
+        if (filtradas.isEmpty()) {
+            tvVazioSecao.text = getString(R.string.admin_mensagens_vazio)
+            tvVazioSecao.visibility = View.VISIBLE
+            rvSecao.visibility = View.GONE
+        } else {
+            tvVazioSecao.visibility = View.GONE
+            rvSecao.visibility = View.VISIBLE
+            rvSecao.adapter = MensagemAdminAdapter(filtradas)
+        }
+    }
+
+    // ----- Relatório de mensagens em PDF (mesmo PdfBuilder do Financeiro) -----
+    private fun gerarRelatorioMensagens() {
+        if (mensagensUsuarioCache.isEmpty()) {
+            Toast.makeText(this, R.string.admin_mensagens_relatorio_sem_dados, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val periodoLabel = spinnerPeriodoMensagens.selectedItem?.toString() ?: ""
+
+        val pdf = PdfBuilder(this)
+        pdf.titulo(getString(R.string.admin_mensagens_pdf_titulo, nomeUsuarioMensagensCache))
+        pdf.subtitulo("${getString(R.string.relatorios_periodo_prefixo)}: $periodoLabel")
+
+        val linhas = mensagensUsuarioCache
+            .sortedByDescending { it.mensagem.timestamp?.time ?: 0L }
+            .map { info ->
+                val rota = getString(
+                    R.string.procurar_rota_formato,
+                    info.conversa.cidadeOrigem ?: "", info.conversa.cidadeDestino ?: ""
+                )
+                val remetente = if (info.mensagem.remetenteId == info.conversa.motoristaId) info.conversa.motoristaNome else info.conversa.passageiroNome
+                val destinatario = if (info.mensagem.destinatarioId == info.conversa.motoristaId) info.conversa.motoristaNome else info.conversa.passageiroNome
+                listOf(
+                    rota,
+                    "${remetente ?: "?"} → ${destinatario ?: "?"}",
+                    info.mensagem.conteudo.orEmpty(),
+                    info.mensagem.timestamp?.let { sdfFinanceiroCompleto.format(it) } ?: "-"
+                )
+            }
+        pdf.tabela(
+            cabecalhos = listOf(
+                getString(R.string.admin_mensagens_pdf_coluna_rota),
+                getString(R.string.admin_mensagens_pdf_coluna_participantes),
+                getString(R.string.admin_mensagens_pdf_coluna_conteudo),
+                getString(R.string.admin_mensagens_pdf_coluna_data)
+            ),
+            linhas = linhas,
+            pesos = listOf(0.2f, 0.25f, 0.4f, 0.15f)
+        )
+
+        pdf.rodape(getString(R.string.financeiro_gerado_em, sdfFinanceiroCompleto.format(Date())))
+        pdf.gerarEAbrir(getString(R.string.admin_mensagens_pdf_nome_arquivo))
     }
 
     private fun <T> exibirResultadoSecao(itens: List<T>, criarAdapter: (List<T>) -> RecyclerView.Adapter<*>) {
@@ -954,6 +1113,13 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     }
 
     companion object {
+        const val EXTRA_ABRIR_SECAO = "abrirSecao"
+        const val SECAO_MENSAGENS = "mensagens"
+
+        // Mesmas posições do R.array.periodos_array — reaproveitadas pelos
+        // dois filtros de período da tela (Financeiro e Mensagens), que
+        // usam o mesmo spinner/array, só com nomes de variável próprios
+        // pra deixar claro qual seção cada campo pertence.
         private const val PERIODO_FINANCEIRO_TODOS = 0
         private const val PERIODO_FINANCEIRO_DIARIO = 1
         private const val PERIODO_FINANCEIRO_SEMANAL = 2

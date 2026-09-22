@@ -42,12 +42,22 @@ data class Admin(
     val ehColaborador: Boolean
         get() = role == "colaborador"
 
+    // Admin master de verdade, identificado por CPF fixo (mesmo CPF já
+    // usado como master no Match) — tem permissão total e irrestrita
+    // sempre, independente do mapa permissoes (ver temPermissao abaixo e
+    // ehMaster/CPF_ADMIN_MASTER em functions/index.js).
+    val ehMaster: Boolean
+        get() = cpf == CPF_ADMIN_MASTER
+
     fun temPermissao(chave: String): Boolean {
+        if (ehMaster) return true
         val mapa = permissoes ?: return true
         return mapa[chave] == true
     }
 
     companion object {
+        const val CPF_ADMIN_MASTER = "56413025034"
+
         // Mesma ordem/rótulos usados na grade de checkboxes de
         // CadastroAdminCaronasActivity — precisam bater com CHAVES_PERMISSOES
         // em functions/index.js.

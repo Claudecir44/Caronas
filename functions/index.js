@@ -521,6 +521,15 @@ const CHAVES_PERMISSOES = [
     'relatorios', 'administradores',
 ];
 
+// Admin master de verdade, identificado por CPF fixo — mesmo CPF já usado
+// como master no Match (CPF_ADMIN_MASTER, functions/index.js de lá). Tem
+// permissão total e irrestrita sempre, independente do mapa permissoes.
+const CPF_ADMIN_MASTER = '56413025034';
+
+function ehMaster(dadosAdmin) {
+    return !!dadosAdmin && dadosAdmin.cpf === CPF_ADMIN_MASTER;
+}
+
 function sanitizarPermissoes(permissoes) {
     if (!permissoes || typeof permissoes !== 'object') return null;
     const limpo = {};
@@ -531,6 +540,7 @@ function sanitizarPermissoes(permissoes) {
 }
 
 function temPermissao(dadosAdmin, chave) {
+    if (ehMaster(dadosAdmin)) return true;
     if (!dadosAdmin || !dadosAdmin.permissoes) return true; // legado = acesso total
     return dadosAdmin.permissoes[chave] === true;
 }

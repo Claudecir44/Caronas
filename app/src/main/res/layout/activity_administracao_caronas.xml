@@ -288,6 +288,97 @@
 
             </LinearLayout>
 
+            <!-- Só aparece depois de carregar as mensagens de um usuário
+                 (ver AdministracaoCaronasActivity.carregarMensagensDoUsuario)
+                 — filtro de período (mesmo padrão do Financeiro, aplicado
+                 client-side sobre a lista já carregada) + botão de
+                 relatório em PDF. -->
+            <LinearLayout
+                android:id="@+id/containerFiltroMensagens"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <Spinner
+                        android:id="@+id/spinnerPeriodoMensagens"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:entries="@array/periodos_array"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="8dp" />
+
+                    <Button
+                        android:id="@+id/btnFiltrarMensagens"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/financeiro_botao_filtrar"
+                        android:background="@drawable/botao_azul_neon"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutDataPersonalizadaMensagens"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/etDataInicialMensagens"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/financeiro_data_inicial"
+                        android:inputType="number"
+                        android:maxLength="10"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="10dp"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="6dp" />
+
+                    <EditText
+                        android:id="@+id/etDataFinalMensagens"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/financeiro_data_final"
+                        android:inputType="number"
+                        android:maxLength="10"
+                        android:background="@drawable/borda_parada_input"
+                        android:padding="10dp"
+                        android:textSize="14sp"
+                        android:layout_marginStart="6dp" />
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnGerarRelatorioMensagens"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/admin_mensagens_gerar_relatorio"
+                    android:background="@drawable/botao_azul_neon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:layout_marginTop="8dp" />
+
+            </LinearLayout>
+
             <!-- Só aparece na seção "Financeiro" (ver
                  AdministracaoCaronasActivity.mostrarFinanceiro) — filtro de
                  período + resumo, acima da lista de pagamentos que usa o

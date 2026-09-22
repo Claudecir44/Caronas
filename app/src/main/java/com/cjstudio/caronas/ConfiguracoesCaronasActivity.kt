@@ -68,6 +68,12 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnConfigAdministracao).setOnClickListener {
             startActivity(Intent(this, GerenciarAdministradoresCaronasActivity::class.java))
         }
+        findViewById<View>(R.id.btnConfigMensagens).setOnClickListener {
+            startActivity(
+                Intent(this, AdministracaoCaronasActivity::class.java)
+                    .putExtra(AdministracaoCaronasActivity.EXTRA_ABRIR_SECAO, AdministracaoCaronasActivity.SECAO_MENSAGENS)
+            )
+        }
 
         findViewById<View>(R.id.btnConfigPagamentos).setOnClickListener {
             startActivity(Intent(this, AssinaturaMotoristaActivity::class.java))
@@ -99,6 +105,8 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
                     if (admin.temPermissao("relatorios")) View.VISIBLE else View.GONE
                 findViewById<View>(R.id.cardConfigAdministracao).visibility =
                     if (admin.temPermissao("administradores")) View.VISIBLE else View.GONE
+                findViewById<View>(R.id.cardConfigMensagens).visibility =
+                    if (admin.temPermissao("mensagens")) View.VISIBLE else View.GONE
             }
         }
     }
