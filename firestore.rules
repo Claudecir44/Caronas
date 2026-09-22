@@ -102,6 +102,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Crédito de motorista (caronas grátis já usadas + validade do acesso
+    // pago) preservado por CPF através de uma exclusão de conta — só
+    // Admin SDK lê/escreve (ver preservarCreditoMotoristaPorCpf/
+    // restaurarCreditoMotoristaPorCpf em functions/index.js).
+    match /motoristasGratisPorCpf/{cpf} {
+      allow read, write: if false;
+    }
+
     // Chat entre motorista e passageiro de uma solicitação: aberto desde
     // que a vaga é solicitada (a conversa tem o mesmo id da solicitação)
     // até 6 horas depois da chegada prevista, e fechado pra sempre se a

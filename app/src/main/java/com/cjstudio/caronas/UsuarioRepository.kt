@@ -202,18 +202,20 @@ class UsuarioRepository @Inject constructor(
             val credential = EmailAuthProvider.getCredential(email, senhaAtual)
             user.reauthenticate(credential).await()
 
-            val uid = user.uid
-            // Apaga a pasta de fotos de perfil (best-effort — se não existir
-            // nenhum arquivo, o list() só devolve vazio, sem erro).
+            // A limpeza em si (perfil, viagens, conversas, avaliações, fotos,
+            // vínculo de motorista, conta de autenticação — e o crédito de
+            // motorista preservado por CPF) roda inteira na Cloud Function
+            // "excluirContaPropria" (Admin SDK), mesmo corpo compartilhado com
+            // a exclusão pelo admin (ver excluirUsuarioCompleto em
+            // functions/index.js) — o cliente só reautentica antes, como
+            // barreira extra contra um celular desbloqueado na mão de outra
+            // pessoa.
             try {
-                val pasta = storage.reference.child("fotos_perfil/$uid")
-                pasta.listAll().await().items.forEach { it.delete().await() }
-            } catch (_: Exception) {
-                // Ignora — a exclusão da conta não deve travar por causa da foto.
+                functions.getHttpsCallable("excluirContaPropria").call().await()
+            } catch (e: FirebaseFunctionsException) {
+                throw IllegalStateException(e.message ?: "Não foi possível excluir a conta.")
             }
 
-            colecaoUsuarios().document(uid).delete().await()
-            user.delete().await()
             logout()
             Result.success(Unit)
         } catch (e: Exception) {

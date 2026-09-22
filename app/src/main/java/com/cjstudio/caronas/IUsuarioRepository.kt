@@ -45,7 +45,10 @@ interface IUsuarioRepository {
     // papel na tela de login — não precisa do Usuario inteiro carregado.
     suspend fun atualizarPapelMotorista(uid: String, motorista: Boolean): Result<Unit>
 
-    // Reautentica com a senha atual antes de apagar foto + doc + conta.
+    // Reautentica com a senha atual e então chama a Cloud Function
+    // "excluirContaPropria", que faz a limpeza completa (perfil, viagens,
+    // conversas, avaliações, fotos, vínculo de motorista e a conta de
+    // autenticação — mesmo corpo compartilhado com a exclusão pelo admin).
     suspend fun excluirContaPropria(senhaAtual: String): Result<Unit>
 
     // Usado só pra desfazer um cadastro que falhou no meio (ex.: upload de

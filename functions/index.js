@@ -652,24 +652,19 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
 // antiga ainda existir com o mesmo e-mail; por isso ela é sempre apagada
 // por último, depois de tudo mais já ter sido limpo.
 // ============================================================
-exports.excluirUsuario = functions.https.onCall(async (request) => {
-    if (!ADMIN_MASTER_PASSWORD) {
-        throw new functions.https.HttpsError('failed-precondition', 'Exclusão de usuário não configurada no servidor.');
-    }
-
-    const dados = request.data || {};
-    const uid = (dados.uid || '').trim();
-    const senhaAutorizacao = dados.senhaAutorizacao || '';
-
-    if (!uid) {
-        throw new functions.https.HttpsError('invalid-argument', 'uid é obrigatório.');
-    }
-    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
-        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
-    }
-
-    const db = admin.firestore();
-
+// Exclusão completa de uma conta (perfil, viagens, conversas, avaliações,
+// fotos, vínculo de motorista e a conta de autenticação) — corpo
+// compartilhado por excluirUsuario (admin, com a senha master) e
+// excluirContaPropria (o próprio usuário, ver mais abaixo). Antes deste
+// refactor, a exclusão pelo próprio usuário era feita direto pelo cliente
+// (ver UsuarioRepository.excluirContaPropria) e não limpava viagens/
+// conversas/avaliações/vínculo — só o doc de perfil e as fotos —, deixando
+// esses dados órfãos e, pior, mantendo a trava motoristasUnicos "presa" a um
+// uid cujo usuarios/{uid} some quando o passo final abaixo apaga o
+// documento, então funcionava por acidente (o cadastro novo já achava a
+// trava "abandonada"), mas todo o resto ficava para trás. Unificar os dois
+// caminhos aqui corrige os dois problemas de uma vez.
+async function excluirUsuarioCompleto(db, uid) {
     async function apagarDocsDaQuery(query) {
         const snap = await query.get();
         if (snap.empty) return;
@@ -734,8 +729,16 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
         console.warn('⚠️ Erro ao apagar fotos do Storage:', e.message);
     }
 
+    // Antes de apagar o vínculo: preserva por CPF quantas caronas grátis já
+    // foram usadas e quanto de acesso pago ainda resta (ver
+    // preservarCreditoMotoristaPorCpf) — sem isso, excluir e recadastrar com
+    // outro e-mail zerava as 10 caronas grátis e descartava dias de acesso
+    // pago ainda válidos, já que esses dois campos vivem em usuarios/{uid},
+    // que está prestes a sumir.
+    await preservarCreditoMotoristaPorCpf(db, uid);
+
     // Vínculo de identidade de motorista (CPF etc.) e as travas de
-    // unicidade dele — libera CPF/telefone/e-mail/nome pra um recadastro.
+    // unicidade dele — libera CPF/telefone/e-mail pra um recadastro.
     await apagarDocsDaQuery(db.collection('motoristasUnicos').where('uid', '==', uid));
     await db.collection('motoristasVinculo').doc(uid).delete();
 
@@ -751,7 +754,40 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
     } catch (e) {
         if (e.code !== 'auth/user-not-found') throw e;
     }
+}
 
+exports.excluirUsuario = functions.https.onCall(async (request) => {
+    if (!ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('failed-precondition', 'Exclusão de usuário não configurada no servidor.');
+    }
+
+    const dados = request.data || {};
+    const uid = (dados.uid || '').trim();
+    const senhaAutorizacao = dados.senhaAutorizacao || '';
+
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'uid é obrigatório.');
+    }
+    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    await excluirUsuarioCompleto(admin.firestore(), uid);
+    return { ok: true };
+});
+
+// Exclusão da PRÓPRIA conta — mesma limpeza completa de excluirUsuario,
+// sem senha de administrador master: quem prova a identidade aqui é o
+// próprio token de autenticação de quem chama (ver UsuarioRepository
+// .excluirContaPropria, que reautentica com a senha atual ANTES de chamar
+// esta function — barreira extra contra um celular desbloqueado na mão de
+// outra pessoa, embora o token sozinho já bastasse pro servidor confiar).
+exports.excluirContaPropria = functions.https.onCall(async (request) => {
+    const uid = request.auth && request.auth.uid;
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    await excluirUsuarioCompleto(admin.firestore(), uid);
     return { ok: true };
 });
 
@@ -819,21 +855,32 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
 
 // ============================================================
 // Vínculo de identidade do MOTORISTA (só motorista — conta apenas de
-// passageiro não tem CPF nem reserva nada aqui): nome completo, CPF, e-mail
-// e telefone ficam vinculados a UMA conta e nenhum dos quatro pode se
-// repetir em outro motorista. Existe pra impedir que a mesma pessoa abra
-// outra conta (com outro e-mail) e recomece as 10 caronas grátis.
+// passageiro não tem CPF nem reserva nada aqui): CPF, e-mail e telefone
+// ficam vinculados a UMA conta e nenhum dos três pode se repetir em outro
+// motorista. Existe pra impedir que a mesma pessoa abra outra conta (com
+// outro e-mail) e recomece as 10 caronas grátis. Nome completo NÃO entra
+// nessa trava (removido — travava homônimos reais, dois motoristas
+// diferentes que por coincidência têm o mesmo nome; CPF/telefone/e-mail já
+// bastam pra identificar a pessoa).
 //
 // Como funciona: motoristasUnicos/{chave} é uma "trava" por valor
-// (cpf_<11 dígitos>, tel_<dígitos>, email_<sha256>, nome_<sha256 do nome
-// sem acento/caixa>) apontando pro uid dono; motoristasVinculo/{uid} guarda
-// os valores em si (com o CPF, que NÃO vai pro documento público
-// usuarios/{uid}). Ambas só são escritas aqui (Admin SDK) — firestore.rules
-// nega qualquer escrita do cliente. "Repetido" só conta se o dono da trava
-// ainda existe (usuarios/{dono}); trava de uma conta já apagada é
-// reaproveitada, senão quem excluiu a conta ficaria impedido de voltar.
-// Passageiro que vira motorista usa o MESMO uid: as travas dele mesmo nunca
-// contam como conflito, então não há choque com a conta de passageiro.
+// (cpf_<11 dígitos>, tel_<dígitos>, email_<sha256>) apontando pro uid dono;
+// motoristasVinculo/{uid} guarda os valores em si (com o CPF, que NÃO vai
+// pro documento público usuarios/{uid}). Ambas só são escritas aqui (Admin
+// SDK) — firestore.rules nega qualquer escrita do cliente. "Repetido" só
+// conta se o dono da trava ainda existe (usuarios/{dono}); trava de uma
+// conta já apagada é reaproveitada, senão quem excluiu a conta ficaria
+// impedido de voltar. Passageiro que vira motorista usa o MESMO uid: as
+// travas dele mesmo nunca contam como conflito, então não há choque com a
+// conta de passageiro.
+//
+// motoristasGratisPorCpf/{cpf} é o complemento disso: guarda, por CPF (não
+// por uid), quantas caronas grátis já foram usadas e até quando ainda vale
+// o acesso pago — ver preservarCreditoMotoristaPorCpf/
+// restaurarCreditoMotoristaPorCpf mais abaixo. Sem isso, excluir a conta e
+// recadastrar com outro e-mail (mesmo bloqueado de repetir CPF) ainda assim
+// zerava as 10 caronas grátis, porque esses contadores viviam só em
+// usuarios/{uid}, que some junto com a conta excluída.
 // ============================================================
 function somenteDigitos(valor) {
     return String(valor || '').replace(/\D/g, '');
@@ -859,26 +906,63 @@ function normalizarTelefoneMotorista(valor) {
     return digitos;
 }
 
-function normalizarNomeMotorista(valor) {
-    return String(valor || '')
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
 function hashChaveMotorista(valor) {
     return crypto.createHash('sha256').update(valor).digest('hex');
 }
 
-function chavesIdentidadeMotorista({ nomeCompleto, cpf, telefone, email }) {
+function chavesIdentidadeMotorista({ cpf, telefone, email }) {
     return [
         { campo: 'CPF', id: `cpf_${somenteDigitos(cpf)}` },
         { campo: 'telefone', id: `tel_${normalizarTelefoneMotorista(telefone)}` },
         { campo: 'e-mail', id: `email_${hashChaveMotorista(String(email || '').trim().toLowerCase())}` },
-        { campo: 'nome completo', id: `nome_${hashChaveMotorista(normalizarNomeMotorista(nomeCompleto))}` },
     ];
+}
+
+// Snapshot, por CPF, de quanto crédito de motorista uma conta tinha bem no
+// momento em que ela está sendo excluída (própria ou pelo admin) — chamado
+// de dentro de excluirUsuarioCompleto, ANTES de apagar motoristasVinculo/
+// usuarios/{uid}. Só existe algo a preservar se a conta chegou a vincular
+// CPF (motoristasVinculo/{uid}); conta só-passageiro não tem nada aqui.
+async function preservarCreditoMotoristaPorCpf(db, uid) {
+    const vinculoSnap = await db.collection('motoristasVinculo').doc(uid).get();
+    if (!vinculoSnap.exists) return;
+    const cpf = vinculoSnap.data().cpf;
+    if (!cpf) return;
+
+    const perfilSnap = await db.collection('usuarios').doc(uid).get();
+    if (!perfilSnap.exists) return;
+    const perfil = perfilSnap.data();
+
+    await db.collection('motoristasGratisPorCpf').doc(cpf).set({
+        caronasOferecidas: perfil.caronasOferecidas || 0,
+        acessoMotoristaExpiraEm: perfil.acessoMotoristaExpiraEm || null,
+        atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
+        ultimoUsuarioId: uid,
+    }, { merge: true });
+}
+
+// Contraparte de preservarCreditoMotoristaPorCpf — chamada só na PRIMEIRA
+// vez que um uid vincula um CPF (ver vincularIdentidadeMotorista). Se esse
+// CPF já tem um crédito preservado de uma conta excluída antes, restaura as
+// caronas grátis já usadas (pra não dar mais 10 de graça de novo) e, se
+// ainda não tiver vencido, o acesso pago que ainda restava.
+async function restaurarCreditoMotoristaPorCpf(db, uid, cpf) {
+    const historicoSnap = await db.collection('motoristasGratisPorCpf').doc(cpf).get();
+    if (!historicoSnap.exists) return;
+    const historico = historicoSnap.data();
+
+    const atualizacao = {};
+    if (typeof historico.caronasOferecidas === 'number' && historico.caronasOferecidas > 0) {
+        atualizacao.caronasOferecidas = historico.caronasOferecidas;
+    }
+    if (typeof historico.acessoMotoristaExpiraEm === 'number' && historico.acessoMotoristaExpiraEm > Date.now()) {
+        atualizacao.acessoMotoristaExpiraEm = historico.acessoMotoristaExpiraEm;
+    }
+    if (Object.keys(atualizacao).length === 0) return;
+
+    await db.collection('usuarios').doc(uid).update(atualizacao);
+    await db.collection('motoristasGratisPorCpf').doc(cpf).set({ ultimoUsuarioId: uid }, { merge: true });
+    console.log(`Crédito de motorista restaurado por CPF (${cpf}) na conta ${uid}.`);
 }
 
 async function vincularIdentidadeMotorista(uid, dados) {
@@ -913,15 +997,17 @@ async function vincularIdentidadeMotorista(uid, dados) {
     const vinculoRef = db.collection('motoristasVinculo').doc(uid);
     const travaRef = (chave) => db.collection('motoristasUnicos').doc(chave.id);
 
+    let eraVinculoNovo = false;
     await db.runTransaction(async (tx) => {
         const vinculoSnap = await tx.get(vinculoRef);
         if (vinculoSnap.exists && vinculoSnap.data().cpf !== cpf) {
             throw new functions.https.HttpsError('failed-precondition', 'O CPF já vinculado a este cadastro não pode ser alterado.');
         }
+        eraVinculoNovo = !vinculoSnap.exists;
 
         const travasNovas = await tx.getAll(...novas.map(travaRef));
 
-        // Travas antigas deste mesmo uid que deixam de valer (nome/telefone
+        // Travas antigas deste mesmo uid que deixam de valer (telefone/e-mail
         // trocados) — liberadas pra outro motorista poder usar.
         const idsNovos = new Set(novas.map((c) => c.id));
         const antigas = vinculoSnap.exists
@@ -962,6 +1048,13 @@ async function vincularIdentidadeMotorista(uid, dados) {
             ...(vinculoSnap.exists ? {} : { criadoEm: agora }),
         }, { merge: true });
     });
+
+    // Só na primeira vez que ESTE uid vincula um CPF — uma edição de
+    // telefone/e-mail num vínculo já existente não deve reaplicar o
+    // histórico de novo por cima do contador que já está rodando ao vivo.
+    if (eraVinculoNovo) {
+        await restaurarCreditoMotoristaPorCpf(db, uid, cpf);
+    }
 }
 
 exports.registrarMotorista = functions.https.onCall(async (request) => {
