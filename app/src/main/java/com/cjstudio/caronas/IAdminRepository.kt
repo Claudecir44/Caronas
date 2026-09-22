@@ -53,10 +53,13 @@ interface IAdminRepository {
 
     // Cria uma conta de admin nova (Auth + admins/{uid}) via Cloud Function
     // "cadastrarAdmin" — nunca um "create" direto do cliente em
-    // admins/{uid} (ver firestore.rules). Exige só a senha do
-    // administrador master (fixa, só existe em functions/.env). Devolve
-    // o uid criado (o chamador ainda precisa logar com email/senha pra
-    // poder subir a foto — ver CadastroAdminCaronasActivity).
+    // admins/{uid} (ver firestore.rules). Exige a senha do administrador
+    // master (fixa, só existe em functions/.env) e, quando já existe pelo
+    // menos um admin, também a permissão "administradores" de quem está
+    // chamando (bootstrap do primeiro admin de todos continua liberado só
+    // pela senha master, sem sessão). Devolve o uid criado (o chamador
+    // ainda precisa logar com email/senha pra poder subir a foto — ver
+    // CadastroAdminCaronasActivity).
     suspend fun cadastrarAdmin(
         nome: String,
         sobrenome: String,
@@ -64,13 +67,15 @@ interface IAdminRepository {
         telefone: String,
         cpf: String,
         senha: String,
+        role: String,
+        permissoes: Map<String, Boolean>,
         senhaAutorizacao: String
     ): Result<String>
 
     // Edita nome/sobrenome/telefone/cpf de um admin JÁ existente (achado
     // via buscarAdminPorCpf) — via Cloud Function "atualizarAdmin", mesma
-    // trava de senha do master do cadastro. Não mexe em e-mail, senha de
-    // login nem foto.
+    // trava dupla (permissão "administradores" + senha do master). Não mexe
+    // em e-mail, senha de login nem foto.
     suspend fun atualizarAdmin(
         uid: String,
         nome: String,
@@ -79,6 +84,20 @@ interface IAdminRepository {
         cpf: String,
         senhaAutorizacao: String
     ): Result<Unit>
+
+    // Edita só papel (admin/colaborador) + permissões de um admin já
+    // existente — via Cloud Function "atualizarPermissoesAdmin", separada
+    // dos dados básicos (mesmo padrão do Match), mesma trava dupla.
+    suspend fun atualizarPermissoesAdmin(
+        uid: String,
+        role: String,
+        permissoes: Map<String, Boolean>,
+        senhaAutorizacao: String
+    ): Result<Unit>
+
+    // Registro de ações administrativas sensíveis (ver LogAdministracao.kt) —
+    // usado pela seção "Administração" de RelatoriosCaronasActivity.
+    suspend fun listarLogsAdministracao(): Result<List<LogAdministracao>>
 
     // Remove só a entrada admins/{uid} (revoga o acesso ao painel) — não
     // apaga a conta Firebase Auth nem o cadastro de usuário comum. Via

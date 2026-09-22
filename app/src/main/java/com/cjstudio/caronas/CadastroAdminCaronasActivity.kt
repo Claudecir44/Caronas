@@ -4,10 +4,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,12 +26,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // Cria uma conta de admin nova (nome/sobrenome/email/telefone/cpf/foto,
-// todos obrigatórios) OU edita/exclui uma já existente (ver
-// EXTRA_UID_EDITAR, aberto a partir de BuscarAdminActivity) — as três ações
-// protegidas só pela SENHA do administrador master (sem CPF — a senha
-// sozinha basta), verificada só na Cloud Function
-// (cadastrarAdmin/atualizarAdmin/excluirAdmin, ver AdminRepository), nunca
-// client-side.
+// papel e permissões, todos obrigatórios) OU edita/exclui uma já existente
+// (ver EXTRA_UID_EDITAR, aberto a partir de BuscarAdminActivity ou da nova
+// GerenciarAdministradoresCaronasActivity) — protegidas pela SENHA do
+// administrador master (sem CPF — a senha sozinha basta) e, quando já existe
+// mais de um admin, também pela permissão "administradores" de quem está
+// chamando — verificado só na Cloud Function
+// (cadastrarAdmin/atualizarAdmin/atualizarPermissoesAdmin/excluirAdmin, ver
+// AdminRepository), nunca client-side.
 //
 // No modo edição: e-mail não é editável aqui (mudar e-mail de uma conta
 // Auth já existente tem mais implicações, fora do escopo pedido) e os
@@ -50,6 +54,9 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
     private lateinit var ivFoto: ImageView
     private lateinit var tvSelecionarFoto: TextView
     private lateinit var etSenhaMaster: EditText
+    private lateinit var radioGroupPapel: RadioGroup
+    private lateinit var containerPermissoes: LinearLayout
+    private val checkboxesPorChave = mutableMapOf<String, CheckBox>()
     private var fotoUriSelecionada: Uri? = null
     private var uidEditando: String? = null
     private var nomeAdminEditando: String = ""
@@ -84,11 +91,27 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
         etConfirmarSenha.habilitarToggleSenha()
         etSenhaMaster = findViewById(R.id.etSenhaMaster)
         etSenhaMaster.habilitarToggleSenha()
+        radioGroupPapel = findViewById(R.id.radioGroupPapelAdmin)
+        containerPermissoes = findViewById(R.id.containerPermissoesAdmin)
         val btnSalvar = findViewById<Button>(R.id.btnCadastrarAdmin)
         val btnExcluir = findViewById<Button>(R.id.btnExcluirAdmin)
         val progressBar = findViewById<ProgressBar>(R.id.progressBar)
 
+        criarCheckboxesPermissoes()
+
         val ehEdicao = uidEditando != null
+
+        // Papel escolhido decide o default das permissões só no CADASTRO —
+        // admin recém-criado começa com tudo marcado (acesso total, igual
+        // um admin de hoje), colaborador começa com tudo desmarcado (o
+        // criador escolhe o que liberar). Na edição, quem decide o estado
+        // dos checkboxes é o admin já carregado (carregarAdminParaEditar).
+        radioGroupPapel.setOnCheckedChangeListener { _, checkedId ->
+            if (ehEdicao) return@setOnCheckedChangeListener
+            val marcarTudo = checkedId == R.id.radioPapelAdmin
+            checkboxesPorChave.values.forEach { it.isChecked = marcarTudo }
+        }
+
         if (ehEdicao) {
             tvTitulo.setText(R.string.admin_editar_titulo)
             btnSalvar.setText(R.string.admin_editar_botao)
@@ -105,6 +128,8 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
             }
 
             carregarAdminParaEditar(uidEditando!!, etNome, etSobrenome, etEmail, etTelefone, etCpf)
+        } else {
+            checkboxesPorChave.values.forEach { it.isChecked = true } // default: admin (radio já marcado)
         }
 
         val abrirSeletor = View.OnClickListener {
@@ -165,14 +190,30 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
             progressBar.visibility = View.VISIBLE
             btnSalvar.isEnabled = false
 
+            val role = if (radioGroupPapel.checkedRadioButtonId == R.id.radioPapelColaborador) "colaborador" else "admin"
+            val permissoes = checkboxesPorChave.mapValues { it.value.isChecked }
+
             if (ehEdicao) {
-                salvarEdicao(uidEditando!!, nome, sobrenome, telefone, cpf, senhaMaster, progressBar, btnSalvar)
+                salvarEdicao(uidEditando!!, nome, sobrenome, telefone, cpf, role, permissoes, senhaMaster, progressBar, btnSalvar)
             } else {
-                salvarCadastroNovo(nome, sobrenome, email, telefone, cpf, senha, senhaMaster, progressBar, btnSalvar)
+                salvarCadastroNovo(nome, sobrenome, email, telefone, cpf, senha, role, permissoes, senhaMaster, progressBar, btnSalvar)
             }
         }
 
         btnExcluir.setOnClickListener { confirmarExclusao(uidEditando!!) }
+    }
+
+    private fun criarCheckboxesPermissoes() {
+        containerPermissoes.removeAllViews()
+        checkboxesPorChave.clear()
+        for ((chave, rotulo) in Admin.CHAVES_PERMISSOES) {
+            val checkBox = CheckBox(this).apply {
+                text = rotulo
+                setTextColor(android.graphics.Color.WHITE)
+            }
+            checkboxesPorChave[chave] = checkBox
+            containerPermissoes.addView(checkBox)
+        }
     }
 
     private fun carregarAdminParaEditar(
@@ -191,6 +232,8 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
                 etEmail.setText(admin.email)
                 etTelefone.setText(admin.telefone)
                 etCpf.setText(admin.cpf)
+                radioGroupPapel.check(if (admin.ehColaborador) R.id.radioPapelColaborador else R.id.radioPapelAdmin)
+                checkboxesPorChave.forEach { (chave, checkBox) -> checkBox.isChecked = admin.temPermissao(chave) }
                 if (!admin.fotoUrl.isNullOrEmpty()) {
                     ivFoto.load(admin.fotoUrl) {
                         transformations(CircleCropTransformation())
@@ -207,10 +250,11 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
 
     private fun salvarCadastroNovo(
         nome: String, sobrenome: String, email: String, telefone: String, cpf: String, senha: String,
+        role: String, permissoes: Map<String, Boolean>,
         senhaMaster: String, progressBar: ProgressBar, btnSalvar: Button
     ) {
         lifecycleScope.launch {
-            adminRepository.cadastrarAdmin(nome, sobrenome, email, telefone, cpf, senha, senhaMaster)
+            adminRepository.cadastrarAdmin(nome, sobrenome, email, telefone, cpf, senha, role, permissoes, senhaMaster)
                 .onSuccess { uid ->
                     // Foto + e-mail de verificação (precisa entrar como o novo admin, ver
                     // AdminRepository.finalizarCadastroAdmin). A conta e o Firestore já
@@ -232,14 +276,27 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
 
     private fun salvarEdicao(
         uid: String, nome: String, sobrenome: String, telefone: String, cpf: String,
+        role: String, permissoes: Map<String, Boolean>,
         senhaMaster: String, progressBar: ProgressBar, btnSalvar: Button
     ) {
         lifecycleScope.launch {
             adminRepository.atualizarAdmin(uid, nome, sobrenome, telefone, cpf, senhaMaster)
                 .onSuccess {
-                    progressBar.visibility = View.GONE
-                    Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_editar_sucesso, Toast.LENGTH_LONG).show()
-                    finish()
+                    // Dados básicos salvos — permissões são uma Cloud
+                    // Function separada (mesmo padrão do Match); se ela
+                    // falhar, os dados básicos já salvos não são desfeitos,
+                    // só avisa o erro específico de permissões.
+                    adminRepository.atualizarPermissoesAdmin(uid, role, permissoes, senhaMaster)
+                        .onSuccess {
+                            progressBar.visibility = View.GONE
+                            Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_editar_sucesso, Toast.LENGTH_LONG).show()
+                            finish()
+                        }
+                        .onFailure { e ->
+                            progressBar.visibility = View.GONE
+                            btnSalvar.isEnabled = true
+                            Toast.makeText(this@CadastroAdminCaronasActivity, getString(R.string.admin_cadastro_erro_generico, e.message), Toast.LENGTH_LONG).show()
+                        }
                 }
                 .onFailure { e ->
                     progressBar.visibility = View.GONE

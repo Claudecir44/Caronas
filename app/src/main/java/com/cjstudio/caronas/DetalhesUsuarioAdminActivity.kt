@@ -181,7 +181,8 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
             this,
             getString(R.string.admin_detalhes_salvar_titulo),
             getString(R.string.admin_detalhes_salvar_mensagem, nomeExibido),
-            textoBotaoConfirmar = R.string.salvar
+            textoBotaoConfirmar = R.string.salvar,
+            hintSenha = R.string.admin_senha_autorizacao_usuario_hint
         ) { senhaMaster ->
             progressBar.visibility = View.VISIBLE
             btnEditarSalvar.isEnabled = false

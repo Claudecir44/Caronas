@@ -39,6 +39,9 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var usuarioRepository: IUsuarioRepository
 
+    @Inject
+    lateinit var adminRepository: IAdminRepository
+
     private lateinit var cardPagamentos: View
     private lateinit var tvPagamentosStatus: TextView
     private var modoAdmin = false
@@ -54,13 +57,16 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
             cardPagamentos.visibility = View.GONE
             findViewById<View>(R.id.cardConfigManifestacoes).visibility = View.GONE
             findViewById<View>(R.id.cardConfigOrientacoes).visibility = View.VISIBLE
-            findViewById<View>(R.id.cardConfigRelatorios).visibility = View.VISIBLE
+            aplicarPermissoesAdmin()
         }
         findViewById<View>(R.id.btnConfigOrientacoes).setOnClickListener {
             startActivity(Intent(this, OrientacoesAdminCaronasActivity::class.java))
         }
         findViewById<View>(R.id.btnConfigRelatorios).setOnClickListener {
             startActivity(Intent(this, RelatoriosCaronasActivity::class.java))
+        }
+        findViewById<View>(R.id.btnConfigAdministracao).setOnClickListener {
+            startActivity(Intent(this, GerenciarAdministradoresCaronasActivity::class.java))
         }
 
         findViewById<View>(R.id.btnConfigPagamentos).setOnClickListener {
@@ -80,6 +86,21 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (!modoAdmin) atualizarPagamentos()
+    }
+
+    // Cards "Relatórios" e "Administração" só aparecem pra quem tem a
+    // permissão correspondente (admin "legado", sem permissoes definidas,
+    // continua vendo tudo — ver Admin.temPermissao).
+    private fun aplicarPermissoesAdmin() {
+        val uid = adminRepository.uidLogado() ?: return
+        lifecycleScope.launch {
+            adminRepository.buscarAdminLogado(uid).onSuccess { admin ->
+                findViewById<View>(R.id.cardConfigRelatorios).visibility =
+                    if (admin.temPermissao("relatorios")) View.VISIBLE else View.GONE
+                findViewById<View>(R.id.cardConfigAdministracao).visibility =
+                    if (admin.temPermissao("administradores")) View.VISIBLE else View.GONE
+            }
+        }
     }
 
     private fun atualizarPagamentos() {

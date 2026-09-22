@@ -152,6 +152,8 @@ class AdminRepository @Inject constructor(
         telefone: String,
         cpf: String,
         senha: String,
+        role: String,
+        permissoes: Map<String, Boolean>,
         senhaAutorizacao: String
     ): Result<String> {
         return try {
@@ -164,6 +166,8 @@ class AdminRepository @Inject constructor(
                         "telefone" to telefone,
                         "cpf" to cpf,
                         "senha" to senha,
+                        "role" to role,
+                        "permissoes" to permissoes,
                         "senhaAutorizacao" to senhaAutorizacao
                     )
                 )
@@ -203,6 +207,45 @@ class AdminRepository @Inject constructor(
             Result.success(Unit)
         } catch (e: FirebaseFunctionsException) {
             Result.failure(Exception(e.message ?: "Erro ao salvar admin."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun atualizarPermissoesAdmin(
+        uid: String,
+        role: String,
+        permissoes: Map<String, Boolean>,
+        senhaAutorizacao: String
+    ): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("atualizarPermissoesAdmin")
+                .call(
+                    mapOf(
+                        "uid" to uid,
+                        "role" to role,
+                        "permissoes" to permissoes,
+                        "senhaAutorizacao" to senhaAutorizacao
+                    )
+                )
+                .await()
+            Result.success(Unit)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(Exception(e.message ?: "Erro ao salvar permissões."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun listarLogsAdministracao(): Result<List<LogAdministracao>> {
+        return try {
+            val snapshot = db.collection("logsAdministracao")
+                .orderBy("criadoEm", Query.Direction.DESCENDING)
+                .get().await()
+            val logs = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(LogAdministracao::class.java)?.also { it.id = doc.id }
+            }
+            Result.success(logs)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -198,11 +198,12 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
                 val manifestacoes = adminRepository.listarManifestacoes().getOrThrow()
                 val manifestacoesArquivadas = adminRepository.listarManifestacoesArquivadas().getOrThrow()
                 val admins = adminRepository.listarTodosAdmins().getOrThrow()
+                val logsAdministracao = adminRepository.listarLogsAdministracao().getOrThrow()
 
                 val dados = calcularRelatorio(
                     inicio, fim, periodoDescricao,
                     usuarios, caronas, solicitacoes, pagamentos, avaliacoes,
-                    manifestacoes + manifestacoesArquivadas, admins
+                    manifestacoes + manifestacoesArquivadas, admins, logsAdministracao
                 )
                 ultimoRelatorio = dados
                 exibirRelatorio(dados)
@@ -224,7 +225,8 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         pagamentos: List<PagamentoMotorista>,
         avaliacoes: List<Avaliacao>,
         manifestacoes: List<Manifestacao>,
-        admins: List<Admin>
+        admins: List<Admin>,
+        logsAdministracao: List<LogAdministracao>
     ): RelatorioDados {
         // ----- Usuários -----
         var novosUsuariosNoPeriodo = 0
@@ -338,7 +340,11 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
             manifestacoesRespondidas = manifestacoesRespondidas,
             manifestacoesPendentes = manifestacoesPendentes,
             manifestacoesArquivadas = manifestacoesArquivadas,
-            totalAdmins = admins.size
+            totalAdmins = admins.size,
+            logsAdministracaoNoPeriodo = logsAdministracao.filter {
+                val millis = it.criadoEm?.time ?: return@filter false
+                millis in inicio..fim
+            }
         )
     }
 
@@ -403,9 +409,11 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         }
 
         if (tipo == TIPO_COMPLETO || tipo == TIPO_ADMINISTRACAO) {
-            adicionarSecao(getString(R.string.relatorios_secao_administracao), listOf(
-                getString(R.string.relatorios_total_admins) to d.totalAdmins.toString()
-            ))
+            adicionarSecao(
+                getString(R.string.relatorios_secao_administracao),
+                listOf(getString(R.string.relatorios_total_admins) to d.totalAdmins.toString()),
+                textoExtra = formatarLogsAdministracao(d.logsAdministracaoNoPeriodo)
+            )
         }
 
         val tvGeradoEm = TextView(this)
@@ -417,7 +425,7 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         layoutRelatorios.addView(tvGeradoEm)
     }
 
-    private fun adicionarSecao(titulo: String, linhas: List<Pair<String, String>>) {
+    private fun adicionarSecao(titulo: String, linhas: List<Pair<String, String>>, textoExtra: String? = null) {
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
         val padding = (14 * resources.displayMetrics.density).toInt()
@@ -437,7 +445,8 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         tvTitulo.setTypeface(tvTitulo.typeface, Typeface.BOLD)
         card.addView(tvTitulo)
 
-        val corpo = linhas.joinToString("\n") { "${it.first}: ${it.second}" }
+        var corpo = linhas.joinToString("\n") { "${it.first}: ${it.second}" }
+        if (!textoExtra.isNullOrBlank()) corpo += "\n\n$textoExtra"
         val tvCorpo = TextView(this)
         tvCorpo.text = corpo
         tvCorpo.setTextColor(Color.parseColor("#222222"))
@@ -451,6 +460,37 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
     }
 
     private fun formatarValor(v: Double): String = getString(R.string.financeiro_valor_format, v)
+
+    // "admin_criado" -> "Admin criado", "usuario_excluido" -> "Usuário
+    // excluído" etc. — rótulos em português dos tipos gravados por
+    // registrarLogAdministracao (ver functions/index.js).
+    private fun rotuloTipoLog(tipo: String?): String = when (tipo) {
+        "admin_criado" -> getString(R.string.relatorios_log_admin_criado)
+        "admin_editado" -> getString(R.string.relatorios_log_admin_editado)
+        "admin_excluido" -> getString(R.string.relatorios_log_admin_excluido)
+        "usuario_editado" -> getString(R.string.relatorios_log_usuario_editado)
+        "usuario_excluido" -> getString(R.string.relatorios_log_usuario_excluido)
+        else -> tipo ?: "-"
+    }
+
+    private fun rotuloAutorizacao(autorizadoPor: String?): String = when (autorizadoPor) {
+        "senhaPropria" -> getString(R.string.relatorios_log_senha_propria)
+        else -> getString(R.string.relatorios_log_senha_master)
+    }
+
+    private fun formatarLogsAdministracao(logs: List<LogAdministracao>): String {
+        if (logs.isEmpty()) return getString(R.string.relatorios_log_nenhum)
+        val ordenados = logs.sortedByDescending { it.criadoEm?.time ?: 0L }
+        val linhas = ordenados.joinToString("\n") { log ->
+            val dataTexto = log.criadoEm?.let { sdfCompleto.format(it) } ?: "-"
+            getString(
+                R.string.relatorios_log_linha,
+                rotuloTipoLog(log.tipo), log.alvoNome ?: "-",
+                log.executadoPorNome ?: "-", rotuloAutorizacao(log.autorizadoPor), dataTexto
+            )
+        }
+        return getString(R.string.relatorios_log_titulo) + "\n" + linhas
+    }
 
     // ===================== EXPORTAÇÃO EM PDF =====================
     // PdfBuilder nativo (ver PdfUtil.kt) — mesmo utilitário já usado pelo
@@ -522,6 +562,7 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         if (tipo == TIPO_COMPLETO || tipo == TIPO_ADMINISTRACAO) {
             pdf.secao(getString(R.string.relatorios_secao_administracao))
             pdf.chaveValor(getString(R.string.relatorios_total_admins), d.totalAdmins.toString())
+            pdf.paragrafo(formatarLogsAdministracao(d.logsAdministracaoNoPeriodo))
         }
 
         pdf.rodape(getString(R.string.relatorios_gerado_em, sdfCompleto.format(d.geradoEm)))
@@ -560,7 +601,8 @@ class RelatoriosCaronasActivity : AppCompatActivity() {
         val manifestacoesRespondidas: Int,
         val manifestacoesPendentes: Int,
         val manifestacoesArquivadas: Int,
-        val totalAdmins: Int
+        val totalAdmins: Int,
+        val logsAdministracaoNoPeriodo: List<LogAdministracao>
     )
 
     companion object {

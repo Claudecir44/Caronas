@@ -19,11 +19,46 @@ data class Admin(
     var cpf: String? = null,
     var fotoUrl: String? = null,
 
+    // "admin" | "colaborador" — só rótulo de exibição (badge "(colaborador)"
+    // embaixo do nome na tela do admin logado, ver AdministracaoCaronasActivity)
+    // e valor default dos checkboxes de permissão no cadastro; não é
+    // consultado por temPermissao (quem manda é o mapa permissoes mesmo).
+    var role: String? = "admin",
+
+    // Ausente/null = admin "legado" (criado antes deste sistema existir) =
+    // acesso total, mesma regra do servidor (ver temPermissao em
+    // functions/index.js) — sem isso, todo admin já cadastrado perderia
+    // acesso ao publicar esta mudança.
+    var permissoes: Map<String, Boolean>? = null,
+
     @ServerTimestamp
     var criadoEm: Date? = null
 ) {
-    constructor() : this(null, null, null, null, null, null, null, null)
+    constructor() : this(null, null, null, null, null, null, "admin", null, null)
 
     val nomeCompleto: String
         get() = listOfNotNull(nome, sobrenome).joinToString(" ").trim()
+
+    val ehColaborador: Boolean
+        get() = role == "colaborador"
+
+    fun temPermissao(chave: String): Boolean {
+        val mapa = permissoes ?: return true
+        return mapa[chave] == true
+    }
+
+    companion object {
+        // Mesma ordem/rótulos usados na grade de checkboxes de
+        // CadastroAdminCaronasActivity — precisam bater com CHAVES_PERMISSOES
+        // em functions/index.js.
+        val CHAVES_PERMISSOES = listOf(
+            "usuarios" to "Motoristas e Passageiros",
+            "viagens" to "Viagens",
+            "financeiro" to "Financeiro",
+            "mensagens" to "Mensagens",
+            "manifestacoes" to "Reclamações, Sugestões e Denúncias",
+            "relatorios" to "Relatórios",
+            "administradores" to "Administradores"
+        )
+    }
 }

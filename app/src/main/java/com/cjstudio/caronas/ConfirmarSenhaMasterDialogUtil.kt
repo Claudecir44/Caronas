@@ -25,11 +25,18 @@ object ConfirmarSenhaMasterDialogUtil {
         // senha master (ver DetalhesUsuarioAdminActivity.confirmarSalvar,
         // que passa R.string.salvar).
         textoBotaoConfirmar: Int = R.string.excluir,
+        // Dica do campo de senha — a maioria das ações (admin CRUD) só
+        // aceita a senha master mesmo; editar/excluir um USUÁRIO comum
+        // passa uma dica diferente, porque agora também aceita a própria
+        // senha do admin logado, se ele tiver permissão (ver
+        // autorizarComSenhaMasterOuPropria em functions/index.js).
+        hintSenha: Int = R.string.admin_cadastro_senha_autorizacao_hint,
         onConfirmar: (senhaMaster: String) -> Unit
     ) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_confirmar_senha_master, null)
         view.findViewById<TextView>(R.id.tvMensagemConfirmarSenha).text = mensagem
         val etSenha = view.findViewById<EditText>(R.id.etSenhaMasterConfirmar)
+        etSenha.hint = context.getString(hintSenha)
         etSenha.habilitarToggleSenha()
 
         MaterialAlertDialogBuilder(context)

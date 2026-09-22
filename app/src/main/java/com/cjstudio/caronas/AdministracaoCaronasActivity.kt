@@ -199,6 +199,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             adminRepository.buscarAdminLogado(uid).onSuccess { admin ->
                 tvNome.text = admin.nome?.ifEmpty { null } ?: admin.email ?: ""
+                findViewById<TextView>(R.id.tvAdminPapel).visibility =
+                    if (admin.ehColaborador) View.VISIBLE else View.GONE
                 if (!admin.fotoUrl.isNullOrEmpty()) {
                     ivFoto.load(admin.fotoUrl) {
                         transformations(CircleCropTransformation())
@@ -206,8 +208,22 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                         error(R.drawable.ic_person_default)
                     }
                 }
+                aplicarPermissoes(admin)
             }
         }
+    }
+
+    // Esconde os botões do painel cuja permissão o admin logado não tem
+    // (admin "legado", sem permissoes definidas, continua vendo tudo — ver
+    // Admin.temPermissao). Motoristas/Passageiros compartilham a permissão
+    // "usuarios" (mesma coleção por baixo).
+    private fun aplicarPermissoes(admin: Admin) {
+        findViewById<View>(R.id.btnMotoristas).visibility = if (admin.temPermissao("usuarios")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnPassageiros).visibility = if (admin.temPermissao("usuarios")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnViagens).visibility = if (admin.temPermissao("viagens")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnFinanceiro).visibility = if (admin.temPermissao("financeiro")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnMensagens).visibility = if (admin.temPermissao("mensagens")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnManifestacoes).visibility = if (admin.temPermissao("manifestacoes")) View.VISIBLE else View.GONE
     }
 
     // Badge no botão "Sugestões" — total de reclamações/sugestões/denúncias
@@ -343,7 +359,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         ConfirmarSenhaMasterDialogUtil.mostrar(
             this,
             getString(R.string.admin_remover_usuario_titulo),
-            getString(R.string.admin_remover_usuario_mensagem, nome)
+            getString(R.string.admin_remover_usuario_mensagem, nome),
+            hintSenha = R.string.admin_senha_autorizacao_usuario_hint
         ) { senhaMaster ->
             lifecycleScope.launch {
                 adminRepository.excluirUsuario(uid, senhaMaster)

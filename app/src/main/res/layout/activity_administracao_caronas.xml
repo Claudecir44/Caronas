@@ -129,6 +129,17 @@
                     android:textStyle="bold"
                     android:textColor="#222222" />
 
+                <!-- "(colaborador)" só quando Admin.role == "colaborador" —
+                     ver AdministracaoCaronasActivity.carregarAdminLogado. -->
+                <TextView
+                    android:id="@+id/tvAdminPapel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/admin_badge_colaborador"
+                    android:textSize="12sp"
+                    android:textColor="#777777"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <LinearLayout

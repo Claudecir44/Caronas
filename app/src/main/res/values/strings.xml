@@ -361,6 +361,20 @@
     <string name="admin_buscar_botao">Buscar</string>
     <string name="admin_buscar_nao_encontrado">Nenhum admin encontrado com esse CPF.</string>
     <string name="admin_buscar_erro_cpf_obrigatorio">Informe um CPF pra buscar.</string>
+
+    <!-- Permissões granulares de admin (ver Admin.kt, CHAVES_PERMISSOES em
+         functions/index.js) — papel, grade de checkboxes no cadastro/edição,
+         e a nova aba "Administração" que lista/gerencia os admins. -->
+    <string name="admin_papel_admin">👑 Admin</string>
+    <string name="admin_papel_colaborador">🧑‍💼 Colaborador</string>
+    <string name="admin_permissoes_titulo">Permissões</string>
+    <string name="admin_badge_colaborador">(colaborador)</string>
+    <string name="admin_badge_admin">(admin)</string>
+    <string name="gerenciar_admins_titulo">Administração</string>
+    <string name="gerenciar_admins_vazio">Nenhum administrador cadastrado.</string>
+    <string name="gerenciar_admins_botao_novo">+ Novo Admin</string>
+    <string name="gerenciar_admins_erro_sem_permissao">Você não tem permissão para gerenciar administradores.</string>
+    <string name="admin_senha_autorizacao_usuario_hint">Sua senha de admin ou a senha master</string>
     <string name="admin_lista_motoristas_titulo">Motoristas</string>
     <string name="admin_lista_passageiros_titulo">Passageiros</string>
     <string name="admin_lista_viagens_titulo">Viagens (Motoristas)</string>
@@ -545,6 +559,16 @@
 
     <string name="relatorios_secao_administracao">Administração</string>
     <string name="relatorios_total_admins">Total de administradores</string>
+    <string name="relatorios_log_titulo">Ações administrativas no período:</string>
+    <string name="relatorios_log_nenhum">Nenhuma ação administrativa registrada no período.</string>
+    <string name="relatorios_log_linha">• %1$s — %2$s — por %3$s (%4$s) em %5$s</string>
+    <string name="relatorios_log_admin_criado">Admin criado</string>
+    <string name="relatorios_log_admin_editado">Admin editado</string>
+    <string name="relatorios_log_admin_excluido">Admin excluído</string>
+    <string name="relatorios_log_usuario_editado">Usuário editado</string>
+    <string name="relatorios_log_usuario_excluido">Usuário excluído</string>
+    <string name="relatorios_log_senha_master">senha master</string>
+    <string name="relatorios_log_senha_propria">senha própria</string>
     <string name="tempo_viagem_minutos">%1$d min</string>
     <string name="tempo_viagem_horas">%1$dh</string>
     <string name="tempo_viagem_horas_minutos">%1$dh%2$02d</string>

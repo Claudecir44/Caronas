@@ -484,20 +484,16 @@ exports.autocompletarEndereco = functions.https.onCall(async (request) => {
 // Sempre via Cloud Function, nunca um "create" direto do cliente em
 // admins/{uid} (ver firestore.rules: "allow create: if false") — sem essa
 // trava, qualquer conta autenticada poderia se autopromover a admin
-// escrevendo o próprio uid ali. Protegida por DOIS segredos fixos, só
-// existentes aqui no .env (não são dados reais de nenhuma conta — CPF
-// "do administrador master" aqui é só um identificador convencionado,
-// mesmo valor usado como CPF do master no Match, sem ligação com nenhum
-// campo "cpf" do Caronas, que nem existe): ADMIN_MASTER_CPF e
-// ADMIN_MASTER_PASSWORD.
+// escrevendo o próprio uid ali. Protegida por um segredo fixo, só existente
+// aqui no .env (ADMIN_MASTER_PASSWORD) — mais a permissão "administradores"
+// de quem está chamando, quando já existe pelo menos um admin (ver bootstrap
+// logo abaixo).
 //
-// Não recebe request.auth — quem está criando o admin ainda não tem
-// sessão nenhuma (é literalmente o que está pedindo). Cria a conta com
-// email+senha informados no formulário (reaproveitando uma conta já
-// existente com esse e-mail, se houver — mesmo padrão do
+// Cria a conta com email+senha informados no formulário (reaproveitando uma
+// conta já existente com esse e-mail, se houver — mesmo padrão do
 // cadastrarAdminAutorizado do Match) e grava nome/sobrenome/email/
-// telefone em admins/{uid}. A FOTO não entra aqui — o app faz login
-// logo em seguida com o uid/senha recém-criados e sobe a foto
+// telefone/role/permissoes em admins/{uid}. A FOTO não entra aqui — o app
+// faz login logo em seguida com o uid/senha recém-criados e sobe a foto
 // diretamente pro Storage (ver AdminRepository.atualizarFotoAdmin),
 // evitando ter que mandar um arquivo binário dentro do payload da
 // function.
@@ -507,6 +503,120 @@ const ADMIN_MASTER_PASSWORD = process.env.ADMIN_MASTER_PASSWORD || '';
 if (!ADMIN_MASTER_PASSWORD) {
     console.error('❌ ADMIN_MASTER_PASSWORD NÃO CONFIGURADA!');
     console.error('👉 Defina ADMIN_MASTER_PASSWORD no arquivo .env da pasta functions.');
+}
+
+// ============================================================
+// Permissões granulares por admin — cada chave gate uma seção do painel
+// (ver ConfiguracoesCaronasActivity/AdministracaoCaronasActivity no app).
+// Um admin "legado" (criado antes deste sistema existir, sem o campo
+// permissoes) continua com acesso total — sem isso, todo admin já
+// cadastrado perderia acesso ao publicar esta mudança. Isso só controla
+// alcance/visibilidade das ações — a gestão de OUTROS admins continua
+// exigindo a senha master além da permissão "administradores" (decisão
+// explícita: a permissão decide quem VÊ a tela, a senha master continua
+// sendo a trava final no servidor).
+// ============================================================
+const CHAVES_PERMISSOES = [
+    'usuarios', 'viagens', 'financeiro', 'mensagens', 'manifestacoes',
+    'relatorios', 'administradores',
+];
+
+function sanitizarPermissoes(permissoes) {
+    if (!permissoes || typeof permissoes !== 'object') return null;
+    const limpo = {};
+    for (const chave of CHAVES_PERMISSOES) {
+        limpo[chave] = permissoes[chave] === true;
+    }
+    return limpo;
+}
+
+function temPermissao(dadosAdmin, chave) {
+    if (!dadosAdmin || !dadosAdmin.permissoes) return true; // legado = acesso total
+    return dadosAdmin.permissoes[chave] === true;
+}
+
+async function exigirPermissao(uid, chave) {
+    const doc = await admin.firestore().collection('admins').doc(uid).get();
+    if (!doc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Acesso restrito a administradores.');
+    }
+    if (!temPermissao(doc.data(), chave)) {
+        throw new functions.https.HttpsError('permission-denied', 'Você não tem permissão para esta ação.');
+    }
+    return doc.data();
+}
+
+// Confirma a senha da PRÓPRIA conta de quem está chamando — diferente de
+// verificarSenhaAdminMaster-style checks (que comparam com um segredo
+// fixo): aqui o e-mail vem de quem está autenticado. Mesmo endpoint REST
+// (Identity Toolkit) que reenviarVerificacaoEmail já usa mais abaixo neste
+// arquivo — WEB_API_KEY é declarada lá, mas como esta função só é chamada
+// em resposta a uma requisição real (nunca durante o carregamento do
+// módulo), o módulo inteiro já terminou de carregar e a constante já
+// existe nesse momento.
+async function verificarSenhaAdminPropria(email, senha) {
+    if (!WEB_API_KEY || !email || !senha) return false;
+    try {
+        const resposta = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password: senha, returnSecureToken: false }),
+            }
+        );
+        return resposta.ok;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Autoriza uma ação sensível sobre um USUÁRIO comum (editar/excluir) por
+// QUALQUER uma das duas vias: a senha master fixa (funciona pra quem a
+// souber, sem precisar de permissão nenhuma — como sempre foi, mantido sem
+// mudança), OU a própria senha do admin logado, desde que ele tenha a
+// permissão indicada (novo, ver excluirUsuario/admAtualizarUsuario).
+// Devolve qual via foi usada, pra registrar no log.
+async function autorizarComSenhaMasterOuPropria(request, senhaAutorizacao, chavePermissao) {
+    if (senhaAutorizacao && senhaAutorizacao === ADMIN_MASTER_PASSWORD) {
+        return 'senhaMaster';
+    }
+    const uidChamador = request.auth && request.auth.uid;
+    if (uidChamador) {
+        const dadosAdminSnap = await admin.firestore().collection('admins').doc(uidChamador).get();
+        if (dadosAdminSnap.exists && temPermissao(dadosAdminSnap.data(), chavePermissao)) {
+            const emailChamador = dadosAdminSnap.data().email;
+            if (await verificarSenhaAdminPropria(emailChamador, senhaAutorizacao)) {
+                return 'senhaPropria';
+            }
+        }
+    }
+    throw new functions.https.HttpsError('permission-denied', 'Senha incorreta ou permissão insuficiente.');
+}
+
+// Registro append-only de ações administrativas sensíveis (criar/editar/
+// excluir admin, editar/excluir usuário) — mostrado na seção
+// "Administração" de Relatórios (ver RelatoriosCaronasActivity).
+// "autorizadoPor" diferencia se a ação foi liberada pela senha master ou
+// pela própria senha do admin que a executou. Nunca lança erro pra fora —
+// falhar ao registrar o log não pode derrubar a ação em si.
+async function registrarLogAdministracao(uidExecutor, tipo, alvoNome, alvoId, autorizadoPor) {
+    try {
+        const execDoc = await admin.firestore().collection('admins').doc(uidExecutor).get();
+        const exec = execDoc.exists ? execDoc.data() : {};
+        await admin.firestore().collection('logsAdministracao').add({
+            tipo,
+            alvoNome: alvoNome || '-',
+            alvoId: alvoId || null,
+            executadoPorAdminId: uidExecutor,
+            executadoPorNome: [exec.nome, exec.sobrenome].filter(Boolean).join(' ') || exec.email || '-',
+            executadoPorCpf: exec.cpf || '-',
+            autorizadoPor,
+            criadoEm: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+        console.warn('⚠️ Falha ao registrar log de administração:', e.message);
+    }
 }
 
 exports.cadastrarAdmin = functions.https.onCall(async (request) => {
@@ -522,12 +632,27 @@ exports.cadastrarAdmin = functions.https.onCall(async (request) => {
     const cpf = (dados.cpf || '').replace(/\D/g, '');
     const senha = dados.senha || '';
     const senhaAutorizacao = dados.senhaAutorizacao || '';
+    const role = dados.role === 'colaborador' ? 'colaborador' : 'admin';
+    const permissoes = sanitizarPermissoes(dados.permissoes);
 
     if (!nome || !sobrenome || !email || !telefone || !cpf || !senha) {
         throw new functions.https.HttpsError('invalid-argument', 'Preencha todos os campos.');
     }
     if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
         throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    // Bootstrap: sem NENHUM admin ainda, este é o cadastro público da tela
+    // de login (sem sessão) — continua liberado só pela senha master, como
+    // sempre foi. A partir do segundo admin em diante, só quem já está
+    // logado E tem a permissão "administradores" pode criar outro.
+    const totalAdmins = (await admin.firestore().collection('admins').limit(1).get()).size;
+    if (totalAdmins > 0) {
+        const uidChamador = request.auth && request.auth.uid;
+        if (!uidChamador) {
+            throw new functions.https.HttpsError('unauthenticated', 'Faça login como administrador para cadastrar outro admin.');
+        }
+        await exigirPermissao(uidChamador, 'administradores');
     }
 
     let uid;
@@ -556,8 +681,14 @@ exports.cadastrarAdmin = functions.https.onCall(async (request) => {
         email,
         telefone,
         cpf,
+        role,
+        permissoes,
         criadoEm: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
+
+    if (request.auth && request.auth.uid) {
+        await registrarLogAdministracao(request.auth.uid, 'admin_criado', `${nome} ${sobrenome}`, uid, 'senhaMaster');
+    }
 
     return { uid };
 });
@@ -591,6 +722,11 @@ exports.atualizarAdmin = functions.https.onCall(async (request) => {
     if (!uid || !nome || !sobrenome || !telefone || !cpf) {
         throw new functions.https.HttpsError('invalid-argument', 'Preencha todos os campos.');
     }
+    const uidChamador = request.auth && request.auth.uid;
+    if (!uidChamador) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login como administrador.');
+    }
+    await exigirPermissao(uidChamador, 'administradores');
     if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
         throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
     }
@@ -602,6 +738,48 @@ exports.atualizarAdmin = functions.https.onCall(async (request) => {
     }
 
     await ref.update({ nome, sobrenome, telefone, cpf });
+    await registrarLogAdministracao(uidChamador, 'admin_editado', `${nome} ${sobrenome}`, uid, 'senhaMaster');
+    return { ok: true };
+});
+
+// ============================================================
+// Edita só role+permissoes de um admin já existente (separado dos dados
+// básicos acima, mesmo padrão do Match — admAtualizarPermissoesAdmin).
+// Mesma trava dupla (permissão "administradores" de quem chama + senha
+// master).
+// ============================================================
+exports.atualizarPermissoesAdmin = functions.https.onCall(async (request) => {
+    if (!ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('failed-precondition', 'Edição de permissões não configurada no servidor.');
+    }
+
+    const dados = request.data || {};
+    const uid = (dados.uid || '').trim();
+    const role = dados.role === 'colaborador' ? 'colaborador' : 'admin';
+    const permissoes = sanitizarPermissoes(dados.permissoes);
+    const senhaAutorizacao = dados.senhaAutorizacao || '';
+
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'uid é obrigatório.');
+    }
+    const uidChamador = request.auth && request.auth.uid;
+    if (!uidChamador) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login como administrador.');
+    }
+    await exigirPermissao(uidChamador, 'administradores');
+    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    const ref = admin.firestore().collection('admins').doc(uid);
+    const doc = await ref.get();
+    if (!doc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Admin não encontrado.');
+    }
+
+    await ref.update({ role, permissoes });
+    const alvo = doc.data();
+    await registrarLogAdministracao(uidChamador, 'admin_editado', [alvo.nome, alvo.sobrenome].filter(Boolean).join(' '), uid, 'senhaMaster');
     return { ok: true };
 });
 
@@ -623,6 +801,11 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
     if (!uid) {
         throw new functions.https.HttpsError('invalid-argument', 'uid é obrigatório.');
     }
+    const uidChamador = request.auth && request.auth.uid;
+    if (!uidChamador) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login como administrador.');
+    }
+    await exigirPermissao(uidChamador, 'administradores');
     if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
         throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
     }
@@ -633,7 +816,9 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
         throw new functions.https.HttpsError('not-found', 'Admin não encontrado.');
     }
 
+    const alvo = doc.data();
     await ref.delete();
+    await registrarLogAdministracao(uidChamador, 'admin_excluido', [alvo.nome, alvo.sobrenome].filter(Boolean).join(' '), uid, 'senhaMaster');
     return { ok: true };
 });
 
@@ -768,11 +953,15 @@ exports.excluirUsuario = functions.https.onCall(async (request) => {
     if (!uid) {
         throw new functions.https.HttpsError('invalid-argument', 'uid é obrigatório.');
     }
-    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
-        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
-    }
+    const autorizadoPor = await autorizarComSenhaMasterOuPropria(request, senhaAutorizacao, 'usuarios');
+
+    const alvoSnap = await admin.firestore().collection('usuarios').doc(uid).get();
+    const nomeAlvo = alvoSnap.exists ? (alvoSnap.data().nomeCompleto || alvoSnap.data().email || '-') : '-';
 
     await excluirUsuarioCompleto(admin.firestore(), uid);
+    if (request.auth && request.auth.uid) {
+        await registrarLogAdministracao(request.auth.uid, 'usuario_excluido', nomeAlvo, uid, autorizadoPor);
+    }
     return { ok: true };
 });
 
@@ -797,12 +986,13 @@ exports.excluirContaPropria = functions.https.onCall(async (request) => {
 // Precisa ser Cloud Function (Admin SDK), não um update direto do
 // cliente: firestore.rules só deixa o PRÓPRIO dono escrever em
 // usuarios/{uid} (ver match /usuarios/{usuarioId}), um admin não é o
-// dono. Mesma trava de senha do administrador master das outras ações
-// administrativas sensíveis (excluirAdmin/excluirUsuario/atualizarAdmin).
-// Não mexe em email (login) nem fotoUrl (upload é fluxo separado) —
-// só os campos que fazem sentido editar por aqui. "veiculo" é opcional:
-// omitido/nulo pra passageiro, objeto completo (marca/modelo/cor/placa)
-// pra motorista.
+// dono. Autorizada pela senha master (como sempre) OU pela própria senha
+// do admin logado, se ele tiver a permissão "usuarios" (ver
+// autorizarComSenhaMasterOuPropria) — cada chamada fica registrada em
+// logsAdministracao. Não mexe em email (login) nem fotoUrl (upload é fluxo
+// separado) — só os campos que fazem sentido editar por aqui. "veiculo" é
+// opcional: omitido/nulo pra passageiro, objeto completo (marca/modelo/
+// cor/placa) pra motorista.
 // ============================================================
 exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     if (!ADMIN_MASTER_PASSWORD) {
@@ -819,9 +1009,7 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     if (!uid || !nomeCompleto || !telefone) {
         throw new functions.https.HttpsError('invalid-argument', 'Preencha nome completo e telefone.');
     }
-    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
-        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
-    }
+    const autorizadoPor = await autorizarComSenhaMasterOuPropria(request, senhaAutorizacao, 'usuarios');
 
     const ref = admin.firestore().collection('usuarios').doc(uid);
     const doc = await ref.get();
@@ -850,6 +1038,9 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     }
 
     await ref.update(atualizacao);
+    if (request.auth && request.auth.uid) {
+        await registrarLogAdministracao(request.auth.uid, 'usuario_editado', nomeCompleto, uid, autorizadoPor);
+    }
     return { ok: true };
 });
 

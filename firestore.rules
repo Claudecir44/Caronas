@@ -41,6 +41,15 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoUrl']);
     }
 
+    // Registro de ações administrativas sensíveis (criar/editar/excluir
+    // admin, editar/excluir usuário) — só leitura pra qualquer admin (usado
+    // pela seção "Administração" de Relatórios), escrita só via Admin SDK
+    // (ver registrarLogAdministracao em functions/index.js).
+    match /logsAdministracao/{logId} {
+      allow read: if ehAdmin();
+      allow write: if false;
+    }
+
     match /usuarios/{usuarioId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == usuarioId

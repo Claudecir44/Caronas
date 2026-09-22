@@ -95,6 +95,58 @@
             android:inputType="number"
             android:layout_marginBottom="10dp" />
 
+        <RadioGroup
+            android:id="@+id/radioGroupPapelAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <RadioButton
+                android:id="@+id/radioPapelAdmin"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/admin_papel_admin"
+                android:textColor="#FFFFFF"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/radioPapelColaborador"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/admin_papel_colaborador"
+                android:textColor="#FFFFFF" />
+
+        </RadioGroup>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#141E2A"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/admin_permissoes_titulo"
+                android:textColor="#1E90FF"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Preenchido em runtime com um CheckBox por chave de
+                 Admin.CHAVES_PERMISSOES (ver CadastroAdminCaronasActivity). -->
+            <LinearLayout
+                android:id="@+id/containerPermissoesAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
         <LinearLayout
             android:id="@+id/layoutSenhaAdmin"
             android:layout_width="match_parent"
