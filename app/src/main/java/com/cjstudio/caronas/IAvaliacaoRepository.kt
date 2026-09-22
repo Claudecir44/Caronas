@@ -22,4 +22,13 @@ interface IAvaliacaoRepository {
     // Recebidas pra decidir de uma vez só (1 consulta) quais cards mostram o
     // botão "Avaliar", em vez de 1 consulta por card (ver jaAvaliei acima).
     suspend fun buscarSolicitacoesJaAvaliadas(): Result<Set<String>>
+
+    // Todas as avaliações do app, sem paginação — mesmo espírito "sem
+    // paginação" de IAdminRepository.listarTodosUsuarios/listarTodasCaronas,
+    // usada só pelo painel de Relatórios (ver RelatoriosCaronasActivity) pra
+    // calcular total/média geral, não pela tela de perfil público (que usa
+    // buscarAvaliacoesRecebidas, filtrada por usuário). Leitura direta —
+    // "avaliacoes" já é pública pra qualquer autenticado (ver
+    // firestore.rules), não precisa de bypass ehAdmin().
+    suspend fun listarTodasAvaliacoes(): Result<List<Avaliacao>>
 }

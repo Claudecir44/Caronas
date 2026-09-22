@@ -98,6 +98,12 @@ interface IAdminRepository {
 
     suspend fun buscarAdminLogado(uid: String): Result<Admin>
 
+    // Todos os admins cadastrados, sem paginação — mesmo espírito "sem
+    // paginação" de listarTodosUsuarios/listarTodasCaronas. Usado só pelo
+    // painel de Relatórios (ver RelatoriosCaronasActivity) pra contar o
+    // total de administradores.
+    suspend fun listarTodosAdmins(): Result<List<Admin>>
+
     // Busca por CPF (tela de "Editar Perfil" do admin master) — leitura
     // direta no Firestore, já liberada pra qualquer admin (ver
     // firestore.rules: admins/{adminId} allow read: if ehAdmin()); null se

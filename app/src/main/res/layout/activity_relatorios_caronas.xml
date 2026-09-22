@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fundo_cinza_claro"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/relatorios_titulo"
+            android:textColor="@color/azul_neon_escuro"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/relatorios_tipo_relatorio"
+            android:textColor="@color/grafite"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <Spinner
+            android:id="@+id/spinnerTipoRelatorio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:entries="@array/tipos_relatorio_caronas_array"
+            android:background="@drawable/borda_parada_input"
+            android:padding="10dp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/relatorios_periodo"
+            android:textColor="@color/grafite"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <Spinner
+            android:id="@+id/spinnerPeriodo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:entries="@array/periodos_array"
+            android:background="@drawable/borda_parada_input"
+            android:padding="10dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutDataPersonalizada"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/etDataInicial"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="dd/mm/aaaa"
+                android:inputType="number"
+                android:maxLength="10"
+                android:padding="10dp"
+                android:textColor="#222222"
+                android:textColorHint="#999999"
+                android:background="@drawable/borda_parada_input"
+                android:layout_marginEnd="6dp" />
+
+            <EditText
+                android:id="@+id/etDataFinal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="dd/mm/aaaa"
+                android:inputType="number"
+                android:maxLength="10"
+                android:padding="10dp"
+                android:textColor="#222222"
+                android:textColorHint="#999999"
+                android:background="@drawable/borda_parada_input"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnFiltrar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/relatorios_botao_atualizar"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:background="@drawable/botao_azul_neon"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnGerarPdf"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/relatorios_botao_pdf"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:background="@drawable/botao_azul_neon"
+            android:layout_marginBottom="20dp" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutRelatorios"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/btnVoltar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/voltar"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:background="@drawable/botao_azul_neon"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+</ScrollView>

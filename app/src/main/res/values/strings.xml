@@ -482,6 +482,69 @@
 
     <!-- Tempo aproximado de viagem (TempoViagemUtil) -->
     <string name="tempo_viagem_formato">Tempo aproximado: %1$s</string>
+
+    <!-- Relatórios (painel admin) — reúne, numa tela só, métricas de
+         usuários, viagens, financeiro, avaliações, manifestações e
+         administração, com filtro de período e exportação em PDF (ver
+         RelatoriosCaronasActivity, adaptado do RelatoriosActivity do
+         Match). -->
+    <string name="admin_botao_relatorios">📊 Relatórios</string>
+    <string name="relatorios_titulo">Relatórios</string>
+    <string name="relatorios_tipo_relatorio">Tipo de relatório</string>
+    <string name="relatorios_periodo">Período</string>
+    <string name="relatorios_botao_atualizar">🔍 Atualizar Relatórios</string>
+    <string name="relatorios_botao_pdf">📄 Gerar PDF</string>
+    <string name="relatorios_preencha_datas">Preencha as duas datas.</string>
+    <string name="relatorios_erro_data_invalida">Data inválida. Use o formato dd/MM/aaaa.</string>
+    <string name="relatorios_erro_data_maior">A data inicial não pode ser depois da data final.</string>
+    <string name="relatorios_erro_carregar">Erro ao carregar: %1$s</string>
+    <string name="relatorios_gerar_pdf_sem_dados">Carregue um relatório antes de gerar o PDF.</string>
+    <string name="relatorios_periodo_prefixo">Período</string>
+    <string name="relatorios_gerado_em">Gerado em %1$s</string>
+    <string name="relatorios_pdf_nome_arquivo">relatorio_caronas</string>
+    <string name="relatorios_pdf_titulo">Caronas — Relatório Administrativo</string>
+
+    <string name="relatorios_secao_usuarios">Usuários</string>
+    <string name="relatorios_total_usuarios">Total de usuários</string>
+    <string name="relatorios_novos_periodo">Novos no período</string>
+    <string name="relatorios_total_motoristas">Motoristas</string>
+    <string name="relatorios_total_passageiros">Passageiros</string>
+
+    <string name="relatorios_secao_viagens">Viagens</string>
+    <string name="relatorios_viagens_total_ofertadas">Caronas ofertadas (total)</string>
+    <string name="relatorios_viagens_ofertadas_periodo">Ofertadas no período</string>
+    <string name="relatorios_viagens_ativas">Ativas</string>
+    <string name="relatorios_viagens_canceladas">Canceladas</string>
+    <string name="relatorios_viagens_concluidas">Concluídas</string>
+    <string name="relatorios_viagens_total_solicitacoes">Solicitações de vaga (total)</string>
+    <string name="relatorios_viagens_solicitacoes_periodo">Solicitadas no período</string>
+    <string name="relatorios_viagens_solicitacoes_confirmadas">Confirmadas</string>
+    <string name="relatorios_viagens_solicitacoes_canceladas">Canceladas</string>
+
+    <string name="relatorios_secao_financeiro">Financeiro</string>
+    <string name="relatorios_financeiro_total_arrecadado">Total arrecadado</string>
+    <string name="relatorios_financeiro_motoristas_pagantes">Motoristas pagantes</string>
+    <string name="relatorios_financeiro_pagamentos_periodo">Pagamentos no período</string>
+    <string name="relatorios_financeiro_estornos_qtd">Estornos</string>
+    <string name="relatorios_financeiro_estornos_valor">Valor estornado</string>
+
+    <string name="relatorios_secao_avaliacoes">Avaliações</string>
+    <string name="relatorios_avaliacoes_total">Total de avaliações</string>
+    <string name="relatorios_avaliacoes_periodo">No período</string>
+    <string name="relatorios_avaliacoes_media">Nota média geral</string>
+
+    <string name="relatorios_secao_manifestacoes">Reclamações, Sugestões e Denúncias</string>
+    <string name="relatorios_manifestacoes_total">Total recebido</string>
+    <string name="relatorios_manifestacoes_periodo">No período</string>
+    <string name="relatorios_manifestacoes_reclamacoes">Reclamações</string>
+    <string name="relatorios_manifestacoes_sugestoes">Sugestões</string>
+    <string name="relatorios_manifestacoes_denuncias">Denúncias</string>
+    <string name="relatorios_manifestacoes_respondidas">Respondidas</string>
+    <string name="relatorios_manifestacoes_pendentes">Pendentes</string>
+    <string name="relatorios_manifestacoes_arquivadas">Arquivadas</string>
+
+    <string name="relatorios_secao_administracao">Administração</string>
+    <string name="relatorios_total_admins">Total de administradores</string>
     <string name="tempo_viagem_minutos">%1$d min</string>
     <string name="tempo_viagem_horas">%1$dh</string>
     <string name="tempo_viagem_horas_minutos">%1$dh%2$02d</string>

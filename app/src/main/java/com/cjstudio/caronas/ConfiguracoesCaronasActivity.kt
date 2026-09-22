@@ -54,9 +54,13 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
             cardPagamentos.visibility = View.GONE
             findViewById<View>(R.id.cardConfigManifestacoes).visibility = View.GONE
             findViewById<View>(R.id.cardConfigOrientacoes).visibility = View.VISIBLE
+            findViewById<View>(R.id.cardConfigRelatorios).visibility = View.VISIBLE
         }
         findViewById<View>(R.id.btnConfigOrientacoes).setOnClickListener {
             startActivity(Intent(this, OrientacoesAdminCaronasActivity::class.java))
+        }
+        findViewById<View>(R.id.btnConfigRelatorios).setOnClickListener {
+            startActivity(Intent(this, RelatoriosCaronasActivity::class.java))
         }
 
         findViewById<View>(R.id.btnConfigPagamentos).setOnClickListener {

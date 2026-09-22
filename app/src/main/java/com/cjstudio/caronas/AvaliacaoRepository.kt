@@ -74,4 +74,16 @@ class AvaliacaoRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun listarTodasAvaliacoes(): Result<List<Avaliacao>> {
+        return try {
+            val snapshot = colecaoAvaliacoes().get().await()
+            val avaliacoes = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Avaliacao::class.java)?.apply { id = doc.id }
+            }
+            Result.success(avaliacoes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

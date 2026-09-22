@@ -256,6 +256,18 @@ class AdminRepository @Inject constructor(
         }
     }
 
+    override suspend fun listarTodosAdmins(): Result<List<Admin>> {
+        return try {
+            val snapshot = db.collection("admins").get().await()
+            val admins = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Admin::class.java)?.also { it.id = doc.id }
+            }
+            Result.success(admins)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun atualizarFotoAdmin(uid: String, uri: Uri): Result<String> {
         return try {
             val ref = storage.reference.child("fotos_perfil/$uid/perfil_${UUID.randomUUID()}.jpg")

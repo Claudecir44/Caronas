@@ -27,4 +27,17 @@
         <item>Novembro</item>
         <item>Dezembro</item>
     </string-array>
+
+    <!-- Tipo de relatório do painel "Relatórios" (ver
+         RelatoriosCaronasActivity, adaptado do RelatoriosActivity do Match)
+         — posições devem bater exatamente com as constantes TIPO_* de lá. -->
+    <string-array name="tipos_relatorio_caronas_array">
+        <item>Completo</item>
+        <item>Usuários</item>
+        <item>Viagens</item>
+        <item>Financeiro</item>
+        <item>Avaliações</item>
+        <item>Reclamações, Sugestões e Denúncias</item>
+        <item>Administração</item>
+    </string-array>
 </resources>
