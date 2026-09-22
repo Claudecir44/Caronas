@@ -17,3 +17,9 @@ local.properties
 /.claude
 firestore-debug.log
 firebase-debug.log
+
+# Credenciais de assinatura de release (ver app/build.gradle.kts) — nunca
+# no controle de versão, mesmo padrão do Match.
+keystore.properties
+*.jks
+*.keystore

@@ -1,9 +1,25 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.firebase.crashlytics) apply false
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+}
+
+// Credenciais de assinatura de release lidas de keystore.properties (fora do
+// controle de versão) — nunca hardcoded aqui, mesmo padrão do Match. Se o
+// arquivo não existir (ex.: checkout novo sem as credenciais), a build de
+// release cai para a chave de debug em vez de falhar.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+val temKeystoreDeRelease = keystorePropertiesFile.exists()
+if (temKeystoreDeRelease) {
+    // Leitura explícita em UTF-8 — o carregamento padrão de .properties do
+    // Java assume ISO-8859-1, o que corrompe senha com acento/caractere
+    // especial mesmo estando digitada certa no arquivo.
+    keystoreProperties.load(keystorePropertiesFile.inputStream().reader(Charsets.UTF_8))
 }
 
 // google-services precisa de app/google-services.json pra sequer configurar
@@ -44,6 +60,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (temKeystoreDeRelease) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -51,6 +78,11 @@ android {
         release {
             optimization {
                 enable = false
+            }
+            signingConfig = if (temKeystoreDeRelease) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
         }
     }
