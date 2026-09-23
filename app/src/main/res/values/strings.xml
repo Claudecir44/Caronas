@@ -26,7 +26,7 @@
     <string name="plano_motorista_trimestral_prazo">90 dias, pagamento único</string>
     <string name="plano_motorista_trimestral_preco">R$ 44,99</string>
     <string name="plano_motorista_trimestral_economia">Economize R$ 8,98 em relação a 3 meses no plano mensal</string>
-    <string name="assinatura_motorista_botao_pagar">Pagar com Mercado Pago</string>
+    <string name="assinatura_motorista_botao_pagar">Continuar para o pagamento</string>
     <string name="assinatura_motorista_aguardando">Aguardando confirmação do pagamento…</string>
     <string name="assinatura_motorista_sucesso">Acesso liberado! Já pode continuar oferecendo caronas.</string>
     <string name="assinatura_motorista_erro_checkout">Erro ao iniciar pagamento: %1$s</string>

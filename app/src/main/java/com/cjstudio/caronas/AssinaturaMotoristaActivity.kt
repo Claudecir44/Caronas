@@ -93,7 +93,9 @@ class AssinaturaMotoristaActivity : AppCompatActivity(), GooglePlayBillingCallba
         super.onResume()
         carregarStatusEPagamentos()
         // Compra pelo Google Play que ficou pendente (Pix/boleto) e já foi paga.
-        billingManager.verificarComprasPendentes()
+        // Conecta aqui (igual ao Match) — sem isso a reconsulta só rodava
+        // depois do motorista tocar em pagar de novo.
+        billingManager.conectar { billingManager.verificarComprasPendentes() }
     }
 
     // Relê usuário e pagamentos toda vez que a tela volta ao topo — cobre a
@@ -211,7 +213,9 @@ class AssinaturaMotoristaActivity : AppCompatActivity(), GooglePlayBillingCallba
 
     override fun onBillingError(mensagem: String) {
         runOnUiThread {
-            if (jobConfirmacao == null) btnPagar.isEnabled = true
+            // Não reabre o botão se ele está travado pela regra de renovação
+            // (erro de conexão do onResume também cai aqui).
+            if (jobConfirmacao == null && tvAvisoRenovacao.visibility != View.VISIBLE) btnPagar.isEnabled = true
             Toast.makeText(this, getString(R.string.assinatura_motorista_erro_google_play, mensagem), Toast.LENGTH_LONG).show()
         }
     }
