@@ -470,7 +470,7 @@
     <string name="admin_manifestacoes_excluir_erro">Erro ao excluir: %1$s</string>
 
     <!-- Mensagens (painel admin) -->
-    <string name="admin_botao_mensagens">Mensagens</string>
+    <string name="admin_botao_mensagens">Mensagens Usuários</string>
     <string name="admin_botao_mensagens_admins">💬 Chat Admin</string>
     <string name="admin_mensagens_busca_hint">Nome completo, telefone ou e-mail</string>
     <string name="admin_mensagens_busca_botao">Buscar</string>
