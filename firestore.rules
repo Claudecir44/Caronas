@@ -213,6 +213,31 @@ service cloud.firestore {
     // motorista, dentro de "Minhas Ofertas"). Leitura/atualização
     // (cancelar, confirmar) tanto pelo passageiro quanto pelo motorista da
     // carona; criação só pelo próprio passageiro.
+    // Bloqueio entre dois usuários, em qualquer sentido (ver Bloqueio.kt).
+    // O id do documento é "{bloqueadorId}_{bloqueadoId}" justamente pra dar
+    // pra checar com exists(), sem consulta.
+    function temBloqueio(a, b) {
+      return exists(/databases/$(database)/documents/bloqueios/$(a + '_' + b))
+        || exists(/databases/$(database)/documents/bloqueios/$(b + '_' + a));
+    }
+
+    // Quem bloqueou cria/apaga o próprio bloqueio; as duas partes podem ler
+    // (o bloqueado precisa saber pra esconder as caronas de quem o bloqueou
+    // na busca). "resource == null" cobre o get() de um bloqueio que não
+    // existe (ver BloqueioRepository.bloqueei). Admin só lê.
+    match /bloqueios/{bloqueioId} {
+      allow read: if request.auth != null &&
+        (resource == null || resource.data.bloqueadorId == request.auth.uid || resource.data.bloqueadoId == request.auth.uid || ehAdmin());
+      allow create, update: if request.auth != null
+        && request.resource.data.bloqueadorId == request.auth.uid
+        && request.resource.data.bloqueadoId is string
+        && request.resource.data.bloqueadoId != request.auth.uid
+        && bloqueioId == request.auth.uid + '_' + request.resource.data.bloqueadoId
+        && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'bloqueadoNome', 'criadoEm']);
+      allow delete: if request.auth != null &&
+        (resource == null || resource.data.bloqueadorId == request.auth.uid);
+    }
+
     match /solicitacoes/{solicitacaoId} {
       // "resource == null" cobre um get()/update()/delete() numa
       // solicitação que já não existe mais (ex.: o motorista excluiu essa
@@ -242,7 +267,10 @@ service cloud.firestore {
       // chegadaPrevistaEm, quando enviado, tem que ser plausível: depois da
       // partida e até 48h depois dela — impede esticar o chat com uma data
       // absurda.
+      // Sem bloqueio entre passageiro e motorista (ver temBloqueio).
       allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid
+        && request.resource.data.motoristaId is string
+        && !temBloqueio(request.auth.uid, request.resource.data.motoristaId)
         && (request.resource.data.get('chegadaPrevistaEm', null) == null
             || (request.resource.data.chegadaPrevistaEm is number
                 && request.resource.data.chegadaPrevistaEm >= request.resource.data.dataHoraPartida
@@ -318,7 +346,8 @@ service cloud.firestore {
       // é criada depois de cancelada/encerrada.
       allow create: if request.auth != null &&
         (request.resource.data.motoristaId == request.auth.uid || request.resource.data.passageiroId == request.auth.uid)
-        && chatAberto(conversaId);
+        && chatAberto(conversaId)
+        && !temBloqueio(request.resource.data.motoristaId, request.resource.data.passageiroId);
       // Conversa e mensagens NUNCA são apagadas pelos participantes: depois
       // de encerrado (cancelamento ou 6h depois da chegada prevista) o
       // histórico fica só pra leitura dos dois. Só a Cloud Function
@@ -348,12 +377,15 @@ service cloud.firestore {
         allow update: if request.auth != null
           && resource.data.destinatarioId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
-        // Mandar mensagem só com o chat aberto (ver chatAberto).
+        // Mandar mensagem só com o chat aberto (ver chatAberto) e sem
+        // bloqueio entre os dois (ver temBloqueio).
         allow create: if request.auth != null &&
           request.resource.data.remetenteId == request.auth.uid &&
           (get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId == request.auth.uid ||
            get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId == request.auth.uid) &&
-          chatAberto(conversaId);
+          chatAberto(conversaId) &&
+          !temBloqueio(get(/databases/$(database)/documents/conversas/$(conversaId)).data.motoristaId,
+                       get(/databases/$(database)/documents/conversas/$(conversaId)).data.passageiroId);
         allow delete: if false;
       }
     }

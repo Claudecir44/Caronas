@@ -65,6 +65,9 @@ class TelaCaronasActivity : AppCompatActivity() {
     lateinit var notificacaoRepository: INotificacaoRepository
 
     @Inject
+    lateinit var bloqueioRepository: IBloqueioRepository
+
+    @Inject
     lateinit var falhasRepository: IFalhasRepository
 
     private lateinit var ivFotoPerfil: ImageView
@@ -300,7 +303,13 @@ class TelaCaronasActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             caronaRepository.buscarCaronas(origem, destino, data)
-                .onSuccess { caronas ->
+                .onSuccess { todasCaronas ->
+                    // Some quem tem bloqueio com o usuário (em qualquer
+                    // sentido, ver Bloqueio.kt). Falha ao ler os bloqueios
+                    // não impede a busca; a regra de solicitacoes barra a
+                    // solicitação de qualquer jeito.
+                    val bloqueados = bloqueioRepository.idsComBloqueio().getOrDefault(emptySet())
+                    val caronas = todasCaronas.filter { it.motoristaId !in bloqueados }
                     // Resolve o TRECHO buscado (índices + preço só daquele
                     // pedaço) de cada resultado — ver resolverTrecho. Preço
                     // e rota mostrados ao passageiro nunca são os da viagem

@@ -4,8 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -42,6 +44,9 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var adminRepository: IAdminRepository
 
+    @Inject
+    lateinit var bloqueioRepository: IBloqueioRepository
+
     private lateinit var cardPagamentos: View
     private lateinit var tvPagamentosStatus: TextView
     private var modoAdmin = false
@@ -56,6 +61,7 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
         if (modoAdmin) {
             cardPagamentos.visibility = View.GONE
             findViewById<View>(R.id.cardConfigManifestacoes).visibility = View.GONE
+            findViewById<View>(R.id.cardConfigBloqueados).visibility = View.GONE
             findViewById<View>(R.id.cardConfigOrientacoes).visibility = View.VISIBLE
             aplicarPermissoesAdmin()
         }
@@ -90,8 +96,42 @@ class ConfiguracoesCaronasActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnConfigManifestacoes).setOnClickListener {
             startActivity(Intent(this, EnviarManifestacaoActivity::class.java))
         }
+        findViewById<View>(R.id.btnConfigBloqueados).setOnClickListener { mostrarBloqueados() }
         findViewById<View>(R.id.btnVoltarConfig).setOnClickListener {
             finish()
+        }
+    }
+
+    // Lista de quem o usuário bloqueou (ver SegurancaUsuarioDialogUtil) —
+    // tocar num nome pergunta se quer desbloquear.
+    private fun mostrarBloqueados() {
+        lifecycleScope.launch {
+            bloqueioRepository.listarMeusBloqueios()
+                .onSuccess { bloqueios ->
+                    if (bloqueios.isEmpty()) {
+                        Toast.makeText(this@ConfiguracoesCaronasActivity, R.string.bloqueados_vazio, Toast.LENGTH_SHORT).show()
+                        return@onSuccess
+                    }
+                    val nomes = bloqueios.map { it.bloqueadoNome ?: getString(R.string.procurar_motorista_desconhecido) }
+                    MaterialAlertDialogBuilder(this@ConfiguracoesCaronasActivity)
+                        .setTitle(R.string.config_botao_bloqueados)
+                        .setItems(nomes.toTypedArray()) { _, indice ->
+                            val outroId = bloqueios[indice].bloqueadoId ?: return@setItems
+                            val nome = nomes[indice]
+                            MaterialAlertDialogBuilder(this@ConfiguracoesCaronasActivity)
+                                .setTitle(getString(R.string.bloqueados_desbloquear_formato, nome))
+                                .setPositiveButton(R.string.seguranca_opcao_desbloquear) { _, _ ->
+                                    SegurancaUsuarioDialogUtil.desbloquear(this@ConfiguracoesCaronasActivity, outroId, nome, bloqueioRepository) {}
+                                }
+                                .setNegativeButton(R.string.cancelar, null)
+                                .show()
+                        }
+                        .setNegativeButton(R.string.voltar, null)
+                        .show()
+                }
+                .onFailure { e ->
+                    Toast.makeText(this@ConfiguracoesCaronasActivity, getString(R.string.bloqueados_erro_carregar, e.message), Toast.LENGTH_LONG).show()
+                }
         }
     }
 

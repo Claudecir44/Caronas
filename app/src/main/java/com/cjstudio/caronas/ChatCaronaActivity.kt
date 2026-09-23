@@ -25,6 +25,9 @@ class ChatCaronaActivity : AppCompatActivity() {
     @Inject
     lateinit var usuarioRepository: IUsuarioRepository
 
+    @Inject
+    lateinit var bloqueioRepository: IBloqueioRepository
+
     private lateinit var tvNomeOutro: TextView
     private lateinit var tvRota: TextView
     private lateinit var rvMensagens: RecyclerView
@@ -35,6 +38,9 @@ class ChatCaronaActivity : AppCompatActivity() {
     private var conversaAtual: ConversaCarona? = null
     // Estado atual do chat (ver ChatUtil) — vem do listener da solicitação.
     private var statusChat = StatusChat.ABERTO
+    // Bloqueio em qualquer sentido entre os dois (ver Bloqueio.kt): fecha o
+    // campo de mensagem como um chat encerrado, mesmo com a viagem ativa.
+    private var bloqueado = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +56,7 @@ class ChatCaronaActivity : AppCompatActivity() {
         val btnEnviar = findViewById<android.widget.Button>(R.id.btnEnviarChat)
         rvMensagens.layoutManager = LinearLayoutManager(this)
         btnEnviar.setOnClickListener { enviarMensagem() }
+        findViewById<View>(R.id.tvSegurancaChat).setOnClickListener { abrirSeguranca() }
 
         @Suppress("DEPRECATION")
         val conversaExistente = intent.getSerializableExtra(EXTRA_CONVERSA) as? ConversaCarona
@@ -92,6 +99,11 @@ class ChatCaronaActivity : AppCompatActivity() {
         tvRota.text = getString(R.string.procurar_rota_formato, conversa.cidadeOrigem ?: "", conversa.cidadeDestino ?: "")
 
         lifecycleScope.launch { chatCaronaRepository.marcarConversaComoLida(conversa) }
+        lifecycleScope.launch {
+            val outroId = conversa.idOutroUsuario(meuId) ?: return@launch
+            bloqueado = bloqueioRepository.idsComBloqueio().getOrDefault(emptySet()).contains(outroId)
+            aplicarStatus(statusChat)
+        }
         escutarMensagens(conversa.id!!)
         conversa.solicitacaoId?.let { escutarStatus(it) }
     }
@@ -114,10 +126,31 @@ class ChatCaronaActivity : AppCompatActivity() {
 
     private fun aplicarStatus(novo: StatusChat) {
         statusChat = novo
-        val aberto = novo == StatusChat.ABERTO
+        val aberto = novo == StatusChat.ABERTO && !bloqueado
         layoutEntradaMensagem.visibility = if (aberto) View.VISIBLE else View.GONE
         tvAvisoChatFechado.visibility = if (aberto) View.GONE else View.VISIBLE
-        if (!aberto) tvAvisoChatFechado.setText(mensagemDeChatFechado(novo))
+        if (bloqueado) {
+            tvAvisoChatFechado.setText(R.string.chat_carona_bloqueado)
+        } else if (!aberto) {
+            tvAvisoChatFechado.setText(mensagemDeChatFechado(novo))
+        }
+    }
+
+    private fun abrirSeguranca() {
+        val conversa = conversaAtual ?: return
+        val meuId = usuarioRepository.uidLogado()
+        val outroId = conversa.idOutroUsuario(meuId) ?: return
+        SegurancaUsuarioDialogUtil.mostrarOpcoes(
+            this, outroId, conversa.nomeOutroUsuario(meuId), SegurancaUsuarioDialogUtil.ORIGEM_CHAT,
+            usuarioRepository, bloqueioRepository
+        ) {
+            // Desbloquear só libera se o OUTRO também não me bloqueou —
+            // confere de novo em vez de assumir.
+            lifecycleScope.launch {
+                bloqueado = bloqueioRepository.idsComBloqueio().getOrDefault(emptySet()).contains(outroId)
+                aplicarStatus(statusChat)
+            }
+        }
     }
 
     private fun mensagemDeChatFechado(status: StatusChat): Int = when (status) {
@@ -143,7 +176,7 @@ class ChatCaronaActivity : AppCompatActivity() {
         val conversa = conversaAtual ?: return
         val texto = etMensagem.text.toString().trim()
         if (texto.isEmpty()) return
-        if (statusChat != StatusChat.ABERTO) return
+        if (statusChat != StatusChat.ABERTO || bloqueado) return
 
         etMensagem.setText("")
         lifecycleScope.launch {

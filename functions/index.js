@@ -1056,6 +1056,10 @@ async function excluirUsuarioCompleto(db, uid) {
     await apagarDocsDaQuery(db.collection('avaliacoes').where('avaliadorId', '==', uid));
     await apagarDocsDaQuery(db.collection('avaliacoes').where('avaliadoId', '==', uid));
 
+    // Bloqueios feitos por ou contra essa conta (ver firestore.rules /bloqueios).
+    await apagarDocsDaQuery(db.collection('bloqueios').where('bloqueadorId', '==', uid));
+    await apagarDocsDaQuery(db.collection('bloqueios').where('bloqueadoId', '==', uid));
+
     // Se por acaso essa conta também tinha sido promovida a admin.
     await db.collection('admins').doc(uid).delete().catch(() => {});
 

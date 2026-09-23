@@ -78,6 +78,12 @@ interface IUsuarioRepository {
     // quem está enviando.
     suspend fun enviarManifestacao(tipo: String, nomeCompleto: String, email: String, telefone: String, mensagem: String): Result<Unit>
 
+    // Denúncia contra um usuário específico, feita do chat ou do perfil
+    // (ver SegurancaUsuarioDialogUtil). Vai pra mesma coleção
+    // "manifestacoes" (tipo "denuncia"), com nome/e-mail/telefone do
+    // denunciante tirados do próprio cadastro — o painel admin já trata.
+    suspend fun enviarDenuncia(denunciadoId: String, denunciadoNome: String?, motivo: String, mensagem: String, origem: String): Result<Unit>
+
     // Cria a preferência de pagamento (Mercado Pago) do acesso avulso do
     // motorista (planos Mensal/Trimestral, ver AssinaturaMotoristaActivity/
     // functions/index.js:createPaymentPreferenceMotorista) e devolve a URL

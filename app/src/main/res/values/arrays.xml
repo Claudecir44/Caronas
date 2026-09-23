@@ -40,4 +40,16 @@
         <item>Reclamações, Sugestões e Denúncias</item>
         <item>Administração</item>
     </string-array>
+
+    <!-- Motivos da denúncia feita do chat/perfil (ver SegurancaUsuarioDialogUtil). -->
+    <string-array name="denunciar_motivos">
+        <item>Assédio ou mensagens ofensivas</item>
+        <item>Ameaça ou comportamento perigoso</item>
+        <item>Golpe, fraude ou cobrança indevida</item>
+        <item>Perfil falso ou dados falsos</item>
+        <item>Não compareceu ou cancelou sem avisar</item>
+        <item>Direção perigosa ou veículo inseguro</item>
+        <item>Transporte remunerado (uso como táxi/aplicativo)</item>
+        <item>Outro motivo</item>
+    </string-array>
 </resources>

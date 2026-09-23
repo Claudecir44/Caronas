@@ -8,9 +8,9 @@ import java.util.Date
 // ConfiguracoesCaronasActivity -> EnviarManifestacaoActivity) e tratada pelo
 // painel admin (nativo + web, ver AdministracaoCaronasActivity/
 // public/index.html). "tipo" separa as três naturezas na mesma coleção —
-// mesmo modelo já usado pelo Match ("sugestoes"), só que aqui sem a
-// distinção denunciante/denunciado: é sempre uma mensagem de UM autor pros
-// admins, nunca uma denúncia formal contra outro usuário específico.
+// mesmo modelo já usado pelo Match ("sugestoes"): em geral é uma mensagem de UM autor pros
+// admins — exceto a denúncia feita do chat/perfil, que aponta o denunciado
+// (campos denunciadoId/denunciadoNome/motivo/origem abaixo).
 data class Manifestacao(
     @get:PropertyName("id") @set:PropertyName("id")
     var id: String? = null,
@@ -31,9 +31,18 @@ data class Manifestacao(
     var respondidoPorCpf: String? = null,
 
     var arquivado: Boolean = false,
-    var arquivadoEm: Date? = null
+    var arquivadoEm: Date? = null,
+
+    // Só em denúncia feita a partir do chat ou do perfil de alguém (ver
+    // SegurancaUsuarioDialogUtil): quem foi denunciado, o motivo escolhido
+    // na lista e de onde veio ("chat" | "perfil"). Denúncia genérica por
+    // Configurações continua sem esses campos.
+    var denunciadoId: String? = null,
+    var denunciadoNome: String? = null,
+    var motivo: String? = null,
+    var origem: String? = null
 ) {
-    constructor() : this(null, null, null, null, null, null, null, null, STATUS_PENDENTE, null, null, null, false, null)
+    constructor() : this(null, null, null, null, null, null, null, null, STATUS_PENDENTE, null, null, null, false, null, null, null, null, null)
 
     companion object {
         const val TIPO_RECLAMACAO = "reclamacao"

@@ -282,6 +282,30 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
+    override suspend fun enviarDenuncia(denunciadoId: String, denunciadoNome: String?, motivo: String, mensagem: String, origem: String): Result<Unit> {
+        return try {
+            val eu = buscarUsuarioLogado().getOrThrow()
+            val manifestacao = Manifestacao(
+                tipo = Manifestacao.TIPO_DENUNCIA,
+                nomeCompleto = eu.nomeCompleto,
+                email = eu.email,
+                telefone = eu.telefone,
+                // "mensagem" é obrigatória nas regras e é o que o painel
+                // mostra: sem descrição, vai o próprio motivo.
+                mensagem = mensagem.ifBlank { motivo },
+                usuarioId = eu.id,
+                denunciadoId = denunciadoId,
+                denunciadoNome = denunciadoNome,
+                motivo = motivo,
+                origem = origem
+            )
+            db.collection("manifestacoes").add(manifestacao).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun iniciarPagamentoAcessoMotorista(plano: PlanoMotorista): Result<String> {
         return try {
             val resultado = functions.getHttpsCallable("createPaymentPreferenceMotorista").call(mapOf("plano" to plano.id)).await()

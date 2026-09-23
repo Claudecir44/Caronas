@@ -618,4 +618,30 @@
     <string name="tempo_viagem_minutos">%1$d min</string>
     <string name="tempo_viagem_horas">%1$dh</string>
     <string name="tempo_viagem_horas_minutos">%1$dh%2$02d</string>
+    <!-- Denunciar / bloquear (SegurancaUsuarioDialogUtil) -->
+    <string name="seguranca_botao">⚠ Denunciar ou bloquear</string>
+    <string name="seguranca_opcao_denunciar">Denunciar</string>
+    <string name="seguranca_opcao_bloquear">Bloquear</string>
+    <string name="seguranca_opcao_desbloquear">Desbloquear</string>
+    <string name="denunciar_titulo">Denunciar usuário</string>
+    <string name="denunciar_subtitulo_formato">Por que você está denunciando %1$s? A denúncia é analisada pela nossa equipe e a pessoa não fica sabendo quem denunciou.</string>
+    <string name="denunciar_descricao_hint">Conte o que aconteceu (opcional)</string>
+    <string name="denunciar_botao_enviar">Enviar denúncia</string>
+    <string name="denunciar_erro_motivo">Escolha o motivo da denúncia.</string>
+    <string name="denunciar_sucesso">Denúncia enviada. Obrigado por ajudar a manter o Caronas seguro.</string>
+    <string name="denunciar_erro_generico">Erro ao enviar a denúncia: %1$s</string>
+    <string name="bloquear_titulo_formato">Bloquear %1$s?</string>
+    <string name="bloquear_explicacao">Vocês deixam de ver as caronas um do outro, não podem mais solicitar vaga um ao outro nem trocar mensagens. Dá pra desbloquear depois em Configurações › Usuários bloqueados.</string>
+    <string name="bloquear_sucesso_formato">%1$s foi bloqueado(a).</string>
+    <string name="desbloquear_sucesso_formato">%1$s foi desbloqueado(a).</string>
+    <string name="bloquear_erro_generico">Erro ao atualizar o bloqueio: %1$s</string>
+    <string name="chat_carona_bloqueado">Conversa bloqueada. Vocês não podem mais trocar mensagens.</string>
+    <string name="config_botao_bloqueados">Usuários bloqueados</string>
+    <string name="bloqueados_vazio">Você não bloqueou ninguém.</string>
+    <string name="bloqueados_desbloquear_formato">Desbloquear %1$s?</string>
+    <string name="bloqueados_erro_carregar">Erro ao carregar os bloqueados: %1$s</string>
+    <string name="admin_manifestacoes_denunciado_formato">Denunciado: %1$s
+Motivo: %2$s
+
+%3$s</string>
 </resources>

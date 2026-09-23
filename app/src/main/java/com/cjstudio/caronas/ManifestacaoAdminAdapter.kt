@@ -72,7 +72,18 @@ class ManifestacaoAdminAdapter(
         }
 
         holder.tvContato.text = "${item.email ?: "-"} — ${item.telefone ?: "-"}"
-        holder.tvMensagem.text = item.mensagem ?: ""
+        // Denúncia feita do chat/perfil: aponta quem foi denunciado e o
+        // motivo antes da descrição (ver SegurancaUsuarioDialogUtil).
+        holder.tvMensagem.text = if (item.denunciadoId != null) {
+            context.getString(
+                R.string.admin_manifestacoes_denunciado_formato,
+                item.denunciadoNome ?: item.denunciadoId,
+                item.motivo ?: "",
+                item.mensagem ?: ""
+            )
+        } else {
+            item.mensagem ?: ""
+        }
 
         if (respondida && !item.resposta.isNullOrBlank()) {
             holder.containerResposta.visibility = View.VISIBLE

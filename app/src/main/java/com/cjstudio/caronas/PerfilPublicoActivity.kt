@@ -37,6 +37,9 @@ class PerfilPublicoActivity : AppCompatActivity() {
     @Inject
     lateinit var avaliacaoRepository: IAvaliacaoRepository
 
+    @Inject
+    lateinit var bloqueioRepository: IBloqueioRepository
+
     private lateinit var progressBar: ProgressBar
     private lateinit var scroll: NestedScrollView
     private lateinit var ivFoto: ImageView
@@ -110,6 +113,18 @@ class PerfilPublicoActivity : AppCompatActivity() {
 
     private fun preencherPerfil(usuario: Usuario) {
         tvNome.text = usuario.nomeCompleto ?: ""
+        val outroId = usuario.id
+        if (outroId != null && outroId != usuarioRepository.uidLogado()) {
+            findViewById<View>(R.id.tvSegurancaPerfilPublico).apply {
+                visibility = View.VISIBLE
+                setOnClickListener {
+                    SegurancaUsuarioDialogUtil.mostrarOpcoes(
+                        this@PerfilPublicoActivity, outroId, usuario.nomeCompleto,
+                        SegurancaUsuarioDialogUtil.ORIGEM_PERFIL, usuarioRepository, bloqueioRepository
+                    )
+                }
+            }
+        }
         val comoMotorista = exibirComoMotorista ?: usuario.motorista
         tvPapel.text = getString(if (comoMotorista) R.string.perfil_publico_motorista else R.string.perfil_publico_passageiro)
 

@@ -34,6 +34,24 @@
             android:layout_marginTop="2dp"
             android:text="Origem → Destino" />
 
+        <!-- Denunciar/bloquear a outra pessoa (ver SegurancaUsuarioDialogUtil). -->
+        <TextView
+            android:id="@+id/tvSegurancaChat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="6dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="@string/seguranca_botao"
+            android:textColor="#B71C1C"
+            android:textSize="12sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground" />
+
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

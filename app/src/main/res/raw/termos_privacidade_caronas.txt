@@ -79,21 +79,28 @@ PARTE 2 — POLÍTICA DE PRIVACIDADE
 • CPF (só para quem se cadastra como motorista): usado para vincular o cadastro a uma única pessoa e impedir contas duplicadas; não é exibido a outros usuários.
 • Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.
 • Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.
-• Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014).
+• Dados de pagamento (só para motoristas que contratam um plano de acesso): plano escolhido, valor, data, validade e identificador da transação. Os dados do cartão, do Pix ou de outro meio de pagamento são informados diretamente ao Mercado Pago ou ao Google Play e nunca chegam ao Caronas.
+• Denúncias e bloqueios: as denúncias que você envia (com o motivo e o usuário denunciado) e a lista de usuários que você bloqueou.
+• Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014); o identificador do aparelho para envio de notificações; e relatórios de falha do aplicativo (modelo do aparelho, versão do Android e do aplicativo e o registro técnico do erro), que não contêm suas mensagens nem seus dados de cadastro.
 
 2. FINALIDADE DO TRATAMENTO
-Usamos esses dados para: viabilizar o cadastro e login; conectar motoristas e passageiros interessados na mesma rota; exibir as informações necessárias (nome, foto, veículo) aos participantes de uma mesma viagem, para que possam se identificar; calcular sugestões de valor de rateio com base na distância da rota; e manter o histórico de avaliações entre usuários.
+Usamos esses dados para: viabilizar o cadastro e login; conectar motoristas e passageiros interessados na mesma rota; exibir as informações necessárias (nome, foto, veículo) aos participantes de uma mesma viagem, para que possam se identificar; calcular sugestões de valor de rateio com base na distância da rota; manter o histórico de avaliações entre usuários; processar e registrar o pagamento do plano de acesso do motorista; enviar notificações sobre solicitações, viagens e mensagens; analisar denúncias e aplicar bloqueios; e identificar e corrigir falhas do aplicativo.
 
 3. COMPARTILHAMENTO DE DADOS
 3.1. Nome, foto de perfil e (quando aplicável) dados do veículo são exibidos aos demais usuários dentro do fluxo normal do aplicativo (resultado de busca de carona, tela de solicitação, chat de uma viagem) — é assim que motorista e passageiro se identificam antes de embarcar juntos.
 3.2. Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins de publicidade.
-3.3. Usamos o Firebase (Google) como infraestrutura de armazenamento e autenticação, e o LocationIQ como serviço de busca de endereços — ambos processam dados estritamente como operadores, dentro da finalidade descrita aqui.
+3.3. Usamos os seguintes fornecedores, que processam dados estritamente como operadores, dentro da finalidade descrita aqui:
+• Firebase (Google): armazenamento, autenticação, envio de notificações (Firebase Cloud Messaging) e relatórios de falha (Firebase Crashlytics).
+• LocationIQ: busca e sugestão de cidades e endereços.
+• Mercado Pago: processamento do pagamento do plano de acesso do motorista — recebe o nome e o e-mail do motorista para identificar o pagamento.
+• Google Play: processamento do pagamento do plano de acesso do motorista, quando o motorista escolhe pagar pelo Google Play.
+3.4. Dados também podem ser fornecidos a autoridades quando houver ordem judicial ou obrigação legal.
 
 4. SEGURANÇA DA INFORMAÇÃO
 Adotamos medidas técnicas para proteger os dados armazenados, incluindo controle de acesso por regras de segurança no banco de dados e conexões criptografadas entre o aplicativo e os servidores.
 
 5. RETENÇÃO E EXCLUSÃO
-Os dados são mantidos enquanto a conta estiver ativa. Ao excluir a conta pela opção disponível no aplicativo, o cadastro, a foto de perfil e o veículo associado são removidos permanentemente. Mensagens de chat e avaliações já enviadas podem ser mantidas de forma anonimizada, para preservar o histórico de viagens dos outros participantes.
+Os dados são mantidos enquanto a conta estiver ativa. Ao excluir a conta pela opção disponível no aplicativo, o cadastro, a foto de perfil e o veículo associado são removidos permanentemente. Mensagens de chat e avaliações já enviadas podem ser mantidas de forma anonimizada, para preservar o histórico de viagens dos outros participantes. Registros de pagamento são mantidos pelo prazo exigido pela legislação fiscal, e registros de acesso pelo prazo exigido pelo Marco Civil da Internet, mesmo após a exclusão da conta.
 
 6. SEUS DIREITOS
 Conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD), você tem direito a: confirmar a existência de tratamento, acessar seus dados, corrigir dados incompletos ou desatualizados, solicitar a exclusão dos seus dados, e revogar o consentimento dado. A maioria dessas ações já está disponível diretamente na tela "Editar Perfil" do aplicativo; para as demais, use o contato abaixo.

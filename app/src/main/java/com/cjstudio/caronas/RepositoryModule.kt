@@ -49,4 +49,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChatAdminCaronaRepository(impl: ChatAdminCaronaRepository): IChatAdminCaronaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBloqueioRepository(impl: BloqueioRepository): IBloqueioRepository
 }
