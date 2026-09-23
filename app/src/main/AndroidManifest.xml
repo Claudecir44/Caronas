@@ -67,6 +67,16 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".ConversasAdminCaronasActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EscolherAdminChatCaronasActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChatAdminCaronaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".PerfilPublicoActivity"
             android:exported="false" />
         <activity

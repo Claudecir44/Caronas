@@ -45,4 +45,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindFalhasRepository(impl: FalhasRepository): IFalhasRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatAdminCaronaRepository(impl: ChatAdminCaronaRepository): IChatAdminCaronaRepository
 }

@@ -70,11 +70,20 @@ class CaronasFirebaseMessagingService : FirebaseMessagingService() {
             "novaManifestacao" -> Triple(
                 getString(R.string.notificacao_titulo_nova_manifestacao), "manifestacoes_caronas", getString(R.string.notificacao_canal_manifestacao)
             )
+            // Chat entre administradores (ver functions/index.js:
+            // notificarNovaMensagemChatAdmin) — só chega no aparelho de um
+            // admin também, mesmo motivo de novaManifestacao acima.
+            "chatAdmin" -> Triple(
+                getString(R.string.notificacao_titulo_chat_admin), "chat_admin_caronas", getString(R.string.notificacao_canal_chat_admin)
+            )
             else -> return
         }
 
         val idNotificacao = dados["id"]?.hashCode() ?: System.currentTimeMillis().toInt()
-        val destino = if (dados["tipo"] == "novaManifestacao") AdministracaoCaronasActivity::class.java else TelaCaronasActivity::class.java
+        val destino = when (dados["tipo"]) {
+            "novaManifestacao", "chatAdmin" -> AdministracaoCaronasActivity::class.java
+            else -> TelaCaronasActivity::class.java
+        }
         mostrarNotificacao(canalId, canalNome, titulo, corpo, idNotificacao, destino)
     }
 

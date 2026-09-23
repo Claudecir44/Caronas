@@ -134,6 +134,14 @@ interface IAdminRepository {
     // só pelo dono). Sobe a foto pro Storage e grava a URL.
     suspend fun atualizarFotoAdmin(uid: String, uri: Uri): Result<String>
 
+    // Troca a foto de OUTRO admin/colaborador (uid diferente do logado) —
+    // storage.rules não libera escrita direto em fotos_perfil/{uid} de
+    // outra pessoa, então isso sobe a foto numa pasta que o chamador PODE
+    // escrever e delega o resto (copiar pro destino, apagar a origem,
+    // gravar fotoUrl) pra Cloud Function atualizarFotoAdminAutorizado, via
+    // Admin SDK. Mesma trava de senha master das outras edições de admin.
+    suspend fun atualizarFotoAdminDeOutro(uid: String, uri: Uri, senhaAutorizacao: String): Result<String>
+
     // "Ver Sugestões e Reclamações" — reclamações/sugestões/denúncias ainda
     // NÃO arquivadas, mais recentes primeiro (ver Manifestacao.kt). Leitura
     // direta, liberada pra qualquer admin (firestore.rules: allow read: if

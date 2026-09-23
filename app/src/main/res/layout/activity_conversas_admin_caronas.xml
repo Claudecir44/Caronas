@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fundo_cinza_claro">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/conversas_admin_titulo"
+            android:textColor="@color/azul_neon"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingTop="36dp"
+            android:paddingBottom="16dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+
+        <TextView
+            android:id="@+id/tvSemConversasAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/conversas_admin_vazio"
+            android:textColor="#8899AA"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:padding="24dp"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvConversasAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#FFFFFF"
+            android:clipToPadding="false" />
+
+    </LinearLayout>
+
+    <!-- Nova conversa — escolhe outro admin (ver
+         EscolherAdminChatCaronasActivity). -->
+    <Button
+        android:id="@+id/btnNovaConversaAdmin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:text="@string/conversas_admin_botao_nova"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:background="@drawable/botao_azul_neon"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:elevation="6dp" />
+
+</FrameLayout>

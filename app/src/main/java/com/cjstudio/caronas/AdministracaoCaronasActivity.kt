@@ -72,6 +72,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     @Inject
     lateinit var falhasRepository: IFalhasRepository
 
+    @Inject
+    lateinit var chatAdminCaronaRepository: IChatAdminCaronaRepository
+
     private lateinit var ivFoto: ImageView
     private lateinit var tvNome: TextView
     private lateinit var tvTituloSecao: TextView
@@ -93,6 +96,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     private var mensagensUsuarioCache: List<MensagemAdminInfo> = emptyList()
     private var nomeUsuarioMensagensCache: String = ""
     private lateinit var badgeManifestacoes: TextView
+    private lateinit var badgeMensagensAdmins: TextView
     private lateinit var tvContadorSecao: TextView
     private var mostrandoArquivadas = false
 
@@ -134,6 +138,8 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         btnArquivadosManifestacoes = findViewById(R.id.btnArquivadosManifestacoes)
         badgeManifestacoes = findViewById(R.id.badgeManifestacoes)
         escutarBadgeManifestacoes()
+        badgeMensagensAdmins = findViewById(R.id.badgeMensagensAdmins)
+        escutarBadgeMensagensAdmins()
         containerFiltroMensagens = findViewById(R.id.containerFiltroMensagens)
         spinnerPeriodoMensagens = findViewById(R.id.spinnerPeriodoMensagens)
         btnFiltrarMensagens = findViewById(R.id.btnFiltrarMensagens)
@@ -160,7 +166,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnMotoristas).setOnClickListener { mostrarMotoristas() }
         findViewById<TextView>(R.id.btnPassageiros).setOnClickListener { mostrarPassageiros() }
         findViewById<TextView>(R.id.btnViagens).setOnClickListener { abrirDialogEscolherViagens() }
-        findViewById<TextView>(R.id.btnFinanceiro).setOnClickListener { mostrarFinanceiro() }
+        findViewById<TextView>(R.id.btnMensagensAdmins).setOnClickListener {
+            startActivity(Intent(this, ConversasAdminCaronasActivity::class.java))
+        }
         findViewById<TextView>(R.id.tvConfiguracoesAdmin).setOnClickListener {
             startActivity(
                 Intent(this, ConfiguracoesCaronasActivity::class.java)
@@ -194,12 +202,13 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         }
         solicitarPermissaoNotificacaoSeNecessario()
 
-        // Entrada vinda do card "Ver Mensagens" em Configurações (ver
-        // ConfiguracoesCaronasActivity) — reaproveita a MESMA seção inline
-        // de sempre, só abre ela automaticamente em vez do admin precisar
-        // tocar em "Mensagens" de novo.
-        if (intent.getStringExtra(EXTRA_ABRIR_SECAO) == SECAO_MENSAGENS) {
-            abrirBuscaMensagens()
+        // Entrada vinda do card "Ver Mensagens"/"Financeiro" em Configurações
+        // (ver ConfiguracoesCaronasActivity) — reaproveita a MESMA seção
+        // inline de sempre, só abre ela automaticamente em vez do admin
+        // precisar tocar no botão de novo.
+        when (intent.getStringExtra(EXTRA_ABRIR_SECAO)) {
+            SECAO_MENSAGENS -> abrirBuscaMensagens()
+            SECAO_FINANCEIRO -> mostrarFinanceiro()
         }
     }
 
@@ -248,9 +257,9 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnMotoristas).visibility = if (admin.temPermissao("usuarios")) View.VISIBLE else View.GONE
         findViewById<View>(R.id.btnPassageiros).visibility = if (admin.temPermissao("usuarios")) View.VISIBLE else View.GONE
         findViewById<View>(R.id.btnViagens).visibility = if (admin.temPermissao("viagens")) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.btnFinanceiro).visibility = if (admin.temPermissao("financeiro")) View.VISIBLE else View.GONE
         findViewById<View>(R.id.btnMensagens).visibility = if (admin.temPermissao("mensagens")) View.VISIBLE else View.GONE
         findViewById<View>(R.id.btnManifestacoes).visibility = if (admin.temPermissao("manifestacoes")) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.btnMensagensAdmins).visibility = if (admin.temPermissao("chatAdmin")) View.VISIBLE else View.GONE
     }
 
     // Badge no botão "Sugestões" — total de reclamações/sugestões/denúncias
@@ -265,6 +274,24 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
                         badgeManifestacoes.text = total.toString()
                     } else {
                         badgeManifestacoes.visibility = View.GONE
+                    }
+                }
+            }
+        }
+    }
+
+    // Badge no botão "Mensagens Admins" — soma de não lidas em todas as
+    // conversas do admin logado (ver IChatAdminCaronaRepository
+    // .escutarTotalNaoLidas), mesmo padrão do badge de Sugestões acima.
+    private fun escutarBadgeMensagensAdmins() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                chatAdminCaronaRepository.escutarTotalNaoLidas().catch { }.collect { total ->
+                    if (total > 0) {
+                        badgeMensagensAdmins.visibility = View.VISIBLE
+                        badgeMensagensAdmins.text = if (total > 99) "99+" else total.toString()
+                    } else {
+                        badgeMensagensAdmins.visibility = View.GONE
                     }
                 }
             }
@@ -1115,6 +1142,7 @@ class AdministracaoCaronasActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_ABRIR_SECAO = "abrirSecao"
         const val SECAO_MENSAGENS = "mensagens"
+        const val SECAO_FINANCEIRO = "financeiro"
 
         // Mesmas posições do R.array.periodos_array — reaproveitadas pelos
         // dois filtros de período da tela (Financeiro e Mensagens), que

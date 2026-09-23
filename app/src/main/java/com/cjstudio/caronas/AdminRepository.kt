@@ -323,6 +323,36 @@ class AdminRepository @Inject constructor(
         }
     }
 
+    override suspend fun atualizarFotoAdminDeOutro(uid: String, uri: Uri, senhaAutorizacao: String): Result<String> {
+        return try {
+            val uidChamador = auth.currentUser?.uid ?: throw IllegalStateException("Sem sessão ativa.")
+            // Path temporário na PRÓPRIA pasta de quem chamou (storage.rules só
+            // libera escrita ali) — a Cloud Function copia daqui pro destino
+            // de verdade e apaga esta cópia (ver atualizarFotoAdminAutorizado).
+            val pathOrigem = "fotos_perfil/$uidChamador/staging_${uid}_${UUID.randomUUID()}.jpg"
+            val refOrigem = storage.reference.child(pathOrigem)
+            refOrigem.putFile(uri).await()
+
+            val resultado = functions.getHttpsCallable("atualizarFotoAdminAutorizado")
+                .call(
+                    mapOf(
+                        "uid" to uid,
+                        "storagePathOrigem" to pathOrigem,
+                        "senhaAutorizacao" to senhaAutorizacao
+                    )
+                )
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val dados = resultado.data as? Map<String, Any?>
+            val url = dados?.get("fotoUrl") as? String ?: throw IllegalStateException("Resposta inválida do servidor.")
+            Result.success(url)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(Exception(e.message ?: "Erro ao salvar a foto."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, senhaAutorizacao: String): Result<Unit> {
         return try {
             val dados = mutableMapOf<String, Any?>(

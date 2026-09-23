@@ -38,13 +38,13 @@ import javax.inject.Inject
 // No modo edição: e-mail não é editável aqui (mudar e-mail de uma conta
 // Auth já existente tem mais implicações, fora do escopo pedido) e os
 // campos de senha de CADASTRO somem (edição não mexe na senha de login).
-// Foto também só é editável quando é o PRÓPRIO admin logado editando o
-// próprio perfil — firestore.rules só libera update de fotoUrl pro dono do
-// documento (ver AdminRepository.atualizarFotoAdmin), então trocar a foto
-// de OUTRO admin exigiria uma Cloud Function à parte; não implementado
-// ainda. "Excluir Cadastro de Admin" só remove admins/{uid} (revoga o
-// acesso ao painel) — não apaga a conta Firebase Auth nem o cadastro de
-// usuário comum dessa pessoa.
+// Foto: quando é o PRÓPRIO admin logado editando o próprio perfil, sobe
+// direto pro Storage (AdminRepository.atualizarFotoAdmin — firestore.rules
+// libera fotoUrl pro dono do documento); pra foto de OUTRO admin/
+// colaborador, usa atualizarFotoAdminDeOutro (Cloud Function
+// atualizarFotoAdminAutorizado, via Admin SDK). "Excluir Cadastro de Admin"
+// só remove admins/{uid} (revoga o acesso ao painel) — não apaga a conta
+// Firebase Auth nem o cadastro de usuário comum dessa pessoa.
 @AndroidEntryPoint
 class CadastroAdminCaronasActivity : AppCompatActivity() {
 
@@ -118,14 +118,6 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
             layoutSenha.visibility = View.GONE
             etEmail.isEnabled = false
             btnExcluir.visibility = View.VISIBLE
-
-            // Foto de outro admin (não o logado) não é editável aqui — ver
-            // comentário da classe.
-            val souEuMesmo = uidEditando == adminRepository.uidLogado()
-            if (!souEuMesmo) {
-                ivFoto.isClickable = false
-                tvSelecionarFoto.visibility = View.GONE
-            }
 
             carregarAdminParaEditar(uidEditando!!, etNome, etSobrenome, etEmail, etTelefone, etCpf)
         } else {
@@ -253,18 +245,63 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
         role: String, permissoes: Map<String, Boolean>,
         senhaMaster: String, progressBar: ProgressBar, btnSalvar: Button
     ) {
+        // Se já existe uma sessão (um admin logado está criando outro admin/
+        // colaborador pela nova aba Administração), finalizarCadastroAdmin
+        // NÃO pode ser chamada: ela faz login temporário como a conta NOVA
+        // pra poder subir a foto, e termina com signOut() — o que derrubaria
+        // a sessão de quem está criando (bug real: depois do cadastro tudo
+        // no painel começava a falhar com "permissão negada", porque a
+        // sessão de quem estava usando o app tinha sido trocada e depois
+        // fechada). Só é seguro fazer essa troca de sessão quando NINGUÉM
+        // estava logado antes (o cadastro público vindo da tela de login,
+        // "bootstrap" do primeiro admin).
+        val criadorJaLogado = adminRepository.uidLogado() != null
+
         lifecycleScope.launch {
             adminRepository.cadastrarAdmin(nome, sobrenome, email, telefone, cpf, senha, role, permissoes, senhaMaster)
                 .onSuccess { uid ->
-                    // Foto + e-mail de verificação (precisa entrar como o novo admin, ver
-                    // AdminRepository.finalizarCadastroAdmin). A conta e o Firestore já
-                    // foram criados com sucesso — se isso falhar, não desfaz o cadastro;
-                    // a foto pode ser adicionada depois.
-                    adminRepository.finalizarCadastroAdmin(uid, email, senha, fotoUriSelecionada)
-
-                    progressBar.visibility = View.GONE
-                    Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_cadastro_sucesso, Toast.LENGTH_LONG).show()
-                    finish()
+                    if (criadorJaLogado) {
+                        // Quem está criando já tem sessão própria — não dá
+                        // pra logar temporariamente como a conta nova (ver
+                        // comentário acima), então a foto vai pela mesma
+                        // Cloud Function usada na edição de terceiros
+                        // (atualizarFotoAdminAutorizado). O e-mail de
+                        // verificação já é mandado pelo servidor dentro de
+                        // cadastrarAdmin, sem precisar do cliente aqui.
+                        val foto = fotoUriSelecionada
+                        if (foto != null) {
+                            adminRepository.atualizarFotoAdminDeOutro(uid, foto, senhaMaster)
+                                .onFailure { e ->
+                                    Toast.makeText(
+                                        this@CadastroAdminCaronasActivity,
+                                        getString(R.string.admin_cadastro_erro_finalizar, e.message),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                        }
+                        progressBar.visibility = View.GONE
+                        Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_cadastro_sucesso, Toast.LENGTH_LONG).show()
+                        finish()
+                    } else {
+                        // Ninguém logado antes (bootstrap) — seguro entrar
+                        // como a conta nova pra subir a foto e mandar o
+                        // e-mail de verificação (ver finalizarCadastroAdmin).
+                        adminRepository.finalizarCadastroAdmin(uid, email, senha, fotoUriSelecionada)
+                            .onSuccess {
+                                progressBar.visibility = View.GONE
+                                Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_cadastro_sucesso, Toast.LENGTH_LONG).show()
+                                finish()
+                            }
+                            .onFailure { e ->
+                                progressBar.visibility = View.GONE
+                                btnSalvar.isEnabled = true
+                                Toast.makeText(
+                                    this@CadastroAdminCaronasActivity,
+                                    getString(R.string.admin_cadastro_erro_finalizar, e.message),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                    }
                 }
                 .onFailure { e ->
                     progressBar.visibility = View.GONE
@@ -288,6 +325,26 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
                     // só avisa o erro específico de permissões.
                     adminRepository.atualizarPermissoesAdmin(uid, role, permissoes, senhaMaster)
                         .onSuccess {
+                            // Foto: própria pessoa sobe direto pro Storage
+                            // (write do cliente, firestore.rules já libera
+                            // fotoUrl pro dono do documento); foto de OUTRA
+                            // pessoa passa pela Cloud Function
+                            // atualizarFotoAdminAutorizado, via Admin SDK.
+                            val foto = fotoUriSelecionada
+                            if (foto != null) {
+                                val resultadoFoto = if (uid == adminRepository.uidLogado()) {
+                                    adminRepository.atualizarFotoAdmin(uid, foto)
+                                } else {
+                                    adminRepository.atualizarFotoAdminDeOutro(uid, foto, senhaMaster)
+                                }
+                                resultadoFoto.onFailure { e ->
+                                    Toast.makeText(
+                                        this@CadastroAdminCaronasActivity,
+                                        getString(R.string.admin_editar_erro_foto, e.message),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
                             progressBar.visibility = View.GONE
                             Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_editar_sucesso, Toast.LENGTH_LONG).show()
                             finish()

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/rowSelecionarAdminClicavel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <ImageView
+            android:contentDescription="@string/cd_foto_perfil"
+            android:id="@+id/ivFotoSelecionarAdmin"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:src="@drawable/ic_person_default"
+            android:scaleType="centerCrop"
+            android:background="@drawable/borda_circular_azul"
+            android:layout_marginEnd="12dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvNomeSelecionarAdmin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#222222"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:text="Nome" />
+
+            <TextView
+                android:id="@+id/tvEmailSelecionarAdmin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#777777"
+                android:textSize="12sp"
+                android:layout_marginTop="1dp"
+                android:text="email@exemplo.com" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="14dp"
+        android:background="#E0E0E0" />
+
+</LinearLayout>

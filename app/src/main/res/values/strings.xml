@@ -99,11 +99,13 @@
     <string name="notificacao_titulo_cancelada">Viagem Cancelada</string>
     <string name="notificacao_titulo_mensagem">Mensagem Caronas</string>
     <string name="notificacao_titulo_nova_manifestacao">Mensagem de usuário</string>
+    <string name="notificacao_titulo_chat_admin">Chat entre Administradores</string>
     <string name="notificacao_canal_solicitacao">Solicitações de viagem</string>
     <string name="notificacao_canal_aceita">Viagens aceitas</string>
     <string name="notificacao_canal_cancelada">Viagens canceladas</string>
     <string name="notificacao_canal_mensagem">Mensagens do chat</string>
     <string name="notificacao_canal_manifestacao">Reclamações, sugestões e denúncias</string>
+    <string name="notificacao_canal_chat_admin">Chat entre administradores</string>
     <string name="login_entrar_como">Entrar como:</string>
     <string name="login_erro_selecionar_papel">Selecione se você vai entrar como motorista ou passageiro.</string>
     <string name="login_erro_sem_veiculo">Para logar como motorista, você precisa ter veículo e CPF cadastrados. Complete seu cadastro.</string>
@@ -134,6 +136,8 @@
     <string name="cadastro_erro_foto_obrigatoria">Escolha uma foto de perfil para continuar.</string>
     <string name="cadastro_erro_veiculo_obrigatorio">Preencha todos os dados do veículo.</string>
     <string name="cadastro_erro_cpf_invalido">Informe um CPF válido (obrigatório para motorista).</string>
+    <string name="cadastro_aceitar_termos">Li e aceito os Termos de Uso e a Política de Privacidade</string>
+    <string name="cadastro_erro_aceitar_termos">Para se cadastrar, você precisa ler e aceitar os Termos de Uso e a Política de Privacidade.</string>
     <string name="cadastro_erro_generico">Erro ao cadastrar: %1$s</string>
     <string name="cadastro_sucesso">Cadastro realizado com sucesso! Valide seu cadastro no e-mail.</string>
 
@@ -313,6 +317,24 @@
     <string name="chat_carona_fechado_cancelado">Chat bloqueado: a solicitação de vaga foi cancelada. As mensagens ficam guardadas só para consulta.</string>
     <string name="chat_carona_fechado_encerrado">Chat encerrado: a viagem já terminou. As mensagens ficam guardadas só para consulta.</string>
 
+    <!-- Chat entre administradores (separado do chat de carona) -->
+    <string name="conversas_admin_titulo">💬 Chat Admin</string>
+    <string name="conversas_admin_vazio">Nenhuma conversa ainda. Toque em "+ Nova Conversa" pra falar com outro administrador.</string>
+    <string name="conversas_admin_botao_nova">+ Nova Conversa</string>
+    <string name="conversas_admin_excluir_titulo">Excluir conversa</string>
+    <string name="conversas_admin_excluir_mensagem">Excluir toda a conversa com %1$s? As mensagens somem pros dois lados, sem volta.</string>
+    <string name="conversas_admin_excluir_sucesso">Conversa excluída.</string>
+    <string name="conversas_admin_excluir_erro">Erro ao excluir: %1$s</string>
+    <string name="escolher_admin_chat_titulo">Nova Conversa</string>
+    <string name="escolher_admin_chat_vazio">Não há outro administrador cadastrado ainda.</string>
+    <string name="escolher_admin_chat_erro">Erro ao abrir conversa: %1$s</string>
+    <string name="chat_admin_erro_enviar">Erro ao enviar mensagem: %1$s</string>
+    <string name="chat_admin_apagar_titulo">Apagar mensagem</string>
+    <string name="chat_admin_apagar_opcao_mim">Apagar só para mim</string>
+    <string name="chat_admin_apagar_opcao_todos">Apagar para todos</string>
+    <string name="chat_admin_apagar_erro">Erro ao apagar: %1$s</string>
+    <string name="chat_admin_mensagem_apagada">Mensagem apagada</string>
+
     <!-- Editar cadastro -->
     <string name="editar_titulo">Editar Cadastro</string>
     <string name="editar_botao_salvar">Salvar Alterações</string>
@@ -349,6 +371,8 @@
     <string name="admin_cadastro_cpf_hint">CPF</string>
     <string name="admin_cadastro_sucesso">Admin cadastrado! Valide o e-mail e entre pela tela de login.</string>
     <string name="admin_cadastro_erro_generico">Erro: %1$s</string>
+    <string name="admin_cadastro_erro_finalizar">Admin cadastrado, mas houve um erro ao subir a foto/enviar a verificação: %1$s</string>
+    <string name="admin_editar_erro_foto">Dados salvos, mas houve um erro ao trocar a foto: %1$s</string>
     <string name="admin_editar_titulo">Editar admin</string>
     <string name="admin_editar_botao">Salvar</string>
     <string name="admin_editar_sucesso">Admin atualizado com sucesso!</string>
@@ -370,8 +394,12 @@
     <string name="admin_permissoes_titulo">Permissões</string>
     <string name="admin_badge_colaborador">(colaborador)</string>
     <string name="admin_badge_admin">(admin)</string>
-    <string name="gerenciar_admins_titulo">Administração</string>
+    <string name="gerenciar_admins_titulo">Administradores</string>
+    <string name="gerenciar_admins_aba_admins">Admins</string>
+    <string name="gerenciar_admins_aba_colaboradores">Colaboradores</string>
     <string name="gerenciar_admins_vazio">Nenhum administrador cadastrado.</string>
+    <string name="gerenciar_admins_vazio_admins">Nenhum admin cadastrado.</string>
+    <string name="gerenciar_admins_vazio_colaboradores">Nenhum colaborador cadastrado.</string>
     <string name="gerenciar_admins_botao_novo">+ Novo Admin</string>
     <string name="gerenciar_admins_erro_sem_permissao">Você não tem permissão para gerenciar administradores.</string>
     <string name="admin_senha_autorizacao_usuario_hint">Sua senha de admin ou a senha master</string>
@@ -443,6 +471,7 @@
 
     <!-- Mensagens (painel admin) -->
     <string name="admin_botao_mensagens">Mensagens</string>
+    <string name="admin_botao_mensagens_admins">💬 Chat Admin</string>
     <string name="admin_mensagens_busca_hint">Nome completo, telefone ou e-mail</string>
     <string name="admin_mensagens_busca_botao">Buscar</string>
     <string name="admin_mensagens_titulo_formato">💬 Mensagens de %1$s</string>
@@ -461,6 +490,7 @@
          dias do motorista (ver FinanceiroCaronasActivity, adaptado do
          RelatoriosFinanceirosActivity do Match). -->
     <string name="admin_botao_financeiro">💰 Financeiro</string>
+    <string name="admin_botao_ver_financeiro">Financeiro</string>
     <string name="admin_botao_orientacoes">Orientações</string>
     <string name="admin_orientacoes_titulo">Orientações — monitorar e ajustar o app</string>
     <string name="admin_orientacoes_dica">Toque num item para abrir.</string>

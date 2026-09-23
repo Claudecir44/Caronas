@@ -518,7 +518,7 @@ if (!ADMIN_MASTER_PASSWORD) {
 // ============================================================
 const CHAVES_PERMISSOES = [
     'usuarios', 'viagens', 'financeiro', 'mensagens', 'manifestacoes',
-    'relatorios', 'administradores',
+    'relatorios', 'administradores', 'chatAdmin',
 ];
 
 // Admin master de verdade, identificado por CPF fixo — mesmo CPF já usado
@@ -577,6 +577,54 @@ async function verificarSenhaAdminPropria(email, senha) {
         );
         return resposta.ok;
     } catch (e) {
+        return false;
+    }
+}
+
+// Manda o e-mail de verificação (VERIFY_EMAIL) pra um uid qualquer sem
+// precisar logar como essa pessoa no cliente — mesmo truque de
+// reenviarVerificacaoEmail (customToken -> ID token real via REST ->
+// sendOobCode), extraído pra cá pra ser reaproveitado também por
+// cadastrarAdmin: quando quem está cadastrando já tem uma sessão própria
+// aberta, o cliente não pode logar temporariamente como a conta nova pra
+// mandar esse e-mail (derrubaria a sessão de quem está cadastrando — ver
+// CadastroAdminCaronasActivity.salvarCadastroNovo), então precisa ser feito
+// aqui, via Admin SDK, sem afetar sessão nenhuma. Nunca lança — falha de
+// envio não pode derrubar o cadastro em si, só fica no log.
+async function enviarEmailVerificacaoParaUid(uid) {
+    if (!WEB_API_KEY) return false;
+    try {
+        const customToken = await admin.auth().createCustomToken(uid);
+
+        const respostaLogin = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+            }
+        );
+        if (!respostaLogin.ok) {
+            console.error('❌ signInWithCustomToken falhou:', respostaLogin.status, await respostaLogin.text());
+            return false;
+        }
+        const { idToken } = await respostaLogin.json();
+
+        const respostaEnvio = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken }),
+            }
+        );
+        if (!respostaEnvio.ok) {
+            console.error('❌ sendOobCode falhou:', respostaEnvio.status, await respostaEnvio.text());
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('❌ Erro ao enviar e-mail de verificação:', error);
         return false;
     }
 }
@@ -676,9 +724,16 @@ exports.cadastrarAdmin = functions.https.onCall(async (request) => {
     } catch (error) {
         if (error.code === 'auth/email-already-exists') {
             // Já existe uma conta (comum ou admin) com esse e-mail — reaproveita
-            // o uid, sem mexer na senha já existente dessa conta.
+            // o uid, mas TAMBÉM aplica a senha digitada aqui. Sem isso, quem
+            // cadastra vê um campo de senha, acha que é a senha de login da
+            // conta nova, mas ela era silenciosamente ignorada — a conta
+            // continuava com a senha antiga (de quando virou usuário comum,
+            // por exemplo), e o login com a senha "certa" (a que apareceu
+            // nesta tela) falhava com "supplied auth credentials" (bug real,
+            // reproduzido cadastrando colaborador num e-mail já existente).
             const existente = await admin.auth().getUserByEmail(email);
             uid = existente.uid;
+            await admin.auth().updateUser(uid, { password: senha, displayName: `${nome} ${sobrenome}` });
         } else {
             console.error('❌ Erro ao criar conta de admin:', error.code || error.message, error);
             throw new functions.https.HttpsError('internal', 'Erro ao criar a conta: ' + (error.message || error.code));
@@ -698,6 +753,21 @@ exports.cadastrarAdmin = functions.https.onCall(async (request) => {
 
     if (request.auth && request.auth.uid) {
         await registrarLogAdministracao(request.auth.uid, 'admin_criado', `${nome} ${sobrenome}`, uid, 'senhaMaster');
+    }
+
+    // O cliente só consegue mandar esse e-mail sozinho (via
+    // finalizarCadastroAdmin, logando temporariamente como a conta nova)
+    // quando ninguém mais estava logado (bootstrap) — quando quem cadastra
+    // já tem sessão própria (o caso normal, admin/colaborador cadastrado
+    // pelo painel), o cliente pula esse passo de propósito pra não derrubar
+    // essa sessão. Sem isto aqui, a conta ficava com e-mail nunca verificado
+    // e travada pra sempre no login (ver AdminRepository.loginAdmin,
+    // isEmailVerified). Checa emailVerified em vez de "é conta nova?" pra
+    // cobrir também uma conta REAPROVEITADA (auth/email-already-exists
+    // acima) que por acaso nunca tinha verificado o e-mail.
+    const contaAuth = await admin.auth().getUser(uid);
+    if (!contaAuth.emailVerified) {
+        await enviarEmailVerificacaoParaUid(uid);
     }
 
     return { uid };
@@ -791,6 +861,82 @@ exports.atualizarPermissoesAdmin = functions.https.onCall(async (request) => {
     const alvo = doc.data();
     await registrarLogAdministracao(uidChamador, 'admin_editado', [alvo.nome, alvo.sobrenome].filter(Boolean).join(' '), uid, 'senhaMaster');
     return { ok: true };
+});
+
+// ============================================================
+// Troca a foto de OUTRO admin/colaborador (não o próprio dono) — o
+// storage.rules (fotos_perfil/{usuarioId}) só libera escrita pro dono do
+// uid, então o cliente não consegue subir a foto de outra pessoa direto no
+// Storage. Contorno: o cliente sobe a foto numa pasta que ELE pode escrever
+// (fotos_perfil/{uidChamador}/...), essa function (Admin SDK, ignora as
+// regras) copia esse arquivo pra fotos_perfil/{uid}/..., apaga a cópia de
+// origem, e grava a URL de download em admins/{uid}.fotoUrl — mesmo formato
+// de URL (?alt=media&token=) que o Client SDK gera sozinho ao fazer
+// upload, então funciona igual pra quem já lê fotoUrl hoje. Mesma trava
+// dupla de atualizarAdmin/atualizarPermissoesAdmin (permissão
+// "administradores" de quem chama + senha master).
+// ============================================================
+exports.atualizarFotoAdminAutorizado = functions.https.onCall(async (request) => {
+    if (!ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('failed-precondition', 'Edição de foto não configurada no servidor.');
+    }
+
+    const dados = request.data || {};
+    const uid = (dados.uid || '').trim();
+    const storagePathOrigem = (dados.storagePathOrigem || '').trim();
+    const senhaAutorizacao = dados.senhaAutorizacao || '';
+
+    if (!uid || !storagePathOrigem) {
+        throw new functions.https.HttpsError('invalid-argument', 'uid e storagePathOrigem são obrigatórios.');
+    }
+    const uidChamador = request.auth && request.auth.uid;
+    if (!uidChamador) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login como administrador.');
+    }
+    // A origem TEM que estar na própria pasta de quem chamou — é a mesma
+    // pasta que o storage.rules já libera pro cliente escrever, então isso
+    // garante que a function só mexe num arquivo que quem chamou realmente
+    // acabou de subir, nunca num path arbitrário de outra pessoa.
+    if (!storagePathOrigem.startsWith(`fotos_perfil/${uidChamador}/`)) {
+        throw new functions.https.HttpsError('permission-denied', 'Origem da foto inválida.');
+    }
+    await exigirPermissao(uidChamador, 'administradores');
+    if (senhaAutorizacao !== ADMIN_MASTER_PASSWORD) {
+        throw new functions.https.HttpsError('permission-denied', 'Senha do administrador master incorreta.');
+    }
+
+    const ref = admin.firestore().collection('admins').doc(uid);
+    const doc = await ref.get();
+    if (!doc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Admin não encontrado.');
+    }
+
+    const bucket = admin.storage().bucket();
+    const arquivoOrigem = bucket.file(storagePathOrigem);
+    const [existeOrigem] = await arquivoOrigem.exists();
+    if (!existeOrigem) {
+        throw new functions.https.HttpsError('not-found', 'Foto enviada não encontrada — tente selecionar de novo.');
+    }
+
+    const caminhoDestino = `fotos_perfil/${uid}/perfil_${Date.now()}.jpg`;
+    const arquivoDestino = bucket.file(caminhoDestino);
+    const token = crypto.randomUUID();
+
+    try {
+        await arquivoOrigem.copy(arquivoDestino);
+        await arquivoDestino.setMetadata({ contentType: 'image/jpeg', metadata: { firebaseStorageDownloadTokens: token } });
+        await arquivoOrigem.delete().catch((e) => console.warn('⚠️ Erro ao apagar foto de origem temporária:', e.message));
+    } catch (error) {
+        console.error('❌ Erro ao copiar foto no Storage:', error);
+        throw new functions.https.HttpsError('internal', 'Erro ao salvar a foto: ' + error.message);
+    }
+
+    const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(caminhoDestino)}?alt=media&token=${token}`;
+    await ref.update({ fotoUrl: url });
+
+    const alvo = doc.data();
+    await registrarLogAdministracao(uidChamador, 'admin_editado', [alvo.nome, alvo.sobrenome].filter(Boolean).join(' '), uid, 'senhaMaster');
+    return { fotoUrl: url };
 });
 
 // ============================================================
@@ -1396,11 +1542,13 @@ exports.admExcluirManifestacao = functions.https.onCall(async (request) => {
 // ============================================================
 // Reenvia o e-mail de verificação de cadastro pra um endereço já
 // cadastrado — usada pela caixa "Suporte" da tela de login
-// (LoginCaronasActivity, opção "Reenviar e-mail de validação").
+// (LoginCaronasActivity, opção "Reenviar e-mail de validação") e também
+// (via enviarEmailVerificacaoParaUid, ver acima) por cadastrarAdmin, pra
+// mandar o primeiro e-mail de verificação de um admin/colaborador novo.
 //
-// O SDK Admin do Firebase não tem um método pronto pra "reenviar o e-mail
-// de verificação" (só admin.auth().generateEmailVerificationLink, que gera
-// o link mas NÃO manda e-mail nenhum). A API REST que manda o e-mail de
+// O SDK Admin do Firebase não tem um método pronto pra "mandar o e-mail de
+// verificação" (só admin.auth().generateEmailVerificationLink, que gera o
+// link mas NÃO manda e-mail nenhum). A API REST que manda o e-mail de
 // verdade (accounts:sendOobCode, requestType VERIFY_EMAIL) exige um ID
 // TOKEN de usuário de verdade — um token OAuth desta Cloud Function sozinho
 // não basta (erro INVALID_ID_TOKEN, já testado). Contorno padrão do Admin
@@ -1408,10 +1556,11 @@ exports.admExcluirManifestacao = functions.https.onCall(async (request) => {
 // token (admin.auth().createCustomToken) e trocá-lo por um ID token real
 // via REST (accounts:signInWithCustomToken, usando a chave web do projeto
 // — não é secreta, é a mesma já embutida em public/index.html) — só então
-// esse ID token serve pra pedir o reenvio de verdade.
+// esse ID token serve pra pedir o envio de verdade. Essa troca é o que
+// enviarEmailVerificacaoParaUid faz.
 //
-// Não recebe request.auth — quem pede isso ainda não consegue logar (é
-// literalmente o problema que está tentando resolver).
+// Esta function não recebe request.auth — quem pede isso ainda não
+// consegue logar (é literalmente o problema que está tentando resolver).
 // ============================================================
 const WEB_API_KEY = process.env.WEB_API_KEY || '';
 
@@ -1441,37 +1590,8 @@ exports.reenviarVerificacaoEmail = functions.https.onCall(async (request) => {
         return { ok: true, jaVerificado: true };
     }
 
-    try {
-        const customToken = await admin.auth().createCustomToken(usuario.uid);
-
-        const respostaLogin = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${WEB_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: customToken, returnSecureToken: true }),
-            }
-        );
-        if (!respostaLogin.ok) {
-            console.error('❌ signInWithCustomToken falhou:', respostaLogin.status, await respostaLogin.text());
-            throw new Error('Falha ao autenticar internamente.');
-        }
-        const { idToken } = await respostaLogin.json();
-
-        const respostaEnvio = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${WEB_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken }),
-            }
-        );
-        if (!respostaEnvio.ok) {
-            console.error('❌ sendOobCode falhou:', respostaEnvio.status, await respostaEnvio.text());
-            throw new Error('Falha ao reenviar e-mail de verificação.');
-        }
-    } catch (error) {
-        console.error('❌ Erro ao reenviar verificação:', error);
+    const enviado = await enviarEmailVerificacaoParaUid(usuario.uid);
+    if (!enviado) {
         throw new functions.https.HttpsError('internal', 'Erro ao reenviar e-mail de verificação.');
     }
 
@@ -1590,6 +1710,53 @@ exports.notificarMensagemCaronas = onDocumentCreated(
             id: event.params.mensagemId,
             conversaId: event.params.conversaId,
         });
+    }
+);
+
+// Nova mensagem no chat entre ADMINISTRADORES (separado do chat de carona
+// acima) -> avisa quem recebeu. Token lido de admins/{id}.fcmToken (gravado
+// por NotificacaoRepository.atualizarTokenAdmin, sempre que
+// AdministracaoCaronasActivity carrega o perfil) — mesmo padrão de
+// notificarNovaMensagemChatAdmin do Match, incluindo nunca mandar o
+// conteúdo real da mensagem na notificação (nem cifrado, nem decifrado):
+// o campo "preview" é sempre um texto fixo.
+exports.notificarNovaMensagemChatAdmin = onDocumentCreated(
+    'conversasAdmin/{conversaId}/mensagens/{mensagemId}',
+    async (event) => {
+        const dados = event.data?.data();
+        if (!dados) return;
+
+        const destinatarioId = dados.destinatarioId;
+        if (!destinatarioId) return;
+
+        const db = admin.firestore();
+        const destinatarioSnap = await db.collection('admins').doc(destinatarioId).get();
+        const token = destinatarioSnap.exists ? destinatarioSnap.data().fcmToken : null;
+        if (!token) return;
+
+        try {
+            const remetenteNome = dados.remetenteNome || 'Administrador';
+            await admin.messaging().send({
+                token,
+                data: {
+                    tipo: 'chatAdmin',
+                    id: event.params.mensagemId,
+                    conversaId: event.params.conversaId,
+                    remetenteId: dados.remetenteId || '',
+                    remetenteNome,
+                    // Nunca o conteúdo real da mensagem (nem cifrado, nem
+                    // decifrado) — só quem mandou, igual ao Match.
+                    corpo: `Nova mensagem de ${remetenteNome}`,
+                },
+                android: { priority: 'high' },
+            });
+        } catch (error) {
+            console.warn('⚠️ Erro ao enviar push do chat admin:', error.message);
+            if (error.code === 'messaging/registration-token-not-registered') {
+                await db.collection('admins').doc(destinatarioId)
+                    .update({ fcmToken: admin.firestore.FieldValue.delete() });
+            }
+        }
     }
 );
 

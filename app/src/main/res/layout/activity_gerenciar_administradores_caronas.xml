@@ -16,6 +16,34 @@
         android:gravity="center"
         android:layout_marginBottom="16dp" />
 
+    <!-- Duas abas lado a lado, mesmo formato de Motoristas/Passageiros no
+         dashboard (AdministracaoCaronasActivity) — cada uma filtra
+         cliente-side a MESMA lista já carregada (ver
+         GerenciarAdministradoresCaronasActivity.exibirListaFiltrada), sem
+         nova busca ao Firestore ao trocar de aba. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/btnAbaAdmins"
+            style="@style/BotaoAcaoCaronasVertical"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="@string/gerenciar_admins_aba_admins" />
+
+        <TextView
+            android:id="@+id/btnAbaColaboradores"
+            style="@style/BotaoAcaoCaronasVertical"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/gerenciar_admins_aba_colaboradores" />
+
+    </LinearLayout>
+
     <Button
         android:id="@+id/btnNovoAdmin"
         android:layout_width="match_parent"
@@ -26,6 +54,41 @@
         android:textSize="12sp"
         android:background="@drawable/botao_azul_neon"
         android:layout_marginBottom="16dp" />
+
+    <!-- Título da aba selecionada + contador, mesmo formato de
+         tvTituloSecaoAdmin/tvContadorSecaoAdmin no dashboard. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/tvTituloAbaAdministradores"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="@color/azul_neon"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvContadorAbaAdministradores"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@color/azul_neon_escuro"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
 
     <ProgressBar
         android:id="@+id/progressBarAdmins"

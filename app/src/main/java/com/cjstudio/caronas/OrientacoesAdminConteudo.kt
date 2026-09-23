@@ -27,8 +27,9 @@ Todo mês:
         """.trimIndent(),
 
         "🖥️ O que faz cada botão do painel" to """
-• Editar Perfil (topo): abre a busca de administradores. Daqui você edita seus dados e cria novos admins (exige a senha do administrador master).
-• ⚙️ Configurações (canto superior esquerdo): Termos de Uso e Privacidade.
+• Editar Perfil (topo): abre a busca de administradores por CPF — encontra um admin/colaborador já cadastrado e abre o cadastro dele pra editar (exige a senha do administrador master). Não cadastra ninguém novo, só edita quem já existe.
+• ⚙️ Configurações (canto superior esquerdo): Termos de Uso e Privacidade e, pra quem tem a permissão "administradores", o card Administradores.
+• 👑 Administradores (dentro de Configurações): duas abas, Admins e Colaboradores. Cadastra, edita (inclusive foto — hoje dá pra trocar a foto de qualquer um, não só a própria) e exclui administradores/colaboradores, com a mesma grade de permissões por seção do painel. Colaborador precisa validar o e-mail antes do primeiro login (mesma tela de login do admin) e aparece com "(colaborador)" abaixo do próprio nome, no topo do painel.
 • Motoristas: lista de quem tem veículo cadastrado, com número de viagens realizadas e total recebido. Toque para ver o cadastro completo (inclui o CPF); toque e segure para excluir.
 • Passageiros: todos os cadastros (todo motorista também é passageiro). Mesmos gestos.
 • 💰 Financeiro: pagamentos do acesso de motorista, com filtro por período e geração de relatório mensal em PDF.

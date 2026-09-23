@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootChatAdminCaronas"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fundo_cinza_claro">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#141E90FF"
+        android:padding="12dp"
+        android:paddingTop="36dp">
+
+        <ImageView
+            android:contentDescription="@string/cd_foto_perfil"
+            android:id="@+id/ivFotoOutroChatAdmin"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_person_default"
+            android:scaleType="centerCrop"
+            android:background="@drawable/borda_circular_azul"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/tvNomeOutroChatAdmin"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#1E90FF"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:text="Nome" />
+
+        <TextView
+            android:id="@+id/tvNotificacaoNaoLidasChatAdmin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="20dp"
+            android:minHeight="20dp"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:background="@drawable/botao_azul_neon"
+            android:visibility="gone"
+            android:text="1" />
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMensagensChatAdmin"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#FFFFFF"
+        android:padding="8dp">
+
+        <EditText
+            android:id="@+id/etMensagemChatAdmin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/chat_carona_hint_mensagem"
+            android:textColor="#000000"
+            android:textColorHint="#999999"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="4"
+            android:background="@android:drawable/editbox_background"
+            android:padding="10dp" />
+
+        <Button
+            android:id="@+id/btnEnviarChatAdmin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/chat_carona_botao_enviar"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:background="@drawable/botao_azul_neon" />
+
+    </LinearLayout>
+
+</LinearLayout>

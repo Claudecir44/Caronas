@@ -72,6 +72,14 @@
         { "fieldPath": "arquivado", "order": "ASCENDING" },
         { "fieldPath": "arquivadoEm", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "conversasAdmin",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participantes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "ultimoTimestamp", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

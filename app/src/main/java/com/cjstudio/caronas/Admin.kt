@@ -68,7 +68,8 @@ data class Admin(
             "mensagens" to "Mensagens",
             "manifestacoes" to "Reclamações, Sugestões e Denúncias",
             "relatorios" to "Relatórios",
-            "administradores" to "Administradores"
+            "administradores" to "Administradores",
+            "chatAdmin" to "Chat entre Administradores"
         )
     }
 }

@@ -31,10 +31,11 @@ const abasWeb = `Cada aba do painel:
 • Viagens (Passageiros): as solicitações de vaga, com rota, passageiro, motorista, valor e status.
 • 📝 Sugestões e Reclamações: reclamações, sugestões e denúncias dos usuários; responda por e-mail e arquive. O número vermelho é a quantidade sem resposta.
 • 💰 Financeiro: pagamentos do acesso de motorista, filtro por período e relatório mensal.
+• 👑 Administradores: duas sub-abas, Admins e Colaboradores. "+ Novo Admin" cadastra; clique numa linha da tabela para editar (inclusive a foto, mesmo de outra pessoa) ou excluir — mesmas Cloud Functions e mesma trava de senha master do app.
 • 🧭 Orientações: este guia.
 • ⚙️ Configurações: Termos de Uso e Privacidade.
 
-Só existem no aplicativo administrativo (Android): Mensagens (ler as conversas de um usuário), Editar Perfil e a criação de novos administradores.`;
+Só existem no aplicativo administrativo (Android): Mensagens (ler as conversas de um usuário) e Editar Perfil (buscar um admin/colaborador por CPF, no topo do painel).`;
 
 const trocas = [
   ['Monitorar: em Mensagens, digite nome, telefone, e-mail (ou CPF de motorista), toque no usuário e leia as conversas.',

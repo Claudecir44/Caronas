@@ -33,6 +33,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
     private lateinit var etSenha: EditText
     private lateinit var etConfirmarSenha: EditText
     private lateinit var cbSouMotorista: CheckBox
+    private lateinit var cbAceitarTermos: CheckBox
     private lateinit var layoutVeiculo: LinearLayout
     private lateinit var etCpf: EditText
     private lateinit var etVeiculoModelo: EditText
@@ -66,6 +67,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
         etConfirmarSenha = findViewById(R.id.etConfirmarSenha)
         etConfirmarSenha.habilitarToggleSenha()
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
+        cbAceitarTermos = findViewById(R.id.cbAceitarTermos)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
         etCpf = findViewById(R.id.etCpf)
         CpfUtil.aplicarMascara(etCpf)
@@ -95,6 +97,13 @@ class CadastroCaronasActivity : AppCompatActivity() {
                 etVeiculoCor.text.clear()
                 etVeiculoPlaca.text.clear()
             }
+        }
+
+        // Texto clicável abre os Termos/Política — o checkbox continua
+        // sendo o consentimento em si, tocar no texto não marca ele
+        // sozinho (a pessoa precisa realmente ler antes de aceitar).
+        findViewById<TextView>(R.id.tvAceitarTermos).setOnClickListener {
+            startActivity(Intent(this, TermosPrivacidadeCaronasActivity::class.java))
         }
 
         btnCadastrar.setOnClickListener { validarECadastrar() }
@@ -130,6 +139,10 @@ class CadastroCaronasActivity : AppCompatActivity() {
         }
         if (fotoUriSelecionada == null) {
             Toast.makeText(this, R.string.cadastro_erro_foto_obrigatoria, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!cbAceitarTermos.isChecked) {
+            Toast.makeText(this, R.string.cadastro_erro_aceitar_termos, Toast.LENGTH_LONG).show()
             return
         }
 

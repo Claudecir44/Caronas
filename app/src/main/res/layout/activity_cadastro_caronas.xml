@@ -182,6 +182,34 @@
 
         </LinearLayout>
 
+        <!-- Obrigatório pra cadastrar (ver CadastroCaronasActivity
+             .validarECadastrar) — o texto é clicável e abre
+             TermosPrivacidadeCaronasActivity (mesmo texto combinado de
+             Termos de Uso + Política de Privacidade já usado em
+             Configurações), o checkbox é o consentimento em si. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <CheckBox
+                android:id="@+id/cbAceitarTermos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/tvAceitarTermos"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/cadastro_aceitar_termos"
+                android:textColor="#8ECFFF"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
         <Button
             android:id="@+id/btnCadastrar"
             android:layout_width="match_parent"

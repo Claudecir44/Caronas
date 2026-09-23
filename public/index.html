@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body {
@@ -231,6 +232,10 @@
         <div class="admin-info">
             <img id="adminFoto" src="" alt="">
             <span id="adminNome"></span>
+            <!-- Só aparece quando dados.role === 'colaborador' (ver
+                 carregarAdminLogado) — mesmo texto "(colaborador)" usado no
+                 app nativo (AdministracaoCaronasActivity). -->
+            <span id="papelAdminLogadoTopo" style="display:none; font-size:11px; font-weight:400; color:#777;">(colaborador)</span>
         </div>
         <h1>Painel Administrativo Caronas</h1>
         <button id="logout" onclick="fazerLogout()">Sair</button>
@@ -244,6 +249,8 @@
         <button class="aba-botao" data-aba="manifestacoes" onclick="mostrarAba('manifestacoes'); carregarManifestacoes();">📝 Sugestões e Reclamações<span id="badgeManifestacoesTab" class="badge-tab"></span></button>
         <button class="aba-botao" data-aba="mensagens" onclick="mostrarAba('mensagens')">💬 Mensagens</button>
         <button class="aba-botao" data-aba="financeiro" onclick="mostrarAba('financeiro'); carregarFinanceiro();">💰 Financeiro</button>
+        <button class="aba-botao" data-aba="administradores" onclick="mostrarAba('administradores'); carregarAdministradoresPainel();">👑 Administradores</button>
+        <button class="aba-botao" data-aba="chatAdmin" onclick="mostrarAba('chatAdmin'); loadChatAdmin();">💬 Chat Admin<span id="badgeChatAdminTab" class="badge-tab"></span></button>
         <button class="aba-botao" data-aba="orientacoes" onclick="mostrarAba('orientacoes'); carregarOrientacoes();">🧭 Orientações</button>
         <button class="aba-botao" data-aba="configuracoes" onclick="mostrarAba('configuracoes'); carregarConfiguracoes();">⚙️ Configurações</button>
     </div>
@@ -355,6 +362,58 @@
         <div class="vazio" id="vazioFinanceiro" style="display:none;">Nenhum pagamento encontrado nesse período.</div>
     </div>
 
+    <!-- Cria/edita/exclui outros admins e colaboradores, com permissões
+         granulares — mesma tela e mesmas Cloud Functions do app nativo (ver
+         GerenciarAdministradoresCaronasActivity/CadastroAdminCaronasActivity).
+         Duas sub-abas (Admins | Colaboradores), mesmo formato de
+         Motoristas/Passageiros acima — filtro client-side sobre a MESMA
+         lista já carregada (ver renderizarAdministradores). -->
+    <div class="aba-conteudo" id="abaAdministradores">
+        <h3 style="color:#0D47A1; margin-bottom:12px;">👑 Administradores</h3>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <button class="aba-botao ativa" id="btnSubAbaAdmins" onclick="mostrarSubAbaAdministradores('admin')">Admins<span id="contadorAdminsTab" class="badge-tab badge-tab-neutral"></span></button>
+            <button class="aba-botao" id="btnSubAbaColaboradores" onclick="mostrarSubAbaAdministradores('colaborador')">Colaboradores<span id="contadorColaboradoresTab" class="badge-tab badge-tab-neutral"></span></button>
+        </div>
+
+        <button class="aba-botao" style="background:#1E90FF; color:#fff; margin-bottom:14px;" onclick="abrirCadastroAdministrador()">+ Novo Admin</button>
+
+        <table><thead><tr><th></th><th>Nome</th><th>E-mail</th><th>Papel</th></tr></thead>
+            <tbody id="corpoAdministradores"></tbody></table>
+        <div class="vazio" id="vazioAdministradores" style="display:none;">Nenhum administrador cadastrado.</div>
+    </div>
+
+    <!-- Chat interno 1-a-1 entre administradores/colaboradores — mesma
+         ideia e MESMAS funções do chat equivalente no painel do Match
+         (conversas, nova conversa, apagar mensagem pra mim/pra todos,
+         badge de não lidas), com conteúdo cifrado (ver bloco "Chat entre
+         Administradores" no script abaixo, chave espelhando
+         ChatAdminCryptoUtil.kt). Diferente do chat de uma carona (que fica
+         só em relatório/consulta), este é em tempo real. -->
+    <div class="aba-conteudo" id="abaChatAdmin">
+        <h3 style="color:#0D47A1; margin-bottom:12px;">💬 Chat Admin</h3>
+        <div style="display:flex; gap:16px; height:70vh;">
+            <div style="width:280px; min-width:220px; display:flex; flex-direction:column; border:1px solid #eee; border-radius:8px; overflow:hidden;">
+                <div style="padding:10px; background:#0D47A1;">
+                    <button class="btn" style="width:100%; background:#fff; color:#0D47A1;" onclick="mostrarNovaConversaChatAdmin()">+ Nova Conversa</button>
+                </div>
+                <div id="chatAdminNovaConversaBox" style="display:none; padding:10px; border-bottom:1px solid #eee; background:#fafafa;">
+                    <select id="chatAdminSelectAdmin" style="width:100%; margin-bottom:8px; padding:6px;"></select>
+                    <button class="btn" style="width:100%; background:#1E90FF; color:#fff;" onclick="iniciarConversaChatAdmin()">Iniciar conversa</button>
+                </div>
+                <div id="chatAdminLista" style="flex:1; overflow-y:auto;"><p style="padding:10px; color:#666;">⏳ Carregando conversas...</p></div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; border:1px solid #eee; border-radius:8px; overflow:hidden;">
+                <div id="chatAdminHeader" style="padding:12px; background:#EEEEEE; font-weight:bold; color:#333;">Selecione uma conversa</div>
+                <div id="chatAdminMensagens" style="flex:1; overflow-y:auto; padding:12px; background:#F5F5F5;"></div>
+                <div style="display:flex; padding:8px; background:#fafafa; gap:8px; border-top:1px solid #eee;">
+                    <input id="chatAdminInput" placeholder="Digite sua mensagem..." style="flex:1; padding:10px; border-radius:6px; border:1px solid #ccc;" onkeydown="if(event.key==='Enter'){enviarMensagemChatAdmin();}">
+                    <button class="btn" style="background:#0D47A1; color:#fff;" onclick="enviarMensagemChatAdmin()">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Guia de como monitorar e ajustar o app — mesmo conteúdo do botão
          "Orientações" do app administrativo (ver OrientacoesAdminConteudo.kt). -->
     <div class="aba-conteudo" id="abaOrientacoes">
@@ -427,6 +486,7 @@
             motoristas: 'usuarios', passageiros: 'usuarios',
             viagensMotorista: 'viagens', viagensPassageiro: 'viagens',
             manifestacoes: 'manifestacoes', mensagens: 'mensagens', financeiro: 'financeiro',
+            administradores: 'administradores', chatAdmin: 'chatAdmin',
         };
         document.querySelectorAll('.aba-botao').forEach((botao) => {
             const chave = chavePorAba[botao.dataset.aba];
@@ -500,6 +560,9 @@
             document.getElementById('login').style.display = 'flex';
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginSenha').value = '';
+            document.getElementById('papelAdminLogadoTopo').style.display = 'none';
+            pararBadgeChatAdminTab();
+            pararListenersChatAdmin();
         });
     }
 
@@ -511,10 +574,18 @@
         // não cabe bem nesse espaço pequeno do topo.
         document.getElementById('adminNome').textContent = dados.nome || dados.email || '';
         document.getElementById('adminFoto').src = dados.fotoUrl || FOTO_PADRAO;
+        document.getElementById('papelAdminLogadoTopo').style.display = dados.role === 'colaborador' ? '' : 'none';
         aplicarPermissoesPainel();
+        iniciarBadgeChatAdminTab();
     }
 
     function mostrarAba(nome) {
+        // Desliga os listeners do chat entre admins sempre que qualquer aba
+        // é clicada (inclusive a própria "chatAdmin" — nesse caso o
+        // onclick já chama loadChatAdmin() logo em seguida, que religa do
+        // zero) — sem isso, os onSnapshot ficavam escutando pra sempre em
+        // segundo plano depois de trocar de aba.
+        if (typeof pararListenersChatAdmin === 'function') pararListenersChatAdmin();
         document.querySelectorAll('.aba-botao').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === nome));
         document.querySelectorAll('.aba-conteudo').forEach((c) => c.classList.remove('ativa'));
         document.getElementById('aba' + nome.charAt(0).toUpperCase() + nome.slice(1)).classList.add('ativa');
@@ -535,6 +606,460 @@
         const div = document.createElement('div');
         div.textContent = texto || '';
         return div.innerHTML;
+    }
+
+    // ===== Chat entre Administradores =====
+    // Chat 1-a-1 entre contas de admin/colaborador (separado do chat de
+    // uma carona, que aqui no painel fica só em modo relatório/consulta,
+    // ver aba "Mensagens" acima) — MESMAS funções do equivalente no painel
+    // do Match: lista de conversas em tempo real, iniciar conversa,
+    // enviar/receber, marcar como lida, apagar mensagem pra mim/pra todos e
+    // badge de não lidas na aba. Conteúdo cifrado (AES-256-GCM via Web
+    // Crypto) com a MESMA chave de ChatAdminCryptoUtil.kt no app — uma
+    // conversa iniciada num lugar continua no outro sem perder o conteúdo.
+    const CHAT_ADMIN_CHAVE_BASE64 = 'iy9R6dvK3JZL52hV2Z7101UDDYX7MCqsiWtDZx55T8g=';
+    const CHAT_ADMIN_PREFIXO_CIFRADO = 'ENC1:';
+    let _chatAdminCryptoKeyPromise = null;
+
+    function chatAdminBase64ParaBytes(b64) {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes;
+    }
+
+    function chatAdminBytesParaBase64(bytes) {
+        let bin = '';
+        bytes.forEach((b) => bin += String.fromCharCode(b));
+        return btoa(bin);
+    }
+
+    function chatAdminGetChaveCripto() {
+        if (!_chatAdminCryptoKeyPromise) {
+            _chatAdminCryptoKeyPromise = crypto.subtle.importKey(
+                'raw', chatAdminBase64ParaBytes(CHAT_ADMIN_CHAVE_BASE64), 'AES-GCM', false, ['encrypt', 'decrypt']
+            );
+        }
+        return _chatAdminCryptoKeyPromise;
+    }
+
+    async function criptografarMensagemChatAdmin(textoPlano) {
+        if (!textoPlano) return textoPlano;
+        try {
+            const chave = await chatAdminGetChaveCripto();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const cifrado = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, tagLength: 128 }, chave, new TextEncoder().encode(textoPlano));
+            const combinado = new Uint8Array(iv.length + cifrado.byteLength);
+            combinado.set(iv, 0);
+            combinado.set(new Uint8Array(cifrado), iv.length);
+            return CHAT_ADMIN_PREFIXO_CIFRADO + chatAdminBytesParaBase64(combinado);
+        } catch (e) {
+            console.error('Erro ao criptografar mensagem do chat admin', e);
+            return textoPlano;
+        }
+    }
+
+    async function descriptografarMensagemChatAdmin(textoArmazenado) {
+        if (!textoArmazenado || !textoArmazenado.startsWith(CHAT_ADMIN_PREFIXO_CIFRADO)) return textoArmazenado;
+        try {
+            const chave = await chatAdminGetChaveCripto();
+            const dados = chatAdminBase64ParaBytes(textoArmazenado.slice(CHAT_ADMIN_PREFIXO_CIFRADO.length));
+            const iv = dados.slice(0, 12);
+            const cifrado = dados.slice(12);
+            const texto = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, chave, cifrado);
+            return new TextDecoder().decode(texto);
+        } catch (e) {
+            console.error('Erro ao descriptografar mensagem do chat admin', e);
+            return textoArmazenado;
+        }
+    }
+
+    // Mesmo id determinístico (par ordenado) de idConversaEntre() em
+    // ChatAdminCaronaRepository.kt — um get() direto por id sempre passa
+    // nas regras do Firestore, ao contrário de uma consulta. "Quem é
+    // admin1/admin2" não tem significado além de decidir esse id.
+    function idConversaChatAdminEntre(a, b) {
+        return [a, b].sort().join('_');
+    }
+
+    let chatAdminConversaAtual = null;
+    let chatAdminOutroAtual = null;
+    let chatAdminConversasCache = [];
+    let unsubscribeChatAdminConversas = null;
+    let unsubscribeChatAdminMensagens = null;
+
+    // Chamado ao trocar de aba (ver mostrarAba) e no logout, pra não deixar
+    // os dois onSnapshot() do chat rodando em segundo plano depois que o
+    // admin saiu da aba/da conta.
+    function pararListenersChatAdmin() {
+        if (unsubscribeChatAdminConversas) { unsubscribeChatAdminConversas(); unsubscribeChatAdminConversas = null; }
+        if (unsubscribeChatAdminMensagens) { unsubscribeChatAdminMensagens(); unsubscribeChatAdminMensagens = null; }
+        chatAdminConversaAtual = null;
+        chatAdminOutroAtual = null;
+    }
+
+    function outroIdDaConversaChatAdmin(c) {
+        const meuId = auth.currentUser?.uid;
+        return c.admin1Id === meuId ? c.admin2Id : c.admin1Id;
+    }
+
+    function loadChatAdmin() {
+        document.getElementById('chatAdminNovaConversaBox').style.display = 'none';
+        document.getElementById('chatAdminHeader').textContent = 'Selecione uma conversa';
+        document.getElementById('chatAdminMensagens').innerHTML = '';
+        document.getElementById('chatAdminInput').value = '';
+        carregarConversasAdmin();
+    }
+
+    function carregarConversasAdmin() {
+        const meuId = auth.currentUser?.uid;
+        if (!meuId) return;
+        if (unsubscribeChatAdminConversas) unsubscribeChatAdminConversas();
+        unsubscribeChatAdminConversas = db.collection('conversasAdmin')
+            .where('participantes', 'array-contains', meuId)
+            .orderBy('ultimoTimestamp', 'desc')
+            .onSnapshot((snapshot) => {
+                chatAdminConversasCache = [];
+                snapshot.forEach((doc) => {
+                    const c = doc.data();
+                    c.id = doc.id;
+                    chatAdminConversasCache.push(c);
+                });
+                renderizarListaConversasChatAdmin();
+            }, (err) => {
+                const lista = document.getElementById('chatAdminLista');
+                if (lista) lista.innerHTML = `<p style="color:red; padding:10px;">❌ Erro: ${escapar(err.message)}</p>`;
+            });
+    }
+
+    function renderizarListaConversasChatAdmin() {
+        const lista = document.getElementById('chatAdminLista');
+        if (!lista) return;
+        const meuId = auth.currentUser?.uid;
+
+        if (chatAdminConversasCache.length === 0) {
+            lista.innerHTML = '<p style="padding:10px; color:#666;">Nenhuma conversa ainda.<br>Clique em "+ Nova Conversa" para começar.</p>';
+            return;
+        }
+
+        lista.innerHTML = chatAdminConversasCache.map((c) => {
+            const outroId = outroIdDaConversaChatAdmin(c);
+            const outroNome = c.admin1Id === meuId ? (c.admin2Nome || 'Administrador') : (c.admin1Nome || 'Administrador');
+            const outroFoto = c.admin1Id === meuId ? c.admin2Foto : c.admin1Foto;
+            const naoLidas = c.admin1Id === meuId ? (c.naoLidas1 || 0) : (c.naoLidas2 || 0);
+            const ativo = chatAdminConversaAtual === c.id;
+            // Dentro de um atributo onclick="..." o navegador decodifica
+            // entidades HTML antes de rodar o JS — escapar só barra
+            // invertida e apóstrofo (não escapar() completo) é o jeito
+            // certo pra um argumento de onclick inline.
+            const nomeAttr = (outroNome || 'Administrador').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const fotoAttr = (outroFoto || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const preview = c.ultimaMensagem ? escapar(c.ultimaMensagem) : 'Nenhuma mensagem ainda';
+            return `<div style="display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid #eee; ${ativo ? 'background:#E3F2FD;' : ''}">
+                <div style="flex:1; display:flex; align-items:center; gap:8px; min-width:0; cursor:pointer;" onclick="abrirConversaAdmin('${escapar(c.id)}','${outroId}','${nomeAttr}','${fotoAttr}')">
+                    <img src="${outroFoto || FOTO_PADRAO}" onerror="this.src='${FOTO_PADRAO}'" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:bold; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapar(outroNome)}</div>
+                        <div style="font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${preview}</div>
+                    </div>
+                    ${naoLidas > 0 ? `<span style="background:#E53935; color:#fff; border-radius:50%; min-width:20px; height:20px; font-size:11px; display:flex; align-items:center; justify-content:center; padding:0 4px;">${naoLidas}</span>` : ''}
+                </div>
+                <span onclick="excluirConversaChatAdminUI('${escapar(c.id)}')" style="cursor:pointer; opacity:0.4; font-size:13px;" title="Excluir conversa">🗑️</span>
+            </div>`;
+        }).join('');
+    }
+
+    function mostrarNovaConversaChatAdmin() {
+        const box = document.getElementById('chatAdminNovaConversaBox');
+        if (!box) return;
+        const abrir = box.style.display === 'none';
+        box.style.display = abrir ? 'block' : 'none';
+        if (abrir) carregarAdminsParaNovoChat();
+    }
+
+    function carregarAdminsParaNovoChat() {
+        const select = document.getElementById('chatAdminSelectAdmin');
+        if (!select) return;
+        select.innerHTML = '<option>Carregando...</option>';
+        db.collection('admins').limit(200).get()
+            .then((snapshot) => {
+                let admins = [];
+                snapshot.forEach((doc) => {
+                    if (doc.id === auth.currentUser?.uid) return;
+                    const a = doc.data();
+                    a.id = doc.id;
+                    admins.push(a);
+                });
+                admins.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+                if (admins.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum outro administrador cadastrado</option>';
+                    return;
+                }
+                select.innerHTML = admins.map((a) => {
+                    const nome = [a.nome, a.sobrenome].filter(Boolean).join(' ') || a.email || 'Administrador';
+                    return `<option value="${a.id}" data-nome="${escapar(nome)}" data-foto="${a.fotoUrl || ''}">${escapar(nome)} (${escapar(a.email || 'sem e-mail')})</option>`;
+                }).join('');
+            })
+            .catch((err) => {
+                select.innerHTML = '<option value="">Erro ao carregar</option>';
+                console.error('Erro ao carregar administradores para novo chat', err);
+            });
+    }
+
+    function iniciarConversaChatAdmin() {
+        const select = document.getElementById('chatAdminSelectAdmin');
+        const outroId = select?.value;
+        if (!outroId) { alert('⚠️ Escolha um administrador.'); return; }
+        const opt = select.options[select.selectedIndex];
+        const outroNome = opt.getAttribute('data-nome') || 'Administrador';
+        const outroFoto = opt.getAttribute('data-foto') || '';
+        document.getElementById('chatAdminNovaConversaBox').style.display = 'none';
+
+        const meuId = auth.currentUser.uid;
+        const conversaId = idConversaChatAdminEntre(meuId, outroId);
+        const docRef = db.collection('conversasAdmin').doc(conversaId);
+
+        docRef.get().then((doc) => {
+            if (doc.exists) {
+                abrirConversaAdmin(conversaId, outroId, outroNome, outroFoto);
+                return;
+            }
+            const euSouAdmin1 = [meuId, outroId].sort()[0] === meuId;
+            const meuNome = [adminAtual?.nome, adminAtual?.sobrenome].filter(Boolean).join(' ') || adminAtual?.email || '';
+            const meuFoto = adminAtual?.fotoUrl || null;
+            const nova = euSouAdmin1 ? {
+                participantes: [meuId, outroId],
+                admin1Id: meuId, admin1Nome: meuNome, admin1Foto: meuFoto,
+                admin2Id: outroId, admin2Nome: outroNome, admin2Foto: outroFoto || null,
+                ultimaMensagem: '', ultimoTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                naoLidas1: 0, naoLidas2: 0
+            } : {
+                participantes: [meuId, outroId],
+                admin1Id: outroId, admin1Nome: outroNome, admin1Foto: outroFoto || null,
+                admin2Id: meuId, admin2Nome: meuNome, admin2Foto: meuFoto,
+                ultimaMensagem: '', ultimoTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                naoLidas1: 0, naoLidas2: 0
+            };
+            return docRef.set(nova).then(() => abrirConversaAdmin(conversaId, outroId, outroNome, outroFoto));
+        }).catch((err) => alert('❌ Erro ao iniciar conversa: ' + err.message));
+    }
+
+    function abrirConversaAdmin(conversaId, outroId, outroNome, outroFoto) {
+        chatAdminConversaAtual = conversaId;
+        chatAdminOutroAtual = { id: outroId, nome: outroNome, foto: outroFoto };
+        renderizarListaConversasChatAdmin();
+
+        const header = document.getElementById('chatAdminHeader');
+        if (header) {
+            header.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
+                <img src="${outroFoto || FOTO_PADRAO}" onerror="this.src='${FOTO_PADRAO}'" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
+                <span>${escapar(outroNome || 'Administrador')}</span>
+            </div>`;
+        }
+
+        const mensagensDiv = document.getElementById('chatAdminMensagens');
+        if (mensagensDiv) mensagensDiv.innerHTML = '<p style="color:#666;">⏳ Carregando mensagens...</p>';
+
+        if (unsubscribeChatAdminMensagens) unsubscribeChatAdminMensagens();
+        unsubscribeChatAdminMensagens = db.collection('conversasAdmin').doc(conversaId)
+            .collection('mensagens')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot((snapshot) => {
+                const mensagens = [];
+                snapshot.forEach((doc) => {
+                    const m = doc.data();
+                    m.id = doc.id;
+                    mensagens.push(m);
+                });
+                renderizarMensagensChatAdmin(mensagens);
+                marcarConversaChatAdminComoLida(conversaId);
+            }, (err) => {
+                if (mensagensDiv) mensagensDiv.innerHTML = `<p style="color:red;">❌ Erro: ${escapar(err.message)}</p>`;
+            });
+    }
+
+    async function renderizarMensagensChatAdmin(mensagens) {
+        const mensagensDiv = document.getElementById('chatAdminMensagens');
+        if (!mensagensDiv) return;
+        const meuId = auth.currentUser?.uid;
+
+        const linhas = await Promise.all(mensagens.map(async (m) => {
+            const souEu = m.remetenteId === meuId;
+            const deletadaParaMim = (m.deletadoParaRemetente && souEu) || (m.deletadoParaDestinatario && !souEu);
+            let texto;
+            if (m.deletadoParaTodos) {
+                texto = '⚠️ Mensagem apagada';
+            } else if (deletadaParaMim) {
+                texto = souEu ? 'Você apagou esta mensagem' : 'Mensagem apagada';
+            } else {
+                texto = await descriptografarMensagemChatAdmin(m.conteudo);
+            }
+            const hora = m.timestamp && m.timestamp.toDate ? m.timestamp.toDate() : null;
+            const horaTexto = hora ? hora.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+            const podeApagar = !m.deletadoParaTodos && !deletadaParaMim;
+            const apagarBtn = podeApagar
+                ? `<span onclick="deletarMensagemChatAdminUI('${escapar(m.id)}', ${souEu})" style="cursor:pointer; opacity:0.5; margin-left:6px; font-size:11px;" title="Apagar">🗑️</span>`
+                : '';
+            return `<div style="display:flex; justify-content:${souEu ? 'flex-end' : 'flex-start'}; margin-bottom:8px;">
+                <div style="max-width:70%; background:${souEu ? '#DCF8C6' : '#FFFFFF'}; border-radius:10px; padding:8px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+                    ${!souEu ? `<div style="font-size:11px; font-weight:bold; color:#0D47A1;">${escapar(m.remetenteNome || 'Administrador')}</div>` : ''}
+                    <div style="font-size:14px; color:#222; white-space:pre-wrap; word-break:break-word;">${escapar(texto)}</div>
+                    <div style="font-size:10px; color:#999; text-align:right; margin-top:2px;">${horaTexto}${souEu ? (m.lida ? ' ✓✓' : ' ✓') : ''}${apagarBtn}</div>
+                </div>
+            </div>`;
+        }));
+
+        mensagensDiv.innerHTML = linhas.join('') || '<p style="color:#888; text-align:center; margin-top:20px;">Nenhuma mensagem ainda</p>';
+        mensagensDiv.scrollTop = mensagensDiv.scrollHeight;
+    }
+
+    function marcarConversaChatAdminComoLida(conversaId) {
+        const meuId = auth.currentUser?.uid;
+        if (!meuId) return;
+
+        db.collection('conversasAdmin').doc(conversaId).get().then((doc) => {
+            if (!doc.exists) return;
+            const c = doc.data();
+            const campo = c.admin1Id === meuId ? 'naoLidas1' : (c.admin2Id === meuId ? 'naoLidas2' : null);
+            if (campo) db.collection('conversasAdmin').doc(conversaId).update({ [campo]: 0 }).catch(() => {});
+        });
+
+        db.collection('conversasAdmin').doc(conversaId).collection('mensagens')
+            .where('destinatarioId', '==', meuId)
+            .where('lida', '==', false)
+            .get()
+            .then((snapshot) => {
+                if (snapshot.empty) return;
+                const batch = db.batch();
+                snapshot.forEach((doc) => batch.update(doc.ref, { lida: true }));
+                return batch.commit();
+            })
+            .catch(() => {});
+    }
+
+    async function enviarMensagemChatAdmin() {
+        const input = document.getElementById('chatAdminInput');
+        if (!input || !chatAdminConversaAtual || !chatAdminOutroAtual) return;
+        const texto = input.value.trim();
+        if (!texto) return;
+        input.value = '';
+
+        const meuId = auth.currentUser?.uid;
+        const meuNome = [adminAtual?.nome, adminAtual?.sobrenome].filter(Boolean).join(' ') || adminAtual?.email || 'Administrador';
+        const conversaId = chatAdminConversaAtual;
+        const outro = chatAdminOutroAtual;
+
+        const conteudoCifrado = await criptografarMensagemChatAdmin(texto);
+
+        db.collection('conversasAdmin').doc(conversaId).collection('mensagens').add({
+            remetenteId: meuId,
+            remetenteNome: meuNome,
+            destinatarioId: outro.id,
+            destinatarioNome: outro.nome,
+            conteudo: conteudoCifrado,
+            tipo: 'texto',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            deletadoParaTodos: false,
+            deletadoParaRemetente: false,
+            deletadoParaDestinatario: false,
+            lida: false
+        })
+            .then(() => db.collection('conversasAdmin').doc(conversaId).get())
+            .then((doc) => {
+                const c = doc.data();
+                const campoNaoLidas = c.admin1Id === meuId ? 'naoLidas2' : 'naoLidas1';
+                return db.collection('conversasAdmin').doc(conversaId).update({
+                    ultimaMensagem: texto,
+                    ultimoTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    ultimoRemetenteId: meuId,
+                    [campoNaoLidas]: firebase.firestore.FieldValue.increment(1)
+                });
+            })
+            .catch((err) => alert('❌ Erro ao enviar: ' + err.message));
+    }
+
+    function deletarMensagemChatAdminUI(msgId, souRemetente) {
+        if (souRemetente) {
+            const paraTodos = confirm('Apagar esta mensagem para todos? (Cancelar = apagar só para você)');
+            if (paraTodos) deletarMensagemChatAdminParaTodos(msgId);
+            else deletarMensagemChatAdminParaMim(msgId, true);
+        } else {
+            if (confirm('Apagar esta mensagem só para você?')) deletarMensagemChatAdminParaMim(msgId, false);
+        }
+    }
+
+    function deletarMensagemChatAdminParaMim(msgId, souRemetente) {
+        if (!chatAdminConversaAtual) return;
+        const campo = souRemetente ? 'deletadoParaRemetente' : 'deletadoParaDestinatario';
+        db.collection('conversasAdmin').doc(chatAdminConversaAtual).collection('mensagens').doc(msgId)
+            .update({ [campo]: true })
+            .catch((err) => alert('❌ Erro ao apagar: ' + err.message));
+    }
+
+    function deletarMensagemChatAdminParaTodos(msgId) {
+        if (!chatAdminConversaAtual) return;
+        db.collection('conversasAdmin').doc(chatAdminConversaAtual).collection('mensagens').doc(msgId)
+            .update({ deletadoParaTodos: true, conteudo: '⚠️ Mensagem apagada', tipo: 'deletada' })
+            .catch((err) => alert('❌ Erro ao apagar: ' + err.message));
+    }
+
+    // Excluir a conversa inteira (mesma ação do toque longo na lista de
+    // conversas do app, ver ConversasAdminCaronasActivity/apagarConversa) —
+    // o painel do Match não tem isso, só o app, mas deixar de fora do
+    // painel deixaria os dois lugares inconsistentes à toa.
+    function excluirConversaChatAdminUI(conversaId) {
+        if (!confirm('Excluir esta conversa inteira? As mensagens serão apagadas para os dois administradores.')) return;
+        db.collection('conversasAdmin').doc(conversaId).collection('mensagens').get()
+            .then((snapshot) => {
+                const docs = snapshot.docs;
+                const blocos = [];
+                for (let i = 0; i < docs.length; i += 400) blocos.push(docs.slice(i, i + 400));
+                return blocos.reduce((prom, bloco) => prom.then(() => {
+                    const lote = db.batch();
+                    bloco.forEach((doc) => lote.delete(doc.ref));
+                    return lote.commit();
+                }), Promise.resolve());
+            })
+            .then(() => db.collection('conversasAdmin').doc(conversaId).delete())
+            .then(() => {
+                if (chatAdminConversaAtual === conversaId) {
+                    chatAdminConversaAtual = null;
+                    chatAdminOutroAtual = null;
+                    if (unsubscribeChatAdminMensagens) { unsubscribeChatAdminMensagens(); unsubscribeChatAdminMensagens = null; }
+                    document.getElementById('chatAdminHeader').textContent = 'Selecione uma conversa';
+                    document.getElementById('chatAdminMensagens').innerHTML = '';
+                }
+            })
+            .catch((err) => alert('❌ Erro ao excluir conversa: ' + err.message));
+    }
+
+    // Badge de não lidas na aba (mesma ideia do badge do botão no app, ver
+    // escutarBadgeMensagensAdmins em AdministracaoCaronasActivity) — soma
+    // naoLidas1/naoLidas2 de toda conversasAdmin do admin logado. Só liga
+    // se a conta tem a permissão "chatAdmin" (senão a aba nem aparece).
+    let unsubscribeBadgeChatAdminTab = null;
+
+    function iniciarBadgeChatAdminTab() {
+        pararBadgeChatAdminTab();
+        const meuId = auth.currentUser?.uid;
+        if (!meuId || !temPermissaoWeb('chatAdmin')) return;
+        unsubscribeBadgeChatAdminTab = db.collection('conversasAdmin')
+            .where('participantes', 'array-contains', meuId)
+            .onSnapshot((snapshot) => {
+                let total = 0;
+                snapshot.forEach((doc) => {
+                    const c = doc.data();
+                    total += (c.admin1Id === meuId ? (c.naoLidas1 || 0) : (c.naoLidas2 || 0));
+                });
+                const badge = document.getElementById('badgeChatAdminTab');
+                if (badge) badge.textContent = total > 0 ? (total > 99 ? '99+' : String(total)) : '';
+            }, () => {});
+    }
+
+    function pararBadgeChatAdminTab() {
+        if (unsubscribeBadgeChatAdminTab) { unsubscribeBadgeChatAdminTab(); unsubscribeBadgeChatAdminTab = null; }
+        const badge = document.getElementById('badgeChatAdminTab');
+        if (badge) badge.textContent = '';
     }
 
     // CPF de cada motorista (uid -> só dígitos), preenchido em carregarDados().
@@ -811,6 +1336,254 @@
             alert('Erro ao remover: ' + e.message);
             botao.disabled = false;
         }
+    }
+
+    // ===== Administradores (ver Admin.kt/AdminRepository no app,
+    // GerenciarAdministradoresCaronasActivity/CadastroAdminCaronasActivity) =====
+    // Mesmas Cloud Functions do app nativo (cadastrarAdmin/atualizarAdmin/
+    // atualizarPermissoesAdmin/atualizarFotoAdminAutorizado/excluirAdmin) —
+    // toda trava (senha master, permissão "administradores") é do servidor,
+    // nunca client-side aqui.
+    const PERMISSOES_ADMIN_LISTA = [
+        ['usuarios', 'Motoristas e Passageiros'],
+        ['viagens', 'Viagens'],
+        ['financeiro', 'Financeiro'],
+        ['mensagens', 'Mensagens'],
+        ['manifestacoes', 'Reclamações, Sugestões e Denúncias'],
+        ['relatorios', 'Relatórios'],
+        ['administradores', 'Administradores'],
+    ];
+
+    let administradoresCache = [];
+    let subAbaAdministradores = 'admin';
+
+    async function carregarAdministradoresPainel() {
+        const snap = await db.collection('admins').get();
+        administradoresCache = snap.docs.map((doc) => {
+            const a = doc.data();
+            a.id = doc.id;
+            return a;
+        });
+        renderizarAdministradores();
+    }
+
+    function mostrarSubAbaAdministradores(papel) {
+        subAbaAdministradores = papel;
+        document.getElementById('btnSubAbaAdmins').classList.toggle('ativa', papel === 'admin');
+        document.getElementById('btnSubAbaColaboradores').classList.toggle('ativa', papel === 'colaborador');
+        renderizarAdministradores();
+    }
+
+    function renderizarAdministradores() {
+        const ehColaborador = (a) => a.role === 'colaborador';
+        document.getElementById('contadorAdminsTab').textContent = String(administradoresCache.filter((a) => !ehColaborador(a)).length);
+        document.getElementById('contadorColaboradoresTab').textContent = String(administradoresCache.filter(ehColaborador).length);
+
+        const lista = administradoresCache.filter((a) => ehColaborador(a) === (subAbaAdministradores === 'colaborador'));
+        const corpo = document.getElementById('corpoAdministradores');
+        corpo.innerHTML = lista.map((a) => `
+            <tr class="linha-clicavel" onclick="abrirCadastroAdministrador('${escapar(a.id)}')">
+                <td><img class="foto-linha" src="${a.fotoUrl || FOTO_PADRAO}" alt=""></td>
+                <td>${escapar([a.nome, a.sobrenome].filter(Boolean).join(' ') || a.email || '')}</td>
+                <td>${escapar(a.email)}</td>
+                <td><span class="badge">${ehColaborador(a) ? 'Colaborador' : 'Admin'}</span></td>
+            </tr>
+        `).join('');
+        document.getElementById('vazioAdministradores').style.display = lista.length ? 'none' : 'block';
+    }
+
+    // Sobe a foto e grava fotoUrl — direto pro Storage quando é a PRÓPRIA
+    // conta de quem está logado (mesma regra do app, firestore.rules libera
+    // fotoUrl pro dono do documento); pra foto de OUTRA pessoa, sobe numa
+    // pasta que o chamador pode escrever e delega o resto (copiar pro
+    // destino, apagar a origem, gravar fotoUrl) pra Cloud Function
+    // atualizarFotoAdminAutorizado, via Admin SDK — mesmo contorno do app
+    // (ver AdminRepository.atualizarFotoAdminDeOutro).
+    async function salvarFotoAdministrador(uid, arquivo, senhaAutorizacao) {
+        const uidChamador = auth.currentUser.uid;
+        if (uid === uidChamador) {
+            const ref = firebase.storage().ref().child(`fotos_perfil/${uid}/perfil_${Date.now()}.jpg`);
+            await ref.put(arquivo);
+            const url = await ref.getDownloadURL();
+            await db.collection('admins').doc(uid).update({ fotoUrl: url });
+        } else {
+            const pathOrigem = `fotos_perfil/${uidChamador}/staging_${uid}_${Date.now()}.jpg`;
+            const ref = firebase.storage().ref().child(pathOrigem);
+            await ref.put(arquivo);
+            await funcoes.httpsCallable('atualizarFotoAdminAutorizado')({ uid, storagePathOrigem: pathOrigem, senhaAutorizacao });
+        }
+    }
+
+    // uidEditar omitido = cadastro novo. Mesmos campos/validações do
+    // formulário nativo (CadastroAdminCaronasActivity): e-mail e senha só no
+    // cadastro (edição não mexe neles), foto obrigatória só pra colaborador
+    // novo, permissões default = tudo marcado pra admin/tudo desmarcado pra
+    // colaborador.
+    function abrirCadastroAdministrador(uidEditar) {
+        const ehEdicao = !!uidEditar;
+        const admin = ehEdicao ? administradoresCache.find((a) => a.id === uidEditar) : null;
+        if (ehEdicao && !admin) return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-caixa">
+                <h3>${ehEdicao ? 'Editar Admin' : 'Novo Admin'}</h3>
+
+                <label>Foto${!ehEdicao ? ' (obrigatória para colaborador)' : ''}</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img id="modalAdminFoto" src="${(admin && admin.fotoUrl) || FOTO_PADRAO}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background:#E8E8E8;" alt="">
+                    <input type="file" id="modalAdminFotoInput" accept="image/*">
+                </div>
+
+                <label>Nome</label>
+                <input type="text" id="modalAdminNome" value="${escapar(admin ? admin.nome : '')}">
+                <label>Sobrenome</label>
+                <input type="text" id="modalAdminSobrenome" value="${escapar(admin ? admin.sobrenome : '')}">
+                <label>E-mail</label>
+                ${ehEdicao
+                    ? `<div class="modal-valor-fixo">${escapar(admin.email)}</div>`
+                    : `<input type="text" id="modalAdminEmail" value="">`}
+                <label>Telefone</label>
+                <input type="text" id="modalAdminTelefone" value="${escapar(admin ? admin.telefone : '')}">
+                <label>CPF</label>
+                <input type="text" id="modalAdminCpf" value="${escapar(admin ? admin.cpf : '')}">
+                ${!ehEdicao ? `
+                    <label>Senha (6 a 10 caracteres)</label>
+                    <input type="password" id="modalAdminSenha" value="">
+                    <label>Confirmar Senha</label>
+                    <input type="password" id="modalAdminConfirmarSenha" value="">
+                ` : ''}
+
+                <label>Papel</label>
+                <div style="display:flex; gap:16px; margin-top:4px;">
+                    <label style="display:flex; align-items:center; gap:4px; font-weight:400; text-transform:none; font-size:14px;">
+                        <input type="radio" name="modalAdminPapel" value="admin" ${!admin || admin.role !== 'colaborador' ? 'checked' : ''}> Admin
+                    </label>
+                    <label style="display:flex; align-items:center; gap:4px; font-weight:400; text-transform:none; font-size:14px;">
+                        <input type="radio" name="modalAdminPapel" value="colaborador" ${admin && admin.role === 'colaborador' ? 'checked' : ''}> Colaborador
+                    </label>
+                </div>
+
+                <label>Permissões</label>
+                <div id="modalAdminPermissoes" style="display:flex; flex-direction:column; gap:6px;">
+                    ${PERMISSOES_ADMIN_LISTA.map(([chave, rotulo]) => {
+                        const marcado = admin ? (admin.permissoes ? admin.permissoes[chave] === true : true) : true;
+                        return `
+                            <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none; font-size:14px;">
+                                <input type="checkbox" data-chave="${chave}" ${marcado ? 'checked' : ''}>
+                                ${escapar(rotulo)}
+                            </label>
+                        `;
+                    }).join('')}
+                </div>
+
+                <label>Senha do administrador master</label>
+                <input type="password" id="modalAdminSenhaMaster" value="">
+
+                <div class="modal-botoes">
+                    ${ehEdicao ? `<button class="btn-remover" id="btnExcluirAdministrador" style="margin-right:auto;">Excluir</button>` : ''}
+                    <button class="btn" id="btnCancelarAdministrador" style="background:#999; color:#fff;">Cancelar</button>
+                    <button class="btn" id="btnSalvarAdministrador" style="background:#1E90FF; color:#fff;">Salvar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Papel novo muda o default das permissões só no CADASTRO (mesma
+        // regra do app) — admin marca tudo, colaborador desmarca tudo.
+        if (!ehEdicao) {
+            overlay.querySelectorAll('input[name="modalAdminPapel"]').forEach((radio) => {
+                radio.onchange = () => {
+                    const marcarTudo = radio.value === 'admin' && radio.checked;
+                    if (!radio.checked) return;
+                    overlay.querySelectorAll('#modalAdminPermissoes input[type=checkbox]').forEach((cb) => { cb.checked = marcarTudo; });
+                };
+            });
+        }
+
+        overlay.querySelector('#modalAdminFotoInput').onchange = (e) => {
+            const arquivo = e.target.files[0];
+            if (arquivo) document.getElementById('modalAdminFoto').src = URL.createObjectURL(arquivo);
+        };
+
+        overlay.querySelector('#btnCancelarAdministrador').onclick = () => overlay.remove();
+
+        if (ehEdicao) {
+            overlay.querySelector('#btnExcluirAdministrador').onclick = async () => {
+                const nomeAlvo = [admin.nome, admin.sobrenome].filter(Boolean).join(' ') || admin.email || 'esse administrador';
+                if (!confirm(`Excluir o cadastro de administrador de ${nomeAlvo}? Isso revoga o acesso ao painel — não apaga a conta de login nem o cadastro de usuário comum dessa pessoa.`)) return;
+                const senha = prompt('Senha do administrador master:');
+                if (!senha) return;
+                try {
+                    await funcoes.httpsCallable('excluirAdmin')({ uid: uidEditar, senhaAutorizacao: senha });
+                    alert('Cadastro excluído.');
+                    overlay.remove();
+                    carregarAdministradoresPainel();
+                } catch (e) {
+                    alert('Erro ao excluir: ' + e.message);
+                }
+            };
+        }
+
+        overlay.querySelector('#btnSalvarAdministrador').onclick = async () => {
+            const nome = overlay.querySelector('#modalAdminNome').value.trim();
+            const sobrenome = overlay.querySelector('#modalAdminSobrenome').value.trim();
+            const telefone = overlay.querySelector('#modalAdminTelefone').value.trim();
+            const cpf = overlay.querySelector('#modalAdminCpf').value.trim();
+            const papel = overlay.querySelector('input[name="modalAdminPapel"]:checked').value;
+            const permissoes = {};
+            overlay.querySelectorAll('#modalAdminPermissoes input[type=checkbox]').forEach((cb) => { permissoes[cb.dataset.chave] = cb.checked; });
+            const fotoInput = overlay.querySelector('#modalAdminFotoInput');
+            const fotoArquivo = fotoInput.files[0] || null;
+
+            if (!nome || !sobrenome || !telefone || !cpf) {
+                alert('Preencha nome, sobrenome, telefone e CPF.');
+                return;
+            }
+
+            let email = '', senha = '';
+            if (!ehEdicao) {
+                email = overlay.querySelector('#modalAdminEmail').value.trim();
+                senha = overlay.querySelector('#modalAdminSenha').value;
+                const confirmarSenha = overlay.querySelector('#modalAdminConfirmarSenha').value;
+                if (!email) { alert('Preencha o e-mail.'); return; }
+                if (senha.length < 6 || senha.length > 10) { alert('A senha deve ter entre 6 e 10 caracteres.'); return; }
+                if (senha !== confirmarSenha) { alert('As senhas não coincidem.'); return; }
+                if (papel === 'colaborador' && !fotoArquivo) { alert('Foto é obrigatória para cadastrar um colaborador.'); return; }
+            }
+
+            const senhaMaster = overlay.querySelector('#modalAdminSenhaMaster').value;
+            if (!senhaMaster) { alert('Informe a senha do administrador master.'); return; }
+
+            const btnSalvar = overlay.querySelector('#btnSalvarAdministrador');
+            btnSalvar.disabled = true;
+            btnSalvar.textContent = 'Salvando...';
+
+            try {
+                let uid;
+                if (ehEdicao) {
+                    uid = uidEditar;
+                    await funcoes.httpsCallable('atualizarAdmin')({ uid, nome, sobrenome, telefone, cpf, senhaAutorizacao: senhaMaster });
+                    await funcoes.httpsCallable('atualizarPermissoesAdmin')({ uid, role: papel, permissoes, senhaAutorizacao: senhaMaster });
+                } else {
+                    const resultado = await funcoes.httpsCallable('cadastrarAdmin')({ nome, sobrenome, email, telefone, cpf, senha, role: papel, permissoes, senhaAutorizacao: senhaMaster });
+                    uid = resultado.data.uid;
+                }
+
+                if (fotoArquivo) {
+                    await salvarFotoAdministrador(uid, fotoArquivo, senhaMaster);
+                }
+
+                alert(ehEdicao ? 'Administrador atualizado.' : 'Administrador cadastrado! Ele precisa validar o e-mail antes de conseguir entrar.');
+                overlay.remove();
+                carregarAdministradoresPainel();
+            } catch (e) {
+                alert('Erro ao salvar: ' + e.message);
+                btnSalvar.disabled = false;
+                btnSalvar.textContent = 'Salvar';
+            }
+        };
     }
 
     // ===== Reclamações, Sugestões e Denúncias (ver Manifestacao.kt no app,
@@ -1302,7 +2075,7 @@ const ORIENTACOES_ADMIN = [
   ],
   [
     "🖥️ O que faz cada aba do painel",
-    "Cada aba do painel:\n• Motoristas: e-mail, CPF vinculado, telefone, veículo, viagens realizadas e total recebido. Clique na linha para ver o cadastro completo (dá para editar, com a senha do administrador master); o ícone 🗑️ exclui o cadastro.\n• Passageiros: todos os cadastros (todo motorista também é passageiro), com viagens e total pago. Mesmos cliques.\n• Viagens (Motoristas): as ofertas publicadas, com rota, data e hora, vagas e status.\n• Viagens (Passageiros): as solicitações de vaga, com rota, passageiro, motorista, valor e status.\n• 📝 Sugestões e Reclamações: reclamações, sugestões e denúncias dos usuários; responda por e-mail e arquive. O número vermelho é a quantidade sem resposta.\n• 💰 Financeiro: pagamentos do acesso de motorista, filtro por período e relatório mensal.\n• 🧭 Orientações: este guia.\n• ⚙️ Configurações: Termos de Uso e Privacidade.\n\nSó existem no aplicativo administrativo (Android): Mensagens (ler as conversas de um usuário), Editar Perfil e a criação de novos administradores."
+    "Cada aba do painel:\n• Motoristas: e-mail, CPF vinculado, telefone, veículo, viagens realizadas e total recebido. Clique na linha para ver o cadastro completo (dá para editar, com a senha do administrador master); o ícone 🗑️ exclui o cadastro.\n• Passageiros: todos os cadastros (todo motorista também é passageiro), com viagens e total pago. Mesmos cliques.\n• Viagens (Motoristas): as ofertas publicadas, com rota, data e hora, vagas e status.\n• Viagens (Passageiros): as solicitações de vaga, com rota, passageiro, motorista, valor e status.\n• 📝 Sugestões e Reclamações: reclamações, sugestões e denúncias dos usuários; responda por e-mail e arquive. O número vermelho é a quantidade sem resposta.\n• 💰 Financeiro: pagamentos do acesso de motorista, filtro por período e relatório mensal.\n• 👑 Administradores: duas sub-abas, Admins e Colaboradores. \"+ Novo Admin\" cadastra; clique numa linha da tabela para editar (inclusive a foto, mesmo de outra pessoa) ou excluir — mesmas Cloud Functions e mesma trava de senha master do app.\n• 🧭 Orientações: este guia.\n• ⚙️ Configurações: Termos de Uso e Privacidade.\n\nSó existem no aplicativo administrativo (Android): Mensagens (ler as conversas de um usuário) e Editar Perfil (buscar um admin/colaborador por CPF, no topo do painel)."
   ],
   [
     "👥 Cadastros: consultar, corrigir e excluir",
@@ -1357,7 +2130,7 @@ const ORIENTACOES_ADMIN = [
     "Quem cuida do desenvolvimento publica assim (projeto caronas-6b0c4). Sempre com o Node instalado e, para testar localmente, o Java do Android Studio:\n• Regras do banco: npx --yes firebase-tools deploy --only firestore:rules --project caronas-6b0c4\n• Cloud Functions: npx --yes firebase-tools deploy --only functions --project caronas-6b0c4\n• Painel web (site): npx --yes firebase-tools deploy --only hosting --project caronas-6b0c4\n• App (Android): aumente o versionCode e o versionName em app/build.gradle.kts, gere o bundle (.aab) do flavor usuario e envie no Google Play Console (Produção). O flavor admin é interno e distribuído à parte.\nOrdem segura quando a mudança mexe em regras E no app: publique primeiro regras e funções, depois o app novo.\nAntes de publicar: rode o app nos dois flavors (usuario e admin), teste o fluxo alterado e, para regras, use o emulador do Firestore. Depois de publicar, acompanhe o Crashlytics e os logs das funções por algumas horas.\nAtenção: usuários com versão antiga do app continuam existindo. Regras novas mais rígidas podem fazer o app antigo mostrar erro — por isso o app novo deve sair logo em seguida."
   ]
 ];
-const TERMOS_PRIVACIDADE_TEXTO = "TERMOS DE USO E POLÍTICA DE PRIVACIDADE — CARONAS\nÚltima atualização: setembro de 2026\n\n═══════════════════════════════════\nPARTE 1 — TERMOS DE USO\n═══════════════════════════════════\n\n1. SOBRE O CARONAS\nO Caronas é uma plataforma que conecta motoristas e passageiros interessados em compartilhar uma mesma viagem, dividindo os custos do trajeto. O Caronas não é uma empresa de transporte, não possui frota própria e não emprega os motoristas que utilizam o aplicativo — atua apenas como intermediário entre pessoas que já pretendiam fazer o mesmo trajeto.\n\n2. NATUREZA DO SERVIÇO — CARONA SOLIDÁRIA, NÃO TRANSPORTE REMUNERADO\n2.1. Os valores sugeridos e cobrados nas caronas oferecidas através do app representam o RATEIO das despesas da viagem (combustível, desgaste do veículo, pedágio) entre o motorista e os passageiros — nunca uma tarifa comercial de transporte. O motorista não pode utilizar o Caronas como fonte de renda ou atividade profissional de transporte remunerado de passageiros; o uso do aplicativo para esse fim é proibido e pode resultar na suspensão da conta.\n\n2A. VALORES COBRADOS PELOS MOTORISTAS — A PLATAFORMA NÃO SE ENVOLVE\n2A.1. O valor por vaga de cada carona é definido exclusivamente pelo motorista, no momento em que ele publica ou edita a oferta, e aceito, ou não, pelo passageiro ao solicitar a vaga. O Caronas não estabelece, não impõe, não limita, não negocia nem intermedeia esses valores, e não se manifesta sobre a sua adequação, justiça, proporcionalidade ou regularidade.\n2A.2. O valor que o aplicativo exibe como \"sugestão\" é apenas uma referência automática de rateio, calculada de forma aproximada a partir da distância estimada da rota. Ela não é uma recomendação, uma tabela de preços nem uma garantia de que o valor sugerido corresponde ao custo real da viagem, e o motorista pode alterá-la livremente.\n2A.3. O Caronas não recebe, não processa, não retém, não custodia nem repassa qualquer pagamento entre passageiro e motorista, e não cobra comissão, taxa ou percentual sobre os valores combinados entre eles. A forma, o momento e as condições do pagamento são acertados diretamente entre as partes, fora do aplicativo, e a responsabilidade por eles é exclusivamente delas.\n2A.4. Os totais de \"valor recebido\" e \"valor pago\" exibidos no aplicativo são apenas registros informativos calculados a partir das solicitações de vaga. Eles não comprovam que um pagamento foi efetivamente feito ou recebido, e não substituem recibo, comprovante ou qualquer documento fiscal.\n2A.5. O Caronas não garante o pagamento ao motorista nem o reembolso ao passageiro, não participa de disputas, cobranças indevidas, recusas de pagamento, divergências de valor ou trocos, e não se responsabiliza por prejuízos deles decorrentes. Recomenda-se que motorista e passageiro combinem o valor e a forma de pagamento antes do embarque, pelo chat do aplicativo.\n2A.6. Cada usuário é o único responsável pelas obrigações legais, tributárias e de qualquer outra natureza que possam decorrer dos valores que recebe ou paga entre si.\n2A.7. A única cobrança feita pelo Caronas é a do plano de acesso do motorista à plataforma, exigido depois das caronas gratuitas, que remunera o uso do aplicativo e não tem relação com os valores acertados entre motorista e passageiro.\n\n3. CADASTRO E CONTA\n3.1. É necessário ter no mínimo 18 anos para se cadastrar no Caronas.\n3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, CPF e dados do veículo) devem ser verdadeiras e atualizadas.\n3.3. O cadastro é validado por e-mail — a conta só pode ser usada normalmente depois da confirmação do endereço de e-mail informado.\n3.4. Cada usuário é responsável por manter a confidencialidade da própria senha e por toda atividade realizada através da sua conta.\n3.5. Ao oferecer caronas, o motorista declara possuir habilitação válida, o veículo em condições seguras de uso e toda a documentação exigida por lei para conduzir o veículo informado.\n\n4. REGRAS DE CONDUTA\nAo usar o Caronas, o usuário concorda em:\n4.1. Fornecer informações verdadeiras sobre si e sobre a viagem oferecida ou solicitada.\n4.2. Tratar os demais usuários com respeito, sem discriminação de qualquer natureza.\n4.3. Não usar o aplicativo para fins ilícitos, fraudulentos ou para assediar, ameaçar ou prejudicar outro usuário.\n4.4. Comparecer aos horários e locais combinados para embarque/desembarque, ou cancelar com antecedência quando não puder comparecer.\n4.5. Não publicar conteúdo ofensivo, falso ou que viole direitos de terceiros no aplicativo (nome, foto de perfil, mensagens do chat).\n\n5. PUBLICAÇÃO E SOLICITAÇÃO DE CARONAS\n5.1. O motorista é responsável pelas informações da carona que publica (rota, paradas, data/horário, vagas e valor sugerido).\n5.2. O passageiro que solicita uma vaga se compromete a comparecer no local e horário combinados e a pagar o valor combinado com o motorista.\n5.3. A confirmação de uma solicitação de vaga é sempre uma decisão do motorista — o Caronas não garante que uma solicitação será aceita.\n5.4. Qualquer uma das partes pode cancelar uma viagem antes do embarque; recomenda-se avisar a outra parte pelo chat do aplicativo assim que possível.\n\n6. AVALIAÇÕES\nDepois de uma viagem confirmada e concluída, motorista e passageiro podem avaliar um ao outro (nota de 1 a 5 e comentário opcional). As avaliações são públicas para os demais usuários do aplicativo e não podem ser editadas ou removidas pelo autor depois de enviadas, para preservar a confiabilidade do sistema de reputação.\n\n7. SEGURANÇA NAS CARONAS\n7.1. O Caronas facilita o contato entre motorista e passageiro, mas não acompanha nem supervisiona as viagens realizadas.\n7.2. Recomendamos: conferir a identidade e a avaliação de quem vai pegar a carona antes de embarcar, combinar o trajeto e compartilhar a viagem com alguém de confiança, e confiar no seu julgamento — se algo parecer errado, não embarque.\n7.3. Qualquer comportamento inadequado ou inseguro pode e deve ser reportado através dos canais de suporte do aplicativo.\n\n8. RESPONSABILIDADES E LIMITAÇÕES\n8.1. O Caronas não é parte na relação entre motorista e passageiro — a viagem, seus riscos e o cumprimento dos combinados são de responsabilidade exclusiva dos usuários envolvidos.\n8.2. O Caronas não se responsabiliza por acidentes, danos, atrasos, cancelamentos ou qualquer prejuízo decorrente da viagem em si, nem por informações falsas fornecidas por um usuário sobre si mesmo ou sobre o veículo.\n8.3. O Caronas envida esforços razoáveis para manter o aplicativo disponível e funcionando corretamente, mas não garante operação ininterrupta ou livre de falhas.\n\n9. SUSPENSÃO E ENCERRAMENTO DE CONTA\nO Caronas pode suspender ou encerrar contas que violem estes Termos, mediante aviso quando possível. O usuário pode encerrar a própria conta a qualquer momento pela opção \"Excluir minha conta\", disponível na tela de edição de perfil.\n\n10. PROPRIEDADE INTELECTUAL\nA marca, o logotipo e o código do aplicativo Caronas pertencem aos seus desenvolvedores. O conteúdo que cada usuário publica (fotos, mensagens, avaliações) continua de propriedade do próprio usuário, que concede ao Caronas a licença necessária para exibi-lo dentro do aplicativo, aos demais usuários envolvidos na mesma viagem/conversa.\n\n11. ALTERAÇÕES DESTES TERMOS\nEstes Termos podem ser atualizados periodicamente. Mudanças relevantes serão comunicadas dentro do aplicativo. O uso continuado do Caronas após uma atualização representa a aceitação dos novos termos.\n\n12. LEI APLICÁVEL\nEstes Termos são regidos pelas leis da República Federativa do Brasil.\n\n13. CONTATO\nDúvidas sobre estes Termos podem ser enviadas para: suporte@caronasapp.com.br\n\n\n═══════════════════════════════════\nPARTE 2 — POLÍTICA DE PRIVACIDADE\n═══════════════════════════════════\n\n1. DADOS QUE COLETAMOS\n• Dados de cadastro: nome completo, e-mail, telefone e foto de perfil.\n• CPF (só para quem se cadastra como motorista): usado para vincular o cadastro a uma única pessoa e impedir contas duplicadas; não é exibido a outros usuários.\n• Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.\n• Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.\n• Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014).\n\n2. FINALIDADE DO TRATAMENTO\nUsamos esses dados para: viabilizar o cadastro e login; conectar motoristas e passageiros interessados na mesma rota; exibir as informações necessárias (nome, foto, veículo) aos participantes de uma mesma viagem, para que possam se identificar; calcular sugestões de valor de rateio com base na distância da rota; e manter o histórico de avaliações entre usuários.\n\n3. COMPARTILHAMENTO DE DADOS\n3.1. Nome, foto de perfil e (quando aplicável) dados do veículo são exibidos aos demais usuários dentro do fluxo normal do aplicativo (resultado de busca de carona, tela de solicitação, chat de uma viagem) — é assim que motorista e passageiro se identificam antes de embarcar juntos.\n3.2. Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins de publicidade.\n3.3. Usamos o Firebase (Google) como infraestrutura de armazenamento e autenticação, e o LocationIQ como serviço de busca de endereços — ambos processam dados estritamente como operadores, dentro da finalidade descrita aqui.\n\n4. SEGURANÇA DA INFORMAÇÃO\nAdotamos medidas técnicas para proteger os dados armazenados, incluindo controle de acesso por regras de segurança no banco de dados e conexões criptografadas entre o aplicativo e os servidores.\n\n5. RETENÇÃO E EXCLUSÃO\nOs dados são mantidos enquanto a conta estiver ativa. Ao excluir a conta pela opção disponível no aplicativo, o cadastro, a foto de perfil e o veículo associado são removidos permanentemente. Mensagens de chat e avaliações já enviadas podem ser mantidas de forma anonimizada, para preservar o histórico de viagens dos outros participantes.\n\n6. SEUS DIREITOS\nConforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD), você tem direito a: confirmar a existência de tratamento, acessar seus dados, corrigir dados incompletos ou desatualizados, solicitar a exclusão dos seus dados, e revogar o consentimento dado. A maioria dessas ações já está disponível diretamente na tela \"Editar Perfil\" do aplicativo; para as demais, use o contato abaixo.\n\n7. ALTERAÇÕES DESTA POLÍTICA\nEsta Política pode ser atualizada periodicamente, com aviso dentro do aplicativo quando a mudança for relevante.\n\n8. CONTATO\nDúvidas sobre esta Política ou solicitações relacionadas aos seus dados podem ser enviadas para: suporte@caronasapp.com.br\n";
+const TERMOS_PRIVACIDADE_TEXTO = "TERMOS DE USO E POLÍTICA DE PRIVACIDADE — CARONAS\nÚltima atualização: setembro de 2026\n\n═══════════════════════════════════\nPARTE 1 — TERMOS DE USO\n═══════════════════════════════════\n\n1. SOBRE O CARONAS\nO Caronas é uma plataforma que conecta motoristas e passageiros interessados em compartilhar uma mesma viagem, dividindo os custos do trajeto. O Caronas não é uma empresa de transporte, não possui frota própria e não emprega os motoristas que utilizam o aplicativo — atua apenas como intermediário entre pessoas que já pretendiam fazer o mesmo trajeto.\n\n2. NATUREZA DO SERVIÇO — CARONA SOLIDÁRIA, NÃO TRANSPORTE REMUNERADO\n2.1. Os valores sugeridos e cobrados nas caronas oferecidas através do app representam o RATEIO das despesas da viagem (combustível, desgaste do veículo, pedágio) entre o motorista e os passageiros — nunca uma tarifa comercial de transporte. O motorista não pode utilizar o Caronas como fonte de renda ou atividade profissional de transporte remunerado de passageiros; o uso do aplicativo para esse fim é proibido e pode resultar na suspensão da conta.\n\n2A. VALORES COBRADOS PELOS MOTORISTAS — A PLATAFORMA NÃO SE ENVOLVE\n2A.1. O valor por vaga de cada carona é definido exclusivamente pelo motorista, no momento em que ele publica ou edita a oferta, e aceito, ou não, pelo passageiro ao solicitar a vaga. O Caronas não estabelece, não impõe, não limita, não negocia nem intermedeia esses valores, e não se manifesta sobre a sua adequação, justiça, proporcionalidade ou regularidade.\n2A.2. O valor que o aplicativo exibe como \"sugestão\" é apenas uma referência automática de rateio, calculada de forma aproximada a partir da distância estimada da rota. Ela não é uma recomendação, uma tabela de preços nem uma garantia de que o valor sugerido corresponde ao custo real da viagem, e o motorista pode alterá-la livremente.\n2A.3. O Caronas não recebe, não processa, não retém, não custodia nem repassa qualquer pagamento entre passageiro e motorista, e não cobra comissão, taxa ou percentual sobre os valores combinados entre eles. A forma, o momento e as condições do pagamento são acertados diretamente entre as partes, fora do aplicativo, e a responsabilidade por eles é exclusivamente delas.\n2A.4. Os totais de \"valor recebido\" e \"valor pago\" exibidos no aplicativo são apenas registros informativos calculados a partir das solicitações de vaga. Eles não comprovam que um pagamento foi efetivamente feito ou recebido, e não substituem recibo, comprovante ou qualquer documento fiscal.\n2A.5. O Caronas não garante o pagamento ao motorista nem o reembolso ao passageiro, não participa de disputas, cobranças indevidas, recusas de pagamento, divergências de valor ou trocos, e não se responsabiliza por prejuízos deles decorrentes. Recomenda-se que motorista e passageiro combinem o valor e a forma de pagamento antes do embarque, pelo chat do aplicativo.\n2A.6. Cada usuário é o único responsável pelas obrigações legais, tributárias e de qualquer outra natureza que possam decorrer dos valores que recebe ou paga entre si.\n2A.7. A única cobrança feita pelo Caronas é a do plano de acesso do motorista à plataforma, exigido depois das caronas gratuitas, que remunera o uso do aplicativo e não tem relação com os valores acertados entre motorista e passageiro.\n\n3. CADASTRO E CONTA\n3.1. É necessário ter no mínimo 18 anos para se cadastrar no Caronas.\n3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, CPF e dados do veículo) devem ser verdadeiras e atualizadas.\n3.3. O cadastro é validado por e-mail — a conta só pode ser usada normalmente depois da confirmação do endereço de e-mail informado.\n3.4. Cada usuário é responsável por manter a confidencialidade da própria senha e por toda atividade realizada através da sua conta.\n3.5. Ao oferecer caronas, o motorista declara possuir habilitação válida, o veículo em condições seguras de uso e toda a documentação exigida por lei para conduzir o veículo informado.\n\n4. REGRAS DE CONDUTA\nAo usar o Caronas, o usuário concorda em:\n4.1. Fornecer informações verdadeiras sobre si e sobre a viagem oferecida ou solicitada.\n4.2. Tratar os demais usuários com respeito, sem discriminação de qualquer natureza.\n4.3. Não usar o aplicativo para fins ilícitos, fraudulentos ou para assediar, ameaçar ou prejudicar outro usuário.\n4.4. Comparecer aos horários e locais combinados para embarque/desembarque, ou cancelar com antecedência quando não puder comparecer.\n4.5. Não publicar conteúdo ofensivo, falso ou que viole direitos de terceiros no aplicativo (nome, foto de perfil, mensagens do chat).\n\n5. PUBLICAÇÃO E SOLICITAÇÃO DE CARONAS\n5.1. O motorista é responsável pelas informações da carona que publica (rota, paradas, data/horário, vagas e valor sugerido).\n5.2. O passageiro que solicita uma vaga se compromete a comparecer no local e horário combinados e a pagar o valor combinado com o motorista.\n5.3. A confirmação de uma solicitação de vaga é sempre uma decisão do motorista — o Caronas não garante que uma solicitação será aceita.\n5.4. Qualquer uma das partes pode cancelar uma viagem antes do embarque; recomenda-se avisar a outra parte pelo chat do aplicativo assim que possível.\n\n6. AVALIAÇÕES\nDepois de uma viagem confirmada e concluída, motorista e passageiro podem avaliar um ao outro (nota de 1 a 5 e comentário opcional). As avaliações são públicas para os demais usuários do aplicativo e não podem ser editadas ou removidas pelo autor depois de enviadas, para preservar a confiabilidade do sistema de reputação.\n\n7. SEGURANÇA NAS CARONAS\n7.1. O Caronas facilita o contato entre motorista e passageiro, mas não acompanha nem supervisiona as viagens realizadas.\n7.2. Recomendamos: conferir a identidade e a avaliação de quem vai pegar a carona antes de embarcar, combinar o trajeto e compartilhar a viagem com alguém de confiança, e confiar no seu julgamento — se algo parecer errado, não embarque.\n7.3. Qualquer comportamento inadequado ou inseguro pode e deve ser reportado através dos canais de suporte do aplicativo.\n\n8. RESPONSABILIDADES E LIMITAÇÕES\n8.1. O Caronas não é parte na relação entre motorista e passageiro — a viagem, seus riscos e o cumprimento dos combinados são de responsabilidade exclusiva dos usuários envolvidos.\n8.2. O Caronas não se responsabiliza por acidentes, danos, atrasos, cancelamentos ou qualquer prejuízo decorrente da viagem em si, nem por informações falsas fornecidas por um usuário sobre si mesmo ou sobre o veículo.\n8.3. O Caronas envida esforços razoáveis para manter o aplicativo disponível e funcionando corretamente, mas não garante operação ininterrupta ou livre de falhas.\n\n9. SUSPENSÃO E ENCERRAMENTO DE CONTA\nO Caronas pode suspender ou encerrar contas que violem estes Termos, mediante aviso quando possível. O usuário pode encerrar a própria conta a qualquer momento pela opção \"Excluir minha conta\", disponível na tela de edição de perfil.\n\n10. PROPRIEDADE INTELECTUAL\nA marca, o logotipo e o código do aplicativo Caronas pertencem aos seus desenvolvedores. O conteúdo que cada usuário publica (fotos, mensagens, avaliações) continua de propriedade do próprio usuário, que concede ao Caronas a licença necessária para exibi-lo dentro do aplicativo, aos demais usuários envolvidos na mesma viagem/conversa.\n\n11. ALTERAÇÕES DESTES TERMOS\nEstes Termos podem ser atualizados periodicamente. Mudanças relevantes serão comunicadas dentro do aplicativo. O uso continuado do Caronas após uma atualização representa a aceitação dos novos termos.\n\n12. LEI APLICÁVEL\nEstes Termos são regidos pelas leis da República Federativa do Brasil.\n\n13. CONTATO\nDúvidas sobre estes Termos podem ser enviadas para: cjstudiotechnology@gmail.com\n\n\n═══════════════════════════════════\nPARTE 2 — POLÍTICA DE PRIVACIDADE\n═══════════════════════════════════\n\n1. DADOS QUE COLETAMOS\n• Dados de cadastro: nome completo, e-mail, telefone e foto de perfil.\n• CPF (só para quem se cadastra como motorista): usado para vincular o cadastro a uma única pessoa e impedir contas duplicadas; não é exibido a outros usuários.\n• Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.\n• Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.\n• Dados técnicos: registros de acesso ao aplicativo (data/hora de login), conforme exigido pelo Marco Civil da Internet (Lei 12.965/2014).\n\n2. FINALIDADE DO TRATAMENTO\nUsamos esses dados para: viabilizar o cadastro e login; conectar motoristas e passageiros interessados na mesma rota; exibir as informações necessárias (nome, foto, veículo) aos participantes de uma mesma viagem, para que possam se identificar; calcular sugestões de valor de rateio com base na distância da rota; e manter o histórico de avaliações entre usuários.\n\n3. COMPARTILHAMENTO DE DADOS\n3.1. Nome, foto de perfil e (quando aplicável) dados do veículo são exibidos aos demais usuários dentro do fluxo normal do aplicativo (resultado de busca de carona, tela de solicitação, chat de uma viagem) — é assim que motorista e passageiro se identificam antes de embarcar juntos.\n3.2. Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins de publicidade.\n3.3. Usamos o Firebase (Google) como infraestrutura de armazenamento e autenticação, e o LocationIQ como serviço de busca de endereços — ambos processam dados estritamente como operadores, dentro da finalidade descrita aqui.\n\n4. SEGURANÇA DA INFORMAÇÃO\nAdotamos medidas técnicas para proteger os dados armazenados, incluindo controle de acesso por regras de segurança no banco de dados e conexões criptografadas entre o aplicativo e os servidores.\n\n5. RETENÇÃO E EXCLUSÃO\nOs dados são mantidos enquanto a conta estiver ativa. Ao excluir a conta pela opção disponível no aplicativo, o cadastro, a foto de perfil e o veículo associado são removidos permanentemente. Mensagens de chat e avaliações já enviadas podem ser mantidas de forma anonimizada, para preservar o histórico de viagens dos outros participantes.\n\n6. SEUS DIREITOS\nConforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD), você tem direito a: confirmar a existência de tratamento, acessar seus dados, corrigir dados incompletos ou desatualizados, solicitar a exclusão dos seus dados, e revogar o consentimento dado. A maioria dessas ações já está disponível diretamente na tela \"Editar Perfil\" do aplicativo; para as demais, use o contato abaixo.\n\n7. ALTERAÇÕES DESTA POLÍTICA\nEsta Política pode ser atualizada periodicamente, com aviso dentro do aplicativo quando a mudança for relevante.\n\n8. CONTATO\nDúvidas sobre esta Política ou solicitações relacionadas aos seus dados podem ser enviadas para: cjstudiotechnology@gmail.com\n";
 
     // Orientações: cada seção vira um <details> (abre ao clicar). Texto sempre
     // escapado — nunca entra como HTML.

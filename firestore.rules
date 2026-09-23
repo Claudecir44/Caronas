@@ -33,12 +33,14 @@ service cloud.firestore {
       allow read: if ehAdmin();
       allow create, delete: if false;
 
-      // Único write liberado pro cliente: o próprio admin trocando a
-      // PRÓPRIA foto (ver AdminRepository.atualizarFotoAdmin) — qualquer
-      // outro campo (nome, email, etc.) continua só via Cloud Function
-      // (Admin SDK), nunca direto do cliente.
+      // Writes liberados pro cliente, só na PRÓPRIA conta: trocar a própria
+      // foto (ver AdminRepository.atualizarFotoAdmin) e atualizar o próprio
+      // token de push (ver NotificacaoRepository.atualizarTokenAdmin —
+      // antes bloqueado aqui, todo write dele caía em PERMISSION_DENIED).
+      // Qualquer outro campo (nome, email, etc.) continua só via Cloud
+      // Function (Admin SDK), nunca direto do cliente.
       allow update: if ehAdmin() && request.auth.uid == adminId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoUrl']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoUrl', 'fcmToken']);
     }
 
     // Registro de ações administrativas sensíveis (criar/editar/excluir
@@ -392,6 +394,65 @@ service cloud.firestore {
       allow read: if ehAdmin()
         || (request.auth != null && resource.data.usuarioId == request.auth.uid);
       allow write: if false;
+    }
+
+    // ---------------- conversasAdmin + mensagens ----------------
+    // Chat 1-a-1 entre administradores (separado do chat de carona entre
+    // motorista/passageiro, ver /conversas acima) — mesmo esquema de regras
+    // do Match. "conteudo" das mensagens já chega cifrado do cliente (ver
+    // ChatAdminCryptoUtil/ChatAdminCryptoUtilWeb) — as regras aqui não
+    // sabem disso, só protegem QUEM pode ler/escrever cada documento.
+    match /conversasAdmin/{conversaId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.participantes;
+
+      allow create: if ehAdmin() && request.auth.uid in request.resource.data.participantes
+        && request.resource.data.participantes.size() == 2
+        && request.resource.data.participantes.hasAll(
+             [request.resource.data.admin1Id, request.resource.data.admin2Id]);
+
+      allow update: if request.auth != null && request.auth.uid in resource.data.participantes
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+             ['ultimaMensagem', 'ultimoTimestamp', 'ultimoRemetenteId', 'naoLidas1', 'naoLidas2']);
+
+      allow delete: if request.auth != null && request.auth.uid in resource.data.participantes;
+
+      match /mensagens/{mensagemId} {
+        function participantesDaConversaAdmin() {
+          return get(/databases/$(database)/documents/conversasAdmin/$(conversaId)).data.participantes;
+        }
+
+        function souParticipanteAdmin() {
+          return request.auth != null && request.auth.uid in participantesDaConversaAdmin();
+        }
+
+        allow read: if souParticipanteAdmin();
+
+        allow create: if ehAdmin() && souParticipanteAdmin()
+          && request.resource.data.remetenteId == request.auth.uid
+          && participantesDaConversaAdmin().hasAll(
+               [request.resource.data.remetenteId, request.resource.data.destinatarioId]);
+
+        allow update: if souParticipanteAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+               ['lida', 'deletadoParaRemetente', 'deletadoParaDestinatario',
+                'deletadoParaTodos', 'conteudo', 'tipo']);
+
+        allow delete: if souParticipanteAdmin();
+      }
+    }
+
+    // Pedido de exclusão de conta feito pela página pública
+    // public/excluir-conta.html, sem precisar estar logado (exigência do
+    // Google Play — quem já desinstalou o app também precisa conseguir
+    // pedir a exclusão). Só cria; a exclusão de fato continua manual, pelo
+    // admin, via excluirUsuario (mesmo botão 🗑️ de Motoristas/Passageiros
+    // já usado hoje) depois de achar a pessoa pelo e-mail informado aqui.
+    match /solicitacoesExclusaoConta/{id} {
+      allow create: if request.resource.data.email is string
+        && request.resource.data.email.size() > 0;
+      allow read, delete: if ehAdmin();
+      allow update: if ehAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
   }
 }
