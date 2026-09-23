@@ -644,4 +644,8 @@
 Motivo: %2$s
 
 %3$s</string>
+    <!-- Google Play / User Choice Billing (AssinaturaMotoristaActivity) -->
+    <string name="assinatura_motorista_produto_indisponivel">Os planos ainda não estão disponíveis no Google Play. Tente novamente mais tarde.</string>
+    <string name="assinatura_motorista_pendente">Pagamento pendente no Google Play. Assim que for confirmado, seu acesso é liberado.</string>
+    <string name="assinatura_motorista_erro_google_play">Não foi possível concluir o pagamento: %1$s</string>
 </resources>

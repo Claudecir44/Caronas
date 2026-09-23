@@ -306,14 +306,29 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
-    override suspend fun iniciarPagamentoAcessoMotorista(plano: PlanoMotorista): Result<String> {
+    override suspend fun iniciarPagamentoAcessoMotorista(plano: PlanoMotorista, externalTransactionToken: String): Result<String> {
         return try {
-            val resultado = functions.getHttpsCallable("createPaymentPreferenceMotorista").call(mapOf("plano" to plano.id)).await()
+            val parametros = mapOf("plano" to plano.id, "externalTransactionToken" to externalTransactionToken)
+            val resultado = functions.getHttpsCallable("createPaymentPreferenceMotorista").call(parametros).await()
             @Suppress("UNCHECKED_CAST")
             val dados = resultado.data as? Map<String, Any?>
             val initPoint = dados?.get("initPoint") as? String
                 ?: throw IllegalStateException("Resposta inválida do servidor.")
             Result.success(initPoint)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun confirmarCompraGooglePlayMotorista(purchaseToken: String, productId: String): Result<Boolean> {
+        return try {
+            val parametros = mapOf("purchaseToken" to purchaseToken, "productId" to productId)
+            val resultado = functions.getHttpsCallable("confirmarCompraGooglePlayMotorista").call(parametros).await()
+            @Suppress("UNCHECKED_CAST")
+            val dados = resultado.data as? Map<String, Any?>
+            Result.success(dados?.get("pendente") == true)
+        } catch (e: FirebaseFunctionsException) {
+            Result.failure(IllegalStateException(e.message ?: "Não foi possível confirmar a compra."))
         } catch (e: Exception) {
             Result.failure(e)
         }

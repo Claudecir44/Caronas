@@ -87,8 +87,15 @@ interface IUsuarioRepository {
     // Cria a preferência de pagamento (Mercado Pago) do acesso avulso do
     // motorista (planos Mensal/Trimestral, ver AssinaturaMotoristaActivity/
     // functions/index.js:createPaymentPreferenceMotorista) e devolve a URL
-    // de checkout (initPoint) pra abrir no navegador.
-    suspend fun iniciarPagamentoAcessoMotorista(plano: PlanoMotorista): Result<String>
+    // de checkout (initPoint) pra abrir no navegador. externalTransactionToken
+    // vem da escolha "pagar por fora" na tela do Google (User Choice Billing,
+    // ver GooglePlayBillingManager) e vai pro servidor reportar ao Google.
+    suspend fun iniciarPagamentoAcessoMotorista(plano: PlanoMotorista, externalTransactionToken: String): Result<String>
+
+    // Confirma no servidor uma compra feita pelo Google Play
+    // (functions/index.js:confirmarCompraGooglePlayMotorista). Sucesso com
+    // "true" = ainda pendente (Pix/boleto não confirmado), tentar de novo depois.
+    suspend fun confirmarCompraGooglePlayMotorista(purchaseToken: String, productId: String): Result<Boolean>
 
     // Histórico de pagamentos do PRÓPRIO motorista logado (coleção
     // pagamentosMotorista, gravada só pela Cloud Function), do mais recente

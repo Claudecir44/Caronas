@@ -22,6 +22,10 @@ data class PagamentoMotorista(
     var dataCompra: Long? = null,
     var expiraEm: Long? = null,
     var mercadoPagoPaymentId: String? = null,
+    // Preenchidos quando o motorista pagou pelo Google Play (ver
+    // confirmarCompraGooglePlayMotorista) em vez do Mercado Pago.
+    var googlePlayPurchaseToken: String? = null,
+    var googlePlayOrderId: String? = null,
 
     // Marcado pela Cloud Function quando o Mercado Pago avisa estorno/chargeback
     // (ver revogarAcessoMotoristaPorEstorno) — o acesso desse pagamento já foi
@@ -33,5 +37,5 @@ data class PagamentoMotorista(
     var plano: String? = null,
     var dias: Int? = null
 ) {
-    constructor() : this(null, null, null, null, 0.0, null, null, null, false, null, null)
+    constructor() : this(null, null, null, null, 0.0, null, null, null, null, null, false, null, null)
 }

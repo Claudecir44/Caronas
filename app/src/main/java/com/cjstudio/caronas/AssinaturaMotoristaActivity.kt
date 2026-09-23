@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.android.billingclient.api.Purchase
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
@@ -28,8 +29,10 @@ import javax.inject.Inject
 // permiteOferecerCarona, functions/index.js:createPaymentPreferenceMotorista/
 // paymentWebhookMotorista). Aberta pela OferecerCaronaActivity quando o
 // motorista já usou as 10 caronas gratuitas e não tem acesso pago válido.
-// Mesmo fluxo do AssinaturaActivity do Match: abre o checkout do Mercado
-// Pago no navegador (não numa WebView) e escuta em tempo real o próprio
+// Mesmo fluxo do AssinaturaActivity do Match: primeiro o Google mostra a
+// escolha Google Play x Mercado Pago (User Choice Billing, ver
+// GooglePlayBillingManager); pelo Google Play a compra é confirmada no
+// servidor, pelo Mercado Pago abre o checkout no navegador (não numa WebView) e escuta em tempo real o próprio
 // documento usuarios/{uid} até acessoMotoristaExpiraEm mudar — quem decide
 // se o pagamento foi aprovado é sempre esse listener, nunca o retorno do
 // deep link em si (ver onNewIntent).
@@ -39,7 +42,7 @@ import javax.inject.Inject
 // fica desabilitado com o aviso de quando dá pra renovar (mesma regra que
 // createPaymentPreferenceMotorista aplica no servidor — a trava de verdade).
 @AndroidEntryPoint
-class AssinaturaMotoristaActivity : AppCompatActivity() {
+class AssinaturaMotoristaActivity : AppCompatActivity(), GooglePlayBillingCallback {
 
     @Inject
     lateinit var usuarioRepository: IUsuarioRepository
@@ -55,6 +58,10 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     private val formatoData = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
     private var jobConfirmacao: Job? = null
     private var expiraEmAntesDaCompra: Long? = null
+    private lateinit var billingManager: GooglePlayBillingManager
+    // Tokens do Google Play já em confirmação — o mesmo pode chegar pelo
+    // listener da compra e pela reconsulta do onResume ao mesmo tempo.
+    private val comprasEmConfirmacao = mutableSetOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +79,7 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
         cardTrimestral.setOnClickListener { selecionarPlano(PlanoMotorista.TRIMESTRAL) }
         selecionarPlano(PlanoMotorista.MENSAL)
 
+        billingManager = GooglePlayBillingManager(this, this)
         btnPagar.setOnClickListener { iniciarPagamento() }
     }
 
@@ -84,6 +92,8 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         carregarStatusEPagamentos()
+        // Compra pelo Google Play que ficou pendente (Pix/boleto) e já foi paga.
+        billingManager.verificarComprasPendentes()
     }
 
     // Relê usuário e pagamentos toda vez que a tela volta ao topo — cobre a
@@ -136,13 +146,23 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
         }
     }
 
+    // Abre a tela do Google com a escolha Google Play x Mercado Pago — o que
+    // o motorista escolher chega por onGooglePlayPurchaseCompleted ou
+    // onUserChoseAlternativeBilling.
     private fun iniciarPagamento() {
+        val uid = usuarioRepository.uidLogado() ?: return
         btnPagar.isEnabled = false
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
                 expiraEmAntesDaCompra = usuario.acessoMotoristaExpiraEm?.time
             }
-            usuarioRepository.iniciarPagamentoAcessoMotorista(planoSelecionado)
+            billingManager.conectar { billingManager.iniciarCompra(this@AssinaturaMotoristaActivity, planoSelecionado, uid) }
+        }
+    }
+
+    override fun onUserChoseAlternativeBilling(externalTransactionToken: String) {
+        lifecycleScope.launch {
+            usuarioRepository.iniciarPagamentoAcessoMotorista(planoSelecionado, externalTransactionToken)
                 .onSuccess { initPoint ->
                     try {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(initPoint)))
@@ -158,6 +178,49 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
                     Toast.makeText(this@AssinaturaMotoristaActivity, getString(R.string.assinatura_motorista_erro_checkout, e.message), Toast.LENGTH_LONG).show()
                 }
         }
+    }
+
+    override fun onGooglePlayPurchaseCompleted(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        if (!comprasEmConfirmacao.add(purchase.purchaseToken)) return
+        lifecycleScope.launch {
+            // Compra retomada pelo onResume (sem passar por iniciarPagamento):
+            // a validade "de antes" ainda não foi lida — sem ela, um acesso
+            // já válido seria confundido com a confirmação desta compra.
+            if (jobConfirmacao == null) {
+                usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
+                    expiraEmAntesDaCompra = usuario.acessoMotoristaExpiraEm?.time
+                }
+                iniciarEscutaDeConfirmacao()
+            }
+            usuarioRepository.confirmarCompraGooglePlayMotorista(purchase.purchaseToken, productId)
+                .onSuccess { pendente ->
+                    if (pendente) {
+                        // O listener continua esperando; o onResume reconsulta.
+                        Toast.makeText(this@AssinaturaMotoristaActivity, R.string.assinatura_motorista_pendente, Toast.LENGTH_LONG).show()
+                    }
+                }
+                .onFailure { e ->
+                    Log.e(TAG, "Erro ao confirmar compra do Google Play", e)
+                    pararEscutaDeConfirmacao()
+                    Toast.makeText(this@AssinaturaMotoristaActivity, getString(R.string.assinatura_motorista_erro_google_play, e.message), Toast.LENGTH_LONG).show()
+                }
+            comprasEmConfirmacao.remove(purchase.purchaseToken)
+        }
+    }
+
+    override fun onBillingError(mensagem: String) {
+        runOnUiThread {
+            if (jobConfirmacao == null) btnPagar.isEnabled = true
+            Toast.makeText(this, getString(R.string.assinatura_motorista_erro_google_play, mensagem), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun pararEscutaDeConfirmacao() {
+        jobConfirmacao?.cancel()
+        jobConfirmacao = null
+        layoutAguardando.visibility = View.GONE
+        btnPagar.isEnabled = true
     }
 
     private fun iniciarEscutaDeConfirmacao() {
@@ -193,6 +256,7 @@ class AssinaturaMotoristaActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         jobConfirmacao?.cancel()
+        billingManager.encerrar()
     }
 
     companion object {

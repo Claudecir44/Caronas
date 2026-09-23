@@ -140,6 +140,8 @@ dependencies {
     // proprietária (MIUI, Samsung, Sony, etc.). ShortcutBadger abstrai
     // isso — detecta o launcher e manda o broadcast/intent certo.
     implementation(libs.shortcutbadger)
+    // Google Play Billing com "User Choice Billing" (Brasil) — ver GooglePlayBillingManager.kt.
+    implementation(libs.billing.ktx)
 
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

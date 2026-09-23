@@ -98,6 +98,83 @@ if (MERCADOPAGO_ACCESS_TOKEN) {
     console.error('   Enquanto isso não estiver configurado, o motorista não consegue pagar pra continuar oferecendo caronas depois das 10 gratuitas.');
 }
 
+// ============================================================
+// Google Play — "User Choice Billing" (Brasil), mesmo esquema do Match: o
+// passe do motorista libera uma função do app, então a política de
+// pagamentos do Google exige que o próprio Google ofereça a escolha Google
+// Play x Mercado Pago antes da compra (ver GooglePlayBillingManager.kt).
+// A Google Play Developer API serve pra:
+//  1) reportarTransacaoExternaAoGooglePlay — avisar o Google de cada
+//     pagamento feito pelo Mercado Pago (obrigatório em até 24h);
+//  2) confirmarCompraGooglePlayMotorista — verificar e reconhecer uma
+//     compra feita pelo Google Play.
+// Credenciais: conta de serviço com acesso ao app no Play Console
+// (Usuários e permissões → "Ver dados financeiros" + "Gerenciar pedidos"),
+// chave JSON inteira numa linha só.
+// ============================================================
+const { google } = require('googleapis');
+
+const GOOGLE_PLAY_PACKAGE_NAME = process.env.GOOGLE_PLAY_PACKAGE_NAME || '';
+const GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON || '';
+
+if (!GOOGLE_PLAY_PACKAGE_NAME || !GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) {
+    console.error('❌ Integração com o Google Play (User Choice Billing) NÃO CONFIGURADA!');
+    console.error('👉 Crie/edite o arquivo .env na pasta functions com:');
+    console.error('   GOOGLE_PLAY_PACKAGE_NAME=com.cjstudio.caronas.usuario');
+    console.error('   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=\'{"type":"service_account",...}\' (a chave JSON inteira, numa linha só)');
+    console.error('   Enquanto isso não estiver configurado, pagamentos pelo Mercado Pago NÃO são reportados ao Google e compras pelo Google Play não são confirmadas.');
+}
+
+// Produtos avulsos (compra única) cadastrados no Play Console — IDs iguais
+// a PlanoMotorista.produtoGooglePlay no app; os preços lá precisam bater
+// com PLANOS_MOTORISTA.
+const PRODUTOS_GOOGLE_PLAY_MOTORISTA = {
+    acesso_motorista_mensal: 'Mensal',
+    acesso_motorista_trimestral: 'Trimestral',
+};
+
+let androidPublisherClient = null;
+function obterAndroidPublisher() {
+    if (androidPublisherClient) return androidPublisherClient;
+    if (!GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) return null;
+    const auth = new google.auth.GoogleAuth({
+        credentials: JSON.parse(GOOGLE_PLAY_SERVICE_ACCOUNT_JSON),
+        scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+    });
+    androidPublisherClient = google.androidpublisher({ version: 'v3', auth });
+    return androidPublisherClient;
+}
+
+// Avisa o Google de um pagamento feito pelo Mercado Pago depois da escolha
+// na tela do Google. Não derruba o webhook se falhar — o acesso já foi
+// concedido; só loga pra reportar manualmente se preciso.
+async function reportarTransacaoExternaAoGooglePlay({ externalTransactionToken, valor, paymentId }) {
+    const androidpublisher = obterAndroidPublisher();
+    if (!androidpublisher) {
+        console.error('❌ Transação externa NÃO reportada ao Google Play (credenciais ausentes). Pagamento:', paymentId);
+        return;
+    }
+    // Id estável por pagamento: se o MP reenviar a notificação, o Google
+    // recusa a duplicata em vez de contar duas vezes.
+    const externalTransactionId = `mp_${paymentId}`;
+    try {
+        await androidpublisher.externaltransactions.createexternaltransaction({
+            parent: `applications/${GOOGLE_PLAY_PACKAGE_NAME}`,
+            externalTransactionId,
+            requestBody: {
+                originalPreTaxAmount: { priceMicros: String(Math.round(valor * 1000000)), currency: 'BRL' },
+                originalTaxAmount: { priceMicros: '0', currency: 'BRL' },
+                transactionTime: new Date().toISOString(),
+                oneTimeTransaction: { externalTransactionToken },
+                userTaxAddress: { regionCode: 'BR' },
+            },
+        });
+        console.log('✅ Transação externa reportada ao Google Play:', externalTransactionId);
+    } catch (error) {
+        console.error('❌ Erro ao reportar transação externa ao Google Play (acesso já concedido):', error.message);
+    }
+}
+
 exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request) => {
     if (!MERCADOPAGO_ACCESS_TOKEN) {
         throw new functions.https.HttpsError('failed-precondition', 'Mercado Pago não configurado no servidor.');
@@ -108,6 +185,9 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
     const uid = request.auth.uid;
 
     const nomePlano = (request.data && request.data.plano) || PLANO_MOTORISTA_PADRAO;
+    // Token da escolha "pagar por fora" na tela do Google (User Choice
+    // Billing). Vai no metadata pro webhook reportar a transação ao Google.
+    const externalTransactionToken = (request.data && request.data.externalTransactionToken) || null;
     const plano = PLANOS_MOTORISTA[nomePlano];
     if (!plano) {
         throw new functions.https.HttpsError('invalid-argument', 'Plano inválido.');
@@ -153,7 +233,7 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
             },
             auto_return: 'approved',
             notification_url: `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/paymentWebhookMotorista`,
-            metadata: { usuarioId: uid, plano: nomePlano },
+            metadata: { usuarioId: uid, plano: nomePlano, externalTransactionToken },
             statement_descriptor: 'CARONAS APP',
         };
 
@@ -172,7 +252,9 @@ exports.createPaymentPreferenceMotorista = functions.https.onCall(async (request
 // agora (se vencida/nunca pagou) — evita que pagar de novo ANTES de
 // vencer "perca" os dias que ainda restavam (mesmo raciocínio de
 // concederPremium no Match, extends em vez de sobrescrever).
-async function concederAcessoMotorista(usuarioId, paymentId, nomePlano, valorPago) {
+// referencia: { mercadoPagoPaymentId } ou { googlePlayPurchaseToken, googlePlayOrderId }
+// — vai inteira pro documento em pagamentosMotorista.
+async function concederAcessoMotorista(usuarioId, referencia, nomePlano, valorPago) {
     const plano = PLANOS_MOTORISTA[nomePlano] || PLANOS_MOTORISTA[PLANO_MOTORISTA_PADRAO];
     const usuarioRef = admin.firestore().collection('usuarios').doc(usuarioId);
     const usuarioDoc = await usuarioRef.get();
@@ -202,10 +284,10 @@ async function concederAcessoMotorista(usuarioId, paymentId, nomePlano, valorPag
         dias: plano.dias,
         dataCompra: agora,
         expiraEm: novaExpiracao.getTime(),
-        mercadoPagoPaymentId: String(paymentId),
+        ...referencia,
     });
 
-    console.log(`✅ Acesso motorista (${nomePlano}, ${plano.dias} dias) concedido a ${usuarioId} até ${novaExpiracao.toISOString()} (pagamento ${paymentId})`);
+    console.log(`✅ Acesso motorista (${nomePlano}, ${plano.dias} dias) concedido a ${usuarioId} até ${novaExpiracao.toISOString()}`, referencia);
 }
 
 // Estorno (refunded), contestação no cartão (charged_back) ou cancelamento de um
@@ -272,8 +354,10 @@ exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => 
         const payment = paymentResponse.body;
 
         let usuarioId = null;
-        if (payment.metadata && payment.metadata.usuarioId) {
-            usuarioId = payment.metadata.usuarioId;
+        // O Mercado Pago devolve as chaves do metadata em snake_case.
+        const usuarioIdMetadata = payment.metadata && (payment.metadata.usuario_id || payment.metadata.usuarioId);
+        if (usuarioIdMetadata) {
+            usuarioId = usuarioIdMetadata;
         } else if (payment.external_reference) {
             usuarioId = payment.external_reference.split('_')[0];
         }
@@ -302,7 +386,20 @@ exports.paymentWebhookMotorista = functions.https.onRequest(async (req, res) => 
             }
 
             const planoPago = payment.metadata && payment.metadata.plano;
-            await concederAcessoMotorista(usuarioId, payment.id, planoPago, payment.transaction_amount);
+            await concederAcessoMotorista(usuarioId, { mercadoPagoPaymentId: String(payment.id) }, planoPago, payment.transaction_amount);
+
+            // O Mercado Pago devolve as chaves do metadata em snake_case.
+            const metadata = payment.metadata || {};
+            const externalTransactionToken = metadata.external_transaction_token || metadata.externalTransactionToken;
+            if (externalTransactionToken) {
+                await reportarTransacaoExternaAoGooglePlay({
+                    externalTransactionToken,
+                    valor: payment.transaction_amount,
+                    paymentId: payment.id,
+                });
+            } else {
+                console.warn('⚠️ Pagamento', payment.id, 'sem externalTransactionToken — não reportado ao Google Play.');
+            }
         } else if (['refunded', 'charged_back', 'cancelled'].includes(payment.status)) {
             await revogarAcessoMotoristaPorEstorno(usuarioId, payment.id, payment.status);
         }
@@ -327,6 +424,93 @@ exports.checkPaymentStatusMotorista = functions.https.onCall(async (request) => 
     const expiraEm = dados.acessoMotoristaExpiraEm;
     const valido = !!(expiraEm && typeof expiraEm.toMillis === 'function' && expiraEm.toMillis() > Date.now());
     return { acessoValido: valido, expiraEm: expiraEm ? expiraEm.toMillis() : null };
+});
+
+// Confirma uma compra feita pelo Google Play (o motorista escolheu essa
+// opção na tela do Google): verifica o token, consome a compra
+// (obrigatório em até 3 dias, senão o Google estorna) e concede o acesso
+// pelo mesmo concederAcessoMotorista do Mercado Pago. Mesmo desenho de
+// confirmarCompraGooglePlay no Match.
+exports.confirmarCompraGooglePlayMotorista = functions.https.onCall(async (request) => {
+    if (!request.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    const usuarioId = request.auth.uid;
+    const { purchaseToken, productId } = request.data || {};
+    if (!purchaseToken || !productId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Dados incompletos.');
+    }
+    const nomePlano = PRODUTOS_GOOGLE_PLAY_MOTORISTA[productId];
+    if (!nomePlano) {
+        throw new functions.https.HttpsError('invalid-argument', 'Produto desconhecido: ' + productId);
+    }
+    const androidpublisher = obterAndroidPublisher();
+    if (!androidpublisher) {
+        throw new functions.https.HttpsError('failed-precondition', 'Integração com o Google Play não configurada no servidor.');
+    }
+
+    let compra;
+    try {
+        const resposta = await androidpublisher.purchases.products.get({
+            packageName: GOOGLE_PLAY_PACKAGE_NAME,
+            productId,
+            token: purchaseToken,
+        });
+        compra = resposta.data;
+    } catch (error) {
+        console.error('❌ Erro ao verificar compra no Google Play:', error.message);
+        throw new functions.https.HttpsError('internal', 'Não foi possível verificar a compra junto ao Google Play.');
+    }
+
+    // purchaseState: 0 = comprado, 1 = cancelado, 2 = pendente (Pix/boleto
+    // ainda não confirmado) — pendente não é erro, o app tenta de novo.
+    if (compra.purchaseState === 2) {
+        return { success: false, pendente: true };
+    }
+    if (compra.purchaseState !== 0) {
+        throw new functions.https.HttpsError('failed-precondition', 'Compra não concluída (purchaseState=' + compra.purchaseState + ').');
+    }
+    // A compra tem que ser desta conta: o app manda o uid como
+    // obfuscatedAccountId ao abrir a compra (ver GooglePlayBillingManager).
+    if (compra.obfuscatedExternalAccountId && compra.obfuscatedExternalAccountId !== usuarioId) {
+        throw new functions.https.HttpsError('permission-denied', 'Esta compra pertence a outra conta.');
+    }
+
+    // Idempotência: o mesmo token só concede acesso uma vez. Trava só depois
+    // de confirmar "comprado", senão uma compra pendente nunca mais liberaria.
+    const idempotenciaRef = admin.firestore().collection('pagamentosMotoristaProcessados').doc(`gp_${purchaseToken}`);
+    try {
+        await idempotenciaRef.create({ usuarioId, processadoEm: Date.now() });
+    } catch (idempotenciaError) {
+        if (idempotenciaError.code === 6) { // ALREADY_EXISTS
+            return { success: true, jaProcessado: true };
+        }
+        throw idempotenciaError;
+    }
+
+    // CONSUMIR (não só reconhecer): o passe é comprado de novo a cada
+    // período, e um produto avulso só reconhecido fica "já comprado" pra
+    // sempre no Google Play (ITEM_ALREADY_OWNED na renovação). Consumir
+    // também conta como reconhecer (senão o Google estorna em 3 dias).
+    if (compra.consumptionState !== 1) {
+        try {
+            await androidpublisher.purchases.products.consume({
+                packageName: GOOGLE_PLAY_PACKAGE_NAME,
+                productId,
+                token: purchaseToken,
+            });
+        } catch (error) {
+            console.error('❌ Erro ao consumir compra no Google Play (acesso concedido mesmo assim):', error.message);
+        }
+    }
+
+    await concederAcessoMotorista(
+        usuarioId,
+        { googlePlayPurchaseToken: purchaseToken, googlePlayOrderId: compra.orderId || '' },
+        nomePlano,
+        PLANOS_MOTORISTA[nomePlano].valor
+    );
+    return { success: true };
 });
 
 // ============================================================
