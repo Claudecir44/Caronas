@@ -521,7 +521,7 @@ class AdminRepository @Inject constructor(
         return try {
             auth.signInWithEmailAndPassword(email, senha).await()
             if (foto != null) atualizarFotoAdmin(uid, foto)
-            auth.currentUser?.sendEmailVerification()?.await()
+            auth.currentUser?.let { enviarVerificacaoInicial(it, prefs) }
             auth.signOut()
             Result.success(Unit)
         } catch (e: Exception) {

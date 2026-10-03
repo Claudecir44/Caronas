@@ -90,7 +90,7 @@
     <string name="login_suporte_reenviar_verificacao_explicacao">Informe seus dados pra receber um novo e-mail de validação de cadastro.</string>
     <string name="login_suporte_botao_enviar">Enviar</string>
     <string name="login_suporte_erro_campos_obrigatorios">Preencha nome completo, e-mail e telefone.</string>
-    <string name="login_suporte_reenvio_enviado">E-mail de validação reenviado — confira também a caixa de spam.</string>
+    <string name="login_suporte_reenvio_enviado">E-mail de validação reenviado — use o link do e-mail MAIS RECENTE (os anteriores deixam de valer) e confira também a caixa de spam.</string>
     <string name="login_suporte_erro_generico">Erro: %1$s</string>
 
     <!-- Notificações push -->

@@ -54,10 +54,11 @@ class UsuarioRepository @Inject constructor(
             // Best-effort — mesmo padrão do Match: se o envio falhar (sem
             // rede no momento, por ex.), o cadastro em si já está feito e
             // não deveria ser desfeito por causa disso. O bloqueio de
-            // verdade acontece no login (isEmailVerified abaixo), que
-            // também reenvia o e-mail a cada tentativa.
+            // verdade acontece no login (isEmailVerified abaixo). Grava a
+            // hora do envio (ver VerificacaoEmailUtil.kt) — sem isso o
+            // primeiro login mandava outro e-mail e invalidava este.
             try {
-                authResult.user?.sendEmailVerification()?.await()
+                authResult.user?.let { enviarVerificacaoInicial(it, prefs) }
             } catch (_: Exception) {
                 // Ignorado de propósito — ver comentário acima.
             }
@@ -258,6 +259,9 @@ class UsuarioRepository @Inject constructor(
             functions.getHttpsCallable("reenviarVerificacaoEmail")
                 .call(mapOf("email" to email))
                 .await()
+            // Conta como envio pro cooldown do login — senão a próxima
+            // tentativa de entrar mandaria outro e invalidaria este link.
+            registrarEnvioVerificacao(prefs)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

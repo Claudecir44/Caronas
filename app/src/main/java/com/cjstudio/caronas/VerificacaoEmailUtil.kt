@@ -7,36 +7,50 @@ import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
-// Reenvia o e-mail de verificação só se já não tiver mandado um há menos
-// de 1 minuto (ver KEY_ULTIMO_REENVIO_VERIFICACAO) — usado tanto no login
-// comum (UsuarioRepository.login) quanto no login admin
-// (LoginAdminCaronasActivity), os dois pontos onde uma conta não
-// verificada tenta entrar.
+// Todo envio de e-mail de verificação do app passa por aqui e grava a hora
+// em KEY_ULTIMO_REENVIO_VERIFICACAO — cadastro (enviarVerificacaoInicial),
+// reenvio pela caixa Suporte (registrarEnvioVerificacao) e o reenvio
+// automático do login comum/admin (reenviarVerificacaoComCooldown).
 //
-// Antes disso, TODA tentativa de login com conta não verificada disparava
-// um reenvio sem nenhum limite — login errado/repetido em sequência rápida
-// estourava o próprio limite de envio do Firebase (erro real visto em
-// produção: "TOO_MANY_ATTEMPTS_TRY_LATER"), e a partir daí os reenvios
-// seguintes falhavam calados (capturados por um catch genérico) enquanto a
-// mensagem pro usuário continuava dizendo "reenviamos o e-mail" — nenhum
-// e-mail novo estava saindo, mas o app garantia que sim. Essa função
-// devolve a mensagem certa pra cada caso (reenviou agora / já tinha
-// mandado há pouco / o próprio Firebase recusou por excesso de pedidos),
-// pra nunca mais prometer um reenvio que não aconteceu.
-private const val COOLDOWN_REENVIO_VERIFICACAO_MS = 60_000L
+// Por que importa: cada e-mail novo gera um link novo e o Firebase invalida
+// o link anterior do mesmo tipo. Antes, o cadastro mandava o e-mail mas NÃO
+// gravava a hora — a primeira tentativa de login (antes de abrir o e-mail)
+// mandava outro na hora, e o usuário abria o primeiro (o que chegou antes)
+// e via "link expirado". Erro real relatado por usuários em produção.
+//
+// O cooldown de 1 hora garante que o link já enviado continue valendo pelo
+// menos esse tempo — o login não troca o link enquanto o usuário ainda está
+// indo abrir o e-mail.
+//
+// Histórico: o cooldown existe desde que login errado/repetido em
+// sequência estourava o limite de envio do Firebase ("TOO_MANY_ATTEMPTS_TRY_LATER")
+// e o app seguia dizendo "reenviamos" sem nenhum e-mail sair — a mensagem
+// devolvida aqui sempre diz o que de fato aconteceu.
+private const val COOLDOWN_REENVIO_VERIFICACAO_MS = 60 * 60_000L
+
+suspend fun registrarEnvioVerificacao(prefs: DataStore<Preferences>) {
+    prefs.edit { it[KEY_ULTIMO_REENVIO_VERIFICACAO] = System.currentTimeMillis() }
+}
+
+// Primeiro e-mail (cadastro de usuário ou de admin). Grava a hora pra o
+// login logo em seguida não mandar outro e invalidar este.
+suspend fun enviarVerificacaoInicial(firebaseUser: FirebaseUser, prefs: DataStore<Preferences>) {
+    firebaseUser.sendEmailVerification().await()
+    registrarEnvioVerificacao(prefs)
+}
 
 suspend fun reenviarVerificacaoComCooldown(firebaseUser: FirebaseUser, prefs: DataStore<Preferences>): String {
     val agora = System.currentTimeMillis()
     val ultimoReenvio = prefs.data.first()[KEY_ULTIMO_REENVIO_VERIFICACAO] ?: 0L
 
     if (agora - ultimoReenvio < COOLDOWN_REENVIO_VERIFICACAO_MS) {
-        return "Valide seu cadastro pelo e-mail para poder entrar. Você já tem um e-mail de verificação enviado há pouco — confira sua caixa de entrada e o spam antes de pedir outro."
+        return "Valide seu cadastro pelo e-mail para poder entrar. Já enviamos um e-mail de verificação há menos de 1 hora — abra o link dele (confira também o spam) e depois volte para entrar."
     }
 
     return try {
         firebaseUser.sendEmailVerification().await()
-        prefs.edit { it[KEY_ULTIMO_REENVIO_VERIFICACAO] = agora }
-        "Valide seu cadastro pelo e-mail para poder entrar. Reenviamos o e-mail de verificação — confira também a caixa de spam."
+        registrarEnvioVerificacao(prefs)
+        "Valide seu cadastro pelo e-mail para poder entrar. Enviamos um novo e-mail de verificação — use o link do e-mail MAIS RECENTE (os anteriores deixam de valer) e confira também o spam."
     } catch (e: Exception) {
         val mensagemErro = e.message.orEmpty()
         if (mensagemErro.contains("TOO_MANY", ignoreCase = true) || mensagemErro.contains("too-many-requests", ignoreCase = true)) {
