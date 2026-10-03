@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CJ Studio Technology — nossos apps</title>
+<meta name="description" content="Baixe grátis no Google Play: Match (encontros e namoro) e Caronas (viagens compartilhadas).">
+<meta property="og:title" content="CJ Studio Technology — nossos apps">
+<meta property="og:description" content="Match e Caronas, grátis no Google Play.">
+<meta property="og:image" content="logo-cjstudio.jpg">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1b2a5e 0%, #0a0f24 60%, #05070f 100%);
+    color: #fff; display: flex; flex-direction: column; align-items: center; padding: 40px 16px;
+  }
+  .logo { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 30px #3b6bff66; }
+  h1 { margin-top: 16px; font-size: 22px; }
+  p.sub { margin-top: 6px; color: #b8c4ec; font-size: 15px; text-align: center; }
+  .apps { width: 100%; max-width: 420px; margin-top: 28px; display: grid; gap: 16px; }
+  a.app {
+    display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 18px;
+    text-decoration: none; color: #fff; background: #ffffff12; border: 1px solid #ffffff22;
+    transition: transform .15s, background .15s;
+  }
+  a.app:active, a.app:hover { transform: scale(1.02); background: #ffffff1f; }
+  a.app img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
+  a.app strong { display: block; font-size: 18px; }
+  a.app span { display: block; font-size: 14px; color: #c9d3f5; margin-top: 2px; }
+  a.app em { display: inline-block; margin-top: 8px; font-style: normal; font-size: 13px; font-weight: 700;
+    background: #fff; color: #0a0f24; padding: 4px 10px; border-radius: 999px; }
+  a.match { border-color: #ff3d8b66; }
+  a.caronas { border-color: #36b4ff66; }
+  footer { margin-top: auto; padding-top: 32px; font-size: 12px; color: #7d89b3; }
+</style>
+</head>
+<body>
+  <img class="logo" src="logo-cjstudio.jpg" alt="CJ Studio Technology">
+  <h1>CJ Studio Technology</h1>
+  <p class="sub">Apps feitos no Brasil. Baixe grátis no Google Play 👇</p>
+
+  <div class="apps">
+    <a class="app match" href="https://play.google.com/store/apps/details?id=com.cjstudio.match.usuario">
+      <img src="icone-match.png" alt="">
+      <div>
+        <strong>🔥 Match</strong>
+        <span>Encontros e namoro: pessoas reais perto de você</span>
+        <em>Baixar no Google Play</em>
+      </div>
+    </a>
+    <a class="app caronas" href="https://play.google.com/store/apps/details?id=com.cjstudio.caronas.usuario">
+      <img src="icone-caronas.png" alt="">
+      <div>
+        <strong>🚗 Caronas</strong>
+        <span>Vai pro mesmo lugar? Divida a viagem e economize</span>
+        <em>Baixar no Google Play</em>
+      </div>
+    </a>
+  </div>
+
+  <footer>© CJ Studio Technology</footer>
+</body>
+</html>
