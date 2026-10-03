@@ -714,6 +714,15 @@ function ehMaster(dadosAdmin) {
     return !!dadosAdmin && dadosAdmin.cpf === CPF_ADMIN_MASTER;
 }
 
+const MENSAGEM_MASTER_NAO_EXCLUIVEL = 'Esta é a conta do administrador master e não pode ser excluída.';
+
+async function exigirNaoMaster(db, uid) {
+    const adminDoc = await db.collection('admins').doc(uid).get();
+    if (adminDoc.exists && ehMaster(adminDoc.data())) {
+        throw new functions.https.HttpsError('failed-precondition', MENSAGEM_MASTER_NAO_EXCLUIVEL);
+    }
+}
+
 function sanitizarPermissoes(permissoes) {
     if (!permissoes || typeof permissoes !== 'object') return null;
     const limpo = {};
@@ -1157,6 +1166,9 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
     }
 
     const alvo = doc.data();
+    if (ehMaster(alvo)) {
+        throw new functions.https.HttpsError('failed-precondition', MENSAGEM_MASTER_NAO_EXCLUIVEL);
+    }
     await ref.delete();
     await registrarLogAdministracao(uidChamador, 'admin_excluido', [alvo.nome, alvo.sobrenome].filter(Boolean).join(' '), uid, 'senhaMaster');
     return { ok: true };
@@ -1190,6 +1202,15 @@ exports.excluirAdmin = functions.https.onCall(async (request) => {
 // trava "abandonada"), mas todo o resto ficava para trás. Unificar os dois
 // caminhos aqui corrige os dois problemas de uma vez.
 async function excluirUsuarioCompleto(db, uid) {
+    // O admin master (CPF_ADMIN_MASTER) nunca pode ser apagado — nem pelo
+    // painel (excluirUsuario) nem pelo próprio "Excluir minha conta"
+    // (excluirContaPropria). Conta de usuário e de admin são a MESMA conta
+    // Firebase Auth, e excluir ela leva junto admins/{uid}: em 2026-10-02 um
+    // teste de "Excluir minha conta" no app apagou o master e o projeto
+    // ficou sem nenhum admin com permissão total. Checado ANTES de qualquer
+    // limpeza, pra não deixar exclusão pela metade.
+    await exigirNaoMaster(db, uid);
+
     async function apagarDocsDaQuery(query) {
         const snap = await query.get();
         if (snap.empty) return;
