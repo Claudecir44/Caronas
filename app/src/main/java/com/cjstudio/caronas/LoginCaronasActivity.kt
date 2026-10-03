@@ -113,7 +113,11 @@ class LoginCaronasActivity : AppCompatActivity() {
                 finish()
             }.onFailure { e ->
                 progressBar.visibility = View.GONE
-                Toast.makeText(this@LoginCaronasActivity, getString(R.string.erro_generico, e.message), Toast.LENGTH_LONG).show()
+                if (e is EmailNaoVerificadoException) {
+                    VerificarEmailDialogUtil.mostrarLogin(this@LoginCaronasActivity, email, e.message.orEmpty())
+                } else {
+                    Toast.makeText(this@LoginCaronasActivity, getString(R.string.erro_generico, e.message), Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

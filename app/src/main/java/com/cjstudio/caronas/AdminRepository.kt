@@ -496,7 +496,7 @@ class AdminRepository @Inject constructor(
             // Mesma trava do login de usuário comum, com cooldown no reenvio (ver
             // reenviarVerificacaoComCooldown).
             if (!firebaseUser.isEmailVerified) {
-                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs)
+                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs, functions)
                 auth.signOut()
                 throw EmailNaoVerificadoException(mensagem)
             }
@@ -521,7 +521,7 @@ class AdminRepository @Inject constructor(
         return try {
             auth.signInWithEmailAndPassword(email, senha).await()
             if (foto != null) atualizarFotoAdmin(uid, foto)
-            auth.currentUser?.let { enviarVerificacaoInicial(it, prefs) }
+            auth.currentUser?.let { enviarVerificacaoInicial(it, prefs, functions, null) }
             auth.signOut()
             Result.success(Unit)
         } catch (e: Exception) {

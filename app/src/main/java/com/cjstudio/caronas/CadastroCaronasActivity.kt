@@ -201,9 +201,10 @@ class CadastroCaronasActivity : AppCompatActivity() {
                 // terminou, o próximo login já cai na checagem de e-mail
                 // verificado (ver UsuarioRepository.login).
                 usuarioRepository.logout()
-                Toast.makeText(this@CadastroCaronasActivity, R.string.cadastro_sucesso, Toast.LENGTH_LONG).show()
-                startActivity(Intent(this@CadastroCaronasActivity, LoginCaronasActivity::class.java))
-                finish()
+                VerificarEmailDialogUtil.mostrar(this@CadastroCaronasActivity, email) {
+                    startActivity(Intent(this@CadastroCaronasActivity, LoginCaronasActivity::class.java))
+                    finish()
+                }
             }.onFailure { e ->
                 progressBar.visibility = View.GONE
                 btnCadastrar.isEnabled = true

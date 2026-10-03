@@ -54,8 +54,11 @@ class LoginAdminCaronasActivity : AppCompatActivity() {
                     }
                     .onFailure { e ->
                         progressBar.visibility = View.GONE
+                        if (e is EmailNaoVerificadoException) {
+                            VerificarEmailDialogUtil.mostrarLogin(this@LoginAdminCaronasActivity, email, e.message.orEmpty())
+                            return@onFailure
+                        }
                         val mensagem = when (e) {
-                            is EmailNaoVerificadoException -> e.message.orEmpty()
                             is AcessoAdminRestritoException -> getString(R.string.login_erro_acesso_restrito_admin)
                             else -> getString(R.string.erro_generico, e.message)
                         }

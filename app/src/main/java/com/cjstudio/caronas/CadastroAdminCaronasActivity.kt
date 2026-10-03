@@ -289,8 +289,12 @@ class CadastroAdminCaronasActivity : AppCompatActivity() {
                         adminRepository.finalizarCadastroAdmin(uid, email, senha, fotoUriSelecionada)
                             .onSuccess {
                                 progressBar.visibility = View.GONE
-                                Toast.makeText(this@CadastroAdminCaronasActivity, R.string.admin_cadastro_sucesso, Toast.LENGTH_LONG).show()
-                                finish()
+                                // Aqui quem está na tela é o próprio dono
+                                // da conta nova — mesmo aviso fixo do
+                                // cadastro de usuário comum.
+                                VerificarEmailDialogUtil.mostrar(this@CadastroAdminCaronasActivity, email) {
+                                    finish()
+                                }
                             }
                             .onFailure { e ->
                                 progressBar.visibility = View.GONE

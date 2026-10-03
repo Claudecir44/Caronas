@@ -58,7 +58,7 @@ class UsuarioRepository @Inject constructor(
             // hora do envio (ver VerificacaoEmailUtil.kt) — sem isso o
             // primeiro login mandava outro e-mail e invalidava este.
             try {
-                authResult.user?.let { enviarVerificacaoInicial(it, prefs) }
+                authResult.user?.let { enviarVerificacaoInicial(it, prefs, functions, usuario.nomeCompleto) }
             } catch (_: Exception) {
                 // Ignorado de propósito — ver comentário acima.
             }
@@ -129,9 +129,9 @@ class UsuarioRepository @Inject constructor(
             // isso, login repetido em sequência rápida estourava o limite
             // de envio do próprio Firebase.
             if (!firebaseUser.isEmailVerified) {
-                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs)
+                val mensagem = reenviarVerificacaoComCooldown(firebaseUser, prefs, functions)
                 auth.signOut()
-                throw IllegalStateException(mensagem)
+                throw EmailNaoVerificadoException(mensagem)
             }
 
             val uid = firebaseUser.uid

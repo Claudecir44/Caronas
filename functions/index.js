@@ -784,7 +784,169 @@ async function verificarSenhaAdminPropria(email, senha) {
 // CadastroAdminCaronasActivity.salvarCadastroNovo), então precisa ser feito
 // aqui, via Admin SDK, sem afetar sessão nenhuma. Nunca lança — falha de
 // envio não pode derrubar o cadastro em si, só fica no log.
-async function enviarEmailVerificacaoParaUid(uid) {
+//
+// Desde 2026-10-03 manda primeiro o e-mail PRÓPRIO do Caronas (texto em
+// português explicando passo a passo, pelo Gmail de suporte — ver
+// enviarEmailVerificacaoPersonalizado). O modelo do Firebase Auth não
+// deixa editar o corpo do e-mail de verificação
+// (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED). O envio padrão do Firebase abaixo
+// fica só como reserva, se o Gmail não estiver configurado ou falhar.
+async function enviarEmailVerificacaoParaUid(uid, nomeInformado) {
+    if (await enviarEmailVerificacaoPersonalizado(uid, nomeInformado)) {
+        await registrarEnvioVerificacaoServidor(uid);
+        return true;
+    }
+    const enviadoPadrao = await enviarEmailVerificacaoPadraoFirebase(uid);
+    if (enviadoPadrao) await registrarEnvioVerificacaoServidor(uid);
+    return enviadoPadrao;
+}
+
+// ============================================================
+// E-mail de verificação próprio do Caronas.
+//
+// O link vem de admin.auth().generateEmailVerificationLink — o MESMO link
+// oficial do Firebase (mesma página de confirmação e mesma validade de
+// alguns dias), só que o e-mail em volta é nosso. Como qualquer envio, um
+// link novo invalida o anterior; por isso o app e este servidor seguram
+// o reenvio automático por 1 hora (ver controleVerificacaoEmail abaixo e
+// VerificacaoEmailUtil.kt no app).
+// ============================================================
+const NOME_APP_LOJA = 'Caronas Viagens Compartilhadas';
+
+async function nomeParaEmailVerificacao(uid, nomeInformado) {
+    let nome = (nomeInformado || '').trim();
+    if (!nome) {
+        const db = admin.firestore();
+        const [usuarioSnap, adminSnap] = await Promise.all([
+            db.collection('usuarios').doc(uid).get(),
+            db.collection('admins').doc(uid).get(),
+        ]);
+        nome = (usuarioSnap.exists && usuarioSnap.data().nomeCompleto)
+            || (adminSnap.exists && (adminSnap.data().nomeCompleto || adminSnap.data().nome))
+            || '';
+    }
+    return nome.split(/\s+/)[0] || '';
+}
+
+function montarEmailVerificacao(primeiroNome, email, link) {
+    const saudacao = primeiroNome ? `Olá, ${escapeHtml(primeiroNome)}!` : 'Olá!';
+    const assunto = `Confirme seu e-mail para usar o ${NOME_APP_LOJA}`;
+    const html = `
+<div style="background:#F2F2F7;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#222;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;">
+    <div style="background:#0A0E1A;padding:22px 24px;text-align:center;">
+      <div style="font-size:26px;font-weight:bold;color:#1E90FF;">Caronas</div>
+      <div style="font-size:13px;color:#9FB3C8;margin-top:2px;">Viagens Compartilhadas</div>
+    </div>
+    <div style="padding:26px 24px 8px;">
+      <h1 style="font-size:22px;color:#0D47A1;margin:0 0 10px;">${saudacao}</h1>
+      <p style="font-size:16px;line-height:1.55;margin:0 0 6px;">Seu cadastro no <b>${NOME_APP_LOJA}</b> está quase pronto.</p>
+      <p style="font-size:16px;line-height:1.55;margin:0 0 22px;">Falta só <b>confirmar que este e-mail é seu</b>. É rápido:</p>
+      <div style="text-align:center;margin:0 0 24px;">
+        <a href="${link}" style="display:inline-block;background:#1E90FF;color:#ffffff;text-decoration:none;font-size:18px;font-weight:bold;padding:15px 30px;border-radius:28px;">CONFIRMAR MEU E-MAIL</a>
+      </div>
+      <div style="background:#E3F2FD;border-radius:12px;padding:14px 16px;margin:0 0 18px;">
+        <div style="font-size:16px;font-weight:bold;color:#0D47A1;margin-bottom:6px;">Como fazer</div>
+        <div style="font-size:15px;line-height:1.6;color:#0D47A1;">
+          <b>1.</b> Toque no botão azul <b>CONFIRMAR MEU E-MAIL</b> acima.<br>
+          <b>2.</b> Vai abrir uma página dizendo que o seu e-mail foi verificado.<br>
+          <b>3.</b> Volte ao app Caronas e entre com seu e-mail e senha.
+        </div>
+      </div>
+      <div style="background:#FFF3E0;border-radius:12px;padding:14px 16px;margin:0 0 18px;font-size:14px;line-height:1.55;color:#7A4100;">
+        <b>Importante:</b> abra este link assim que puder. Se você pedir outro e-mail de confirmação, <b>este link deixa de valer</b> — use sempre o e-mail mais recente.
+      </div>
+      <p style="font-size:13px;line-height:1.5;color:#555;margin:0 0 6px;">O botão não funcionou? Copie o endereço abaixo e cole no navegador:</p>
+      <p style="font-size:12px;line-height:1.4;word-break:break-all;margin:0 0 20px;"><a href="${link}" style="color:#1E90FF;">${link}</a></p>
+      <p style="font-size:13px;line-height:1.5;color:#555;margin:0 0 22px;">Não fez cadastro no Caronas com <b>${escapeHtml(email)}</b>? É só ignorar este e-mail — nada será ativado.</p>
+    </div>
+    <div style="border-top:1px solid #E5E5EA;padding:14px 24px;font-size:12px;color:#888;text-align:center;">
+      ${NOME_APP_LOJA} · CJ Studio Technology<br>Este é um e-mail automático, não precisa responder.
+    </div>
+  </div>
+</div>`;
+    const texto = `${primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!'}\n\n`
+        + `Seu cadastro no ${NOME_APP_LOJA} está quase pronto. Falta só confirmar que este e-mail é seu.\n\n`
+        + `1. Abra este link: ${link}\n`
+        + `2. Vai abrir uma página dizendo que o seu e-mail foi verificado.\n`
+        + `3. Volte ao app Caronas e entre com seu e-mail e senha.\n\n`
+        + `Importante: se você pedir outro e-mail de confirmação, este link deixa de valer — use sempre o mais recente.\n\n`
+        + `Não fez cadastro no Caronas com ${email}? É só ignorar este e-mail.\n\n`
+        + `${NOME_APP_LOJA} · CJ Studio Technology`;
+    return { assunto, html, texto };
+}
+
+async function enviarEmailVerificacaoPersonalizado(uid, nomeInformado) {
+    if (!supportMailTransporter) return false;
+    try {
+        const contaAuth = await admin.auth().getUser(uid);
+        if (!contaAuth.email) return false;
+        let link = await admin.auth().generateEmailVerificationLink(contaAuth.email);
+        // Página de confirmação do Firebase em português.
+        if (!/[?&]lang=/.test(link)) link += '&lang=pt-BR';
+        const primeiroNome = await nomeParaEmailVerificacao(uid, nomeInformado);
+        const { assunto, html, texto } = montarEmailVerificacao(primeiroNome, contaAuth.email, link);
+        await supportMailTransporter.sendMail({
+            from: `"${NOME_APP_LOJA}" <${SUPPORT_EMAIL_USER}>`,
+            to: contaAuth.email,
+            subject: assunto,
+            html,
+            text: texto,
+        });
+        return true;
+    } catch (error) {
+        console.error('❌ Erro ao enviar e-mail de verificação próprio (vai tentar o padrão do Firebase):', error);
+        return false;
+    }
+}
+
+// Hora do último e-mail de verificação por conta, no servidor — o
+// controle do app (DataStore) se perde ao reinstalar/limpar dados, e aí o
+// login mandaria outro e-mail e invalidaria o link que a pessoa ainda ia
+// abrir. Coleção só do servidor (firestore.rules não libera pro cliente).
+async function registrarEnvioVerificacaoServidor(uid) {
+    await admin.firestore().collection('controleVerificacaoEmail').doc(uid)
+        .set({ ultimoEnvio: admin.firestore.FieldValue.serverTimestamp() })
+        .catch((e) => console.warn('⚠️ Não gravou controleVerificacaoEmail:', e.message));
+}
+
+async function msDesdeUltimoEnvioVerificacao(uid) {
+    const snap = await admin.firestore().collection('controleVerificacaoEmail').doc(uid).get();
+    const ultimo = snap.exists ? snap.data().ultimoEnvio : null;
+    return ultimo ? Date.now() - ultimo.toMillis() : Infinity;
+}
+
+const UMA_HORA_MS = 60 * 60 * 1000;
+
+// Chamada pelo próprio app logo após o cadastro (origem "cadastro") e no
+// login de conta ainda não confirmada (origem "login"). No login só manda
+// de novo se o último e-mail tiver mais de 1 hora — o link já enviado
+// continua valendo pelo menos esse tempo.
+exports.enviarVerificacaoEmailPropria = functions.https.onCall(async (request) => {
+    if (!request.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login para continuar.');
+    }
+    const uid = request.auth.uid;
+    const dados = request.data || {};
+    const origem = dados.origem === 'cadastro' ? 'cadastro' : 'login';
+
+    const contaAuth = await admin.auth().getUser(uid);
+    if (contaAuth.emailVerified) return { enviado: false, jaVerificado: true };
+
+    const intervaloMinimo = origem === 'cadastro' ? 60 * 1000 : UMA_HORA_MS;
+    if (await msDesdeUltimoEnvioVerificacao(uid) < intervaloMinimo) {
+        return { enviado: false, recente: true };
+    }
+
+    const enviado = await enviarEmailVerificacaoParaUid(uid, dados.nome);
+    if (!enviado) {
+        throw new functions.https.HttpsError('internal', 'Não foi possível enviar o e-mail de verificação.');
+    }
+    return { enviado: true };
+});
+
+// Envio pelo modelo padrão do Firebase Auth (reserva).
+async function enviarEmailVerificacaoPadraoFirebase(uid) {
     if (!WEB_API_KEY) return false;
     try {
         const customToken = await admin.auth().createCustomToken(uid);
@@ -1797,6 +1959,12 @@ exports.reenviarVerificacaoEmail = functions.https.onCall(async (request) => {
 
     if (usuario.emailVerified) {
         return { ok: true, jaVerificado: true };
+    }
+
+    // Pedido explícito da pessoa ("não recebi") — pode reenviar antes de 1
+    // hora, mas não em rajada (função sem login, aberta pra qualquer e-mail).
+    if (await msDesdeUltimoEnvioVerificacao(usuario.uid) < 2 * 60 * 1000) {
+        return { ok: true };
     }
 
     const enviado = await enviarEmailVerificacaoParaUid(usuario.uid);
