@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Panfleto Caronas</title>
+<!-- Panfleto A4 pra imprimir. Gerar o PDF:
+     chrome --headless --print-to-pdf=panfleto_caronas.pdf --no-pdf-header-footer panfleto_caronas.html -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 210mm; height: 297mm; }
+  body {
+    font-family: 'Montserrat', Arial, sans-serif;
+    color: #0b1f4d;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .folha {
+    width: 210mm; height: 297mm;
+    padding: 8mm 9mm 7mm;
+    display: flex; flex-direction: column; gap: 4mm;
+    overflow: hidden;
+  }
+  .arte {
+    width: 172mm; height: 172mm;
+    margin: 0 auto;
+    border-radius: 5mm;
+    overflow: hidden;
+    box-shadow: 0 1mm 3mm rgba(0, 0, 0, .25);
+  }
+  .arte img { width: 100%; height: 100%; display: block; }
+
+  .baixar {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 58mm;
+    gap: 5mm;
+    background: linear-gradient(135deg, #0a2a8a, #1565e0);
+    color: #fff;
+    border-radius: 5mm;
+    padding: 6mm 7mm;
+  }
+  h1 { font-size: 21pt; font-weight: 900; line-height: 1.05; }
+  h1 span { color: #5fe0ff; }
+  .passos { list-style: none; margin-top: 4mm; display: flex; flex-direction: column; gap: 2.6mm; }
+  .passos li { display: flex; align-items: flex-start; gap: 3mm; font-size: 12.5pt; font-weight: 600; line-height: 1.25; }
+  .num {
+    flex: 0 0 8mm; height: 8mm; border-radius: 50%;
+    background: #5fe0ff; color: #0a2a8a;
+    font-weight: 900; font-size: 13pt;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .passos b { color: #ffe066; }
+  .gratis {
+    margin-top: 4mm;
+    background: rgba(255, 255, 255, .14);
+    border: .4mm solid rgba(255, 255, 255, .5);
+    border-radius: 3mm;
+    padding: 2.5mm 3.5mm;
+    font-size: 11.5pt; font-weight: 700; line-height: 1.3;
+  }
+  .gratis b { color: #ffe066; }
+
+  .qr {
+    background: #fff; color: #0a2a8a;
+    border-radius: 4mm;
+    padding: 4mm;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .qr img { width: 46mm; height: 46mm; display: block; }
+  .qr .chamada { font-size: 12pt; font-weight: 900; margin-top: 2.5mm; line-height: 1.15; }
+  .qr .sub { font-size: 9pt; font-weight: 600; margin-top: 1mm; color: #334; }
+
+  .rodape {
+    text-align: center;
+    font-size: 9pt; font-weight: 600; color: #556;
+  }
+  .rodape b { color: #0a2a8a; }
+
+  @media screen {
+    html { background: #888; }
+    body { margin: 10mm auto; box-shadow: 0 0 6mm rgba(0, 0, 0, .4); }
+  }
+</style>
+</head>
+<body>
+<div class="folha">
+  <div class="arte"><img src="arte_base.webp" alt="Caronas: o app de viagens compartilhadas"></div>
+
+  <section class="baixar">
+    <div>
+      <h1>Baixe grátis em <span>1 minuto</span></h1>
+      <ol class="passos">
+        <li><span class="num">1</span><span>Abra a <b>câmera do celular</b> e aponte para o código ao lado.</span></li>
+        <li><span class="num">2</span><span>Ou abra o <b>Google Play</b> e pesquise: <b>Caronas Viagens Compartilhadas</b></span></li>
+        <li><span class="num">3</span><span>Toque em <b>Instalar</b>, crie sua conta e escolha: <b>motorista</b> ou <b>passageiro</b>.</span></li>
+      </ol>
+      <div class="gratis">
+        Passageiro: <b>sempre grátis</b>. Motorista: <b>10 viagens grátis</b>.<br>
+        Combine tudo pelo chat e veja as avaliações antes de viajar.
+      </div>
+    </div>
+    <div class="qr">
+      <img src="qr_play.png" alt="QR code para o Caronas no Google Play">
+      <div class="chamada">Aponte a câmera<br>e baixe agora!</div>
+      <div class="sub">Disponível para Android</div>
+    </div>
+  </section>
+
+  <div class="rodape">Motoristas com <b>CPF verificado</b> · Dúvidas: <b>cjstudiotechnology@gmail.com</b> · CJ Studio Technology</div>
+</div>
+</body>
+</html>

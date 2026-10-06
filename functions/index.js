@@ -45,8 +45,8 @@ if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
 } else {
     console.error('❌ Credenciais de e-mail de suporte NÃO CONFIGURADAS!');
     console.error('👉 Crie/edite o arquivo .env na pasta functions com:');
-    console.error('   SUPPORT_EMAIL_TO=caronasappsuporte@gmail.com');
-    console.error('   SUPPORT_EMAIL_USER=caronasappsuporte@gmail.com');
+    console.error('   SUPPORT_EMAIL_TO=cjstudiotechnology@gmail.com');
+    console.error('   SUPPORT_EMAIL_USER=cjstudiotechnology@gmail.com');
     console.error('   SUPPORT_EMAIL_PASSWORD=SENHA_DE_APP_DE_16_CARACTERES');
     console.error('   (crie uma conta Gmail dedicada + uma "senha de app" em myaccount.google.com/apppasswords)');
 }
