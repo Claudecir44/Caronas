@@ -689,5 +689,4 @@ Motivo: %2$s
     <string name="carona_somente_homens">👨 Somente homens</string>
     <string name="carona_somente_mulheres">👩 Somente mulheres</string>
     <string name="admin_detalhes_sexo">Sexo</string>
-    <string name="admin_detalhes_sexo_erro">Escolha o sexo (Homem ou Mulher).</string>
 </resources>
