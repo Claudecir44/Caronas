@@ -76,8 +76,20 @@ android {
             isDebuggable = true
         }
         release {
-            optimization {
-                enable = false
+            // R8 ligado: encolhe, otimiza e ofusca o código do release (o Play
+            // reclamava de "Ofuscação 2%"). Modelos do Firestore e o que é
+            // usado por reflection ficam protegidos em proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Símbolos de depuração da lib nativa (vem do DataStore) dentro
+            // do .aab — o Play avisava "sem símbolos de depuração do código
+            // nativo".
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
             signingConfig = if (temKeystoreDeRelease) {
                 signingConfigs.getByName("release")
