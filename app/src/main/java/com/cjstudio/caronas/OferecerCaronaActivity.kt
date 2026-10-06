@@ -10,9 +10,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -46,8 +48,12 @@ class OferecerCaronaActivity : AppCompatActivity() {
     private lateinit var btnData: EditText
     private lateinit var btnHora: EditText
     private lateinit var etVagas: EditText
+    private lateinit var rgAceitaPassageiros: RadioGroup
     private lateinit var btnCalcularSugestao: TextView
     private lateinit var layoutSugestao: LinearLayout
+    private lateinit var tvTrechoValorPorVaga: TextView
+    private lateinit var blocoValoresTrechos: View
+    private lateinit var containerValoresTrechos: LinearLayout
     private lateinit var etValorPorVaga: EditText
     private lateinit var btnPublicar: Button
     private lateinit var progressBar: ProgressBar
@@ -79,8 +85,14 @@ class OferecerCaronaActivity : AppCompatActivity() {
         btnData = findViewById(R.id.tvData)
         btnHora = findViewById(R.id.tvHora)
         etVagas = findViewById(R.id.etVagas)
+        rgAceitaPassageiros = findViewById(R.id.rgAceitaPassageiros)
         btnCalcularSugestao = findViewById(R.id.btnCalcularSugestao)
         layoutSugestao = findViewById(R.id.layoutSugestao)
+        tvTrechoValorPorVaga = findViewById(R.id.tvTrechoValorPorVaga)
+        blocoValoresTrechos = findViewById(R.id.blocoValoresTrechos)
+        containerValoresTrechos = findViewById(R.id.containerValoresTrechos)
+        etCidadeOrigem.doAfterTextChanged { atualizarRotulosDeValor() }
+        etCidadeDestino.doAfterTextChanged { atualizarRotulosDeValor() }
         etValorPorVaga = findViewById(R.id.etValorPorVaga)
         btnPublicar = findViewById(R.id.btnPublicar)
         progressBar = findViewById(R.id.progressBar)
@@ -92,7 +104,7 @@ class OferecerCaronaActivity : AppCompatActivity() {
 
         btnData.setOnClickListener { abrirSeletorData() }
         btnHora.setOnClickListener { abrirSeletorHora() }
-        btnAdicionarParada.setOnClickListener { adicionarLinhaParada() }
+        btnAdicionarParada.setOnClickListener { adicionarLinhaParada(); atualizarRotulosDeValor() }
         btnCalcularSugestao.setOnClickListener { calcularSugestao() }
         btnPublicar.setOnClickListener { validarEPublicar() }
     }
@@ -104,11 +116,38 @@ class OferecerCaronaActivity : AppCompatActivity() {
         val linha = LayoutInflater.from(this).inflate(R.layout.item_parada_rota_input, containerParadas, false)
         linha.findViewById<TextView>(R.id.btnRemoverParada).setOnClickListener {
             containerParadas.removeView(linha)
+            atualizarRotulosDeValor()
         }
         val etCidadeParada = linha.findViewById<EditText>(R.id.etCidadeParada)
+        etCidadeParada.doAfterTextChanged { atualizarRotulosDeValor() }
         AutocompleteEnderecoUtil.ligar(this, etCidadeParada, autocompleteRepository, TipoAutocomplete.CIDADE)
         AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeParada)
         containerParadas.addView(linha)
+    }
+
+    // Diz de onde até onde vale cada valor: o principal (origem -> destino,
+    // viagem inteira) e, com paradas, um campo por trecho (ValoresPorTrechoUtil).
+    private fun atualizarRotulosDeValor() {
+        val origem = etCidadeOrigem.text.toString().trim()
+        val destino = etCidadeDestino.text.toString().trim()
+        if (origem.isNotEmpty() && destino.isNotEmpty()) {
+            tvTrechoValorPorVaga.text = getString(R.string.oferecer_valor_trecho_inteiro, origem, destino)
+            tvTrechoValorPorVaga.visibility = View.VISIBLE
+        } else {
+            tvTrechoValorPorVaga.visibility = View.GONE
+        }
+        ValoresPorTrechoUtil.montar(blocoValoresTrechos, containerValoresTrechos, cidadesDaRota())
+    }
+
+    // Cidades na ordem da rota (origem, paradas, destino) como estão
+    // digitadas agora — mesmo em branco, pra montar os trechos.
+    private fun cidadesDaRota(): List<String> {
+        val cidades = mutableListOf(etCidadeOrigem.text.toString().trim())
+        for (i in 0 until containerParadas.childCount) {
+            cidades.add(containerParadas.getChildAt(i).findViewById<EditText>(R.id.etCidadeParada).text.toString().trim())
+        }
+        cidades.add(etCidadeDestino.text.toString().trim())
+        return cidades
     }
 
     // Lê as linhas de parada já adicionadas, em ordem — null se alguma
@@ -198,11 +237,22 @@ class OferecerCaronaActivity : AppCompatActivity() {
         mostrarLinhaUnicaSugestao(getString(R.string.oferecer_calculando))
 
         lifecycleScope.launch {
+            val pontos = rota.map { DistanciaUtil.pontoParaGeocoding(it) }
             val sugestoes = withContext(Dispatchers.IO) {
                 runCatching {
-                    DistanciaUtil.calcularSugestoesAPartirDaOrigem(this@OferecerCaronaActivity, rota.map { DistanciaUtil.pontoParaGeocoding(it) }, calendarioSelecionado)
+                    DistanciaUtil.calcularSugestoesAPartirDaOrigem(this@OferecerCaronaActivity, pontos, calendarioSelecionado)
                 }.getOrNull()
             }
+            // Com paradas: sugestão de cada trecho consecutivo
+            // (Lajeado -> Canoas, Canoas -> Porto Alegre), que preenche os
+            // campos "Valor de cada trecho".
+            val sugestoesTrechos = if (rota.size > 2) {
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        DistanciaUtil.calcularSugestoesPorTrecho(this@OferecerCaronaActivity, pontos, calendarioSelecionado)
+                    }.getOrNull()
+                }
+            } else null
             btnCalcularSugestao.isEnabled = true
 
             if (sugestoes == null) {
@@ -212,7 +262,7 @@ class OferecerCaronaActivity : AppCompatActivity() {
 
             // Última posição = origem->destino direto — é este valor,
             // nunca uma soma, que define o preço de quem faz a viagem
-            // inteira (ver comentário da função).
+            // inteira.
             val sugestaoTotal = sugestoes.last()
             val tarifa = getString(
                 if (sugestaoTotal.fimDeSemanaOuFeriado) R.string.oferecer_tarifa_fim_de_semana else R.string.oferecer_tarifa_normal
@@ -221,28 +271,25 @@ class OferecerCaronaActivity : AppCompatActivity() {
             distanciaCalculadaKm = sugestaoTotal.distanciaKm
             valorSugeridoAtual = sugestaoTotal.valorSugerido
 
-            // Com paradas (rota.size > 2), mostra o preço sugerido de
-            // origem até CADA parada (uma por vez, sempre a partir da
-            // origem) além do total (origem->destino) no final. Sem
-            // paradas, mantém a linha única de sempre (não muda nada pro
-            // caso mais comum).
             layoutSugestao.removeAllViews()
-            if (rota.size > 2) {
-                // sugestoes[i] corresponde a rota[i + 1] (rota.drop(1)) —
-                // todas MENOS a última (o destino, que vira a linha em negrito).
-                for (indice in 0 until sugestoes.size - 1) {
-                    val sugestao = sugestoes[indice]
+            if (rota.size > 2 && sugestoesTrechos != null) {
+                sugestoesTrechos.forEachIndexed { indice, sugestao ->
                     layoutSugestao.addView(criarLinhaSugestao(
                         getString(
                             R.string.oferecer_trecho_formato,
-                            rota.first().cidade, rota[indice + 1].cidade,
+                            rota[indice].cidade, rota[indice + 1].cidade,
                             formatarReais(sugestao.valorSugerido), sugestao.distanciaKm.roundToInt()
                         ),
                         negrito = false
                     ))
                 }
+                ValoresPorTrechoUtil.preencher(containerValoresTrechos, sugestoesTrechos.map { it.valorSugerido })
                 layoutSugestao.addView(criarLinhaSugestao(
-                    getString(R.string.oferecer_sugestao_total_formato, formatarReais(sugestaoTotal.valorSugerido), sugestaoTotal.distanciaKm.roundToInt(), tarifa),
+                    getString(
+                        R.string.oferecer_sugestao_total_formato,
+                        rota.first().cidade, rota.last().cidade,
+                        formatarReais(sugestaoTotal.valorSugerido), sugestaoTotal.distanciaKm.roundToInt(), tarifa
+                    ),
                     negrito = true
                 ))
             } else {
@@ -307,7 +354,8 @@ class OferecerCaronaActivity : AppCompatActivity() {
             etValorPorVaga.error = getString(R.string.oferecer_erro_valor)
             return
         }
-        val rota = montarRota()
+        val valoresTrechos = ValoresPorTrechoUtil.ler(containerValoresTrechos) ?: return
+        val rota = montarRota()?.let { ValoresPorTrechoUtil.aplicarNaRota(it, valoresTrechos) }
         if (rota == null) {
             Toast.makeText(this, R.string.oferecer_erro_parada_cidade, Toast.LENGTH_SHORT).show()
             return
@@ -321,7 +369,12 @@ class OferecerCaronaActivity : AppCompatActivity() {
             dataHoraPartida = calendarioSelecionado.timeInMillis,
             vagas = vagas,
             valorPorVaga = valor,
-            valorSugerido = valorSugeridoAtual
+            valorSugerido = valorSugeridoAtual,
+            aceitaPassageiros = when (rgAceitaPassageiros.checkedRadioButtonId) {
+                R.id.rbAceitaHomem -> SexoUtil.HOMEM
+                R.id.rbAceitaMulher -> SexoUtil.MULHER
+                else -> SexoUtil.AMBOS
+            }
         )
 
         progressBar.visibility = View.VISIBLE

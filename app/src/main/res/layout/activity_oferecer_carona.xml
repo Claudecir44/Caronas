@@ -282,6 +282,41 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Quais passageiros o motorista aceita (Carona.aceitaPassageiros). -->
+        <TextView
+            style="@style/RotuloCampoCaronas"
+            android:text="@string/oferecer_aceita_passageiros" />
+
+        <RadioGroup
+            android:id="@+id/rgAceitaPassageiros"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:checkedButton="@+id/rbAceitaAmbos"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbAceitaHomem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_homem" />
+
+            <RadioButton
+                android:id="@+id/rbAceitaMulher"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_mulher" />
+
+            <RadioButton
+                android:id="@+id/rbAceitaAmbos"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_ambos" />
+        </RadioGroup>
+
         <TextView
             android:id="@+id/btnCalcularSugestao"
             android:layout_width="wrap_content"
@@ -308,9 +343,53 @@
             android:layout_marginBottom="10dp"
             android:visibility="gone" />
 
+        <!-- Só com paradas: valor de cada trecho (ValoresPorTrechoUtil). -->
+        <LinearLayout
+            android:id="@+id/blocoValoresTrechos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/oferecer_valores_trechos_titulo"
+                android:textColor="@color/azul_neon_escuro"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/oferecer_valores_trechos_explicacao"
+                android:textColor="#78909C"
+                android:textSize="11sp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/containerValoresTrechos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
         <TextView
+            android:layout_marginTop="16dp"
             style="@style/RotuloCampoCaronas"
             android:text="@string/oferecer_valor_hint" />
+
+        <!-- De onde até onde vale o valor abaixo (origem -> destino final). -->
+        <TextView
+            android:id="@+id/tvTrechoValorPorVaga"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/azul_neon_escuro"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:visibility="gone" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -334,6 +413,7 @@
                 android:maxLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
 
         <Button
             android:id="@+id/btnPublicar"

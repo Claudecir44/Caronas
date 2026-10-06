@@ -191,6 +191,73 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/oferecer_aceita_passageiros"
+            android:textColor="@color/azul_neon"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgAceitaPassageirosEditar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbAceitaHomemEditar"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_homem" />
+
+            <RadioButton
+                android:id="@+id/rbAceitaMulherEditar"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_mulher" />
+
+            <RadioButton
+                android:id="@+id/rbAceitaAmbosEditar"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_ambos" />
+        </RadioGroup>
+
+        <!-- Só com paradas: valor de cada trecho (ValoresPorTrechoUtil). -->
+        <LinearLayout
+            android:id="@+id/blocoValoresTrechosEditar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/oferecer_valores_trechos_titulo"
+                android:textColor="@color/azul_neon"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/oferecer_valores_trechos_explicacao"
+                android:textColor="#78909C"
+                android:textSize="11sp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/containerValoresTrechosEditar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
@@ -209,6 +276,7 @@
                 android:maxLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
 
         <Button
             android:id="@+id/btnSalvarOferta"

@@ -22,7 +22,7 @@ O Caronas é uma plataforma que conecta motoristas e passageiros interessados em
 
 3. CADASTRO E CONTA
 3.1. É necessário ter no mínimo 18 anos para se cadastrar no Caronas.
-3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone e, para motoristas, CPF e dados do veículo) devem ser verdadeiras e atualizadas.
+3.2. As informações fornecidas no cadastro (nome completo, e-mail, telefone, sexo e, para motoristas, CPF e dados do veículo) devem ser verdadeiras e atualizadas.
 3.3. O cadastro é validado por e-mail — a conta só pode ser usada normalmente depois da confirmação do endereço de e-mail informado.
 3.4. Cada usuário é responsável por manter a confidencialidade da própria senha e por toda atividade realizada através da sua conta.
 3.5. Ao oferecer caronas, o motorista declara possuir habilitação válida, o veículo em condições seguras de uso e toda a documentação exigida por lei para conduzir o veículo informado.
@@ -75,7 +75,7 @@ PARTE 2 — POLÍTICA DE PRIVACIDADE
 ═══════════════════════════════════
 
 1. DADOS QUE COLETAMOS
-• Dados de cadastro: nome completo, e-mail, telefone e foto de perfil.
+• Dados de cadastro: nome completo, e-mail, telefone, sexo (homem ou mulher — usado só para as caronas "só homens" ou "só mulheres" escolhidas pelos motoristas e para o filtro de motorista na busca) e foto de perfil.
 • CPF (só para quem se cadastra como motorista): usado para vincular o cadastro a uma única pessoa e impedir contas duplicadas; não é exibido a outros usuários.
 • Dados de veículo (só para quem se cadastra como motorista): modelo, marca, cor e placa.
 • Dados de uso: caronas oferecidas e solicitadas, mensagens trocadas no chat de uma viagem, avaliações enviadas e recebidas.

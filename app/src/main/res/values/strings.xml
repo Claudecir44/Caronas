@@ -194,7 +194,12 @@
     <string name="oferecer_calculando">Calculando distância…</string>
     <string name="oferecer_sugestao_texto">Sugestão: %1$s para ~%2$d km — %3$s (referência pra dividir custos, ajuste se quiser)</string>
     <string name="oferecer_trecho_formato">%1$s → %2$s: %3$s (~%4$d km)</string>
-    <string name="oferecer_sugestao_total_formato">Total: %1$s (~%2$d km) — %3$s</string>
+    <string name="oferecer_sugestao_total_formato">Total %1$s → %2$s: %3$s (~%4$d km) — %5$s</string>
+    <string name="oferecer_valor_trecho_inteiro">%1$s → %2$s (viagem inteira)</string>
+    <string name="oferecer_parada_valor_rotulo">Valor por vaga: %1$s → %2$s (R$)</string>
+    <string name="oferecer_valores_trechos_titulo">Valor de cada trecho</string>
+    <string name="oferecer_valores_trechos_explicacao">Quanto paga quem faz só aquele pedaço. Quem passa por mais de um trecho paga a soma deles. “Calcular valor sugerido” preenche; ajuste como quiser.</string>
+    <string name="oferecer_erro_valor_parada">Valor do trecho inválido. Corrija ou deixe em branco.</string>
     <string name="oferecer_tarifa_normal">tarifa de dia normal</string>
     <string name="oferecer_tarifa_fim_de_semana">tarifa de fim de semana/feriado (+30%)</string>
     <string name="oferecer_erro_cidades_nao_encontradas">Não encontramos essas cidades. Confira a digitação.</string>
@@ -666,4 +671,23 @@ Motivo: %2$s
     <string name="assinatura_motorista_produto_indisponivel">Os planos ainda não estão disponíveis no Google Play. Tente novamente mais tarde.</string>
     <string name="assinatura_motorista_pendente">Pagamento pendente no Google Play. Assim que for confirmado, seu acesso é liberado.</string>
     <string name="assinatura_motorista_erro_google_play">Não foi possível concluir o pagamento: %1$s</string>
+
+    <!-- Sexo do usuário e preferência do motorista (ver SexoUtil.kt) -->
+    <string name="sexo_rotulo">Sexo</string>
+    <string name="sexo_homem">Homem</string>
+    <string name="sexo_mulher">Mulher</string>
+    <string name="sexo_ambos">Ambos</string>
+    <string name="sexo_nao_informado">Não informado</string>
+    <string name="cadastro_erro_sexo">Escolha o sexo (Homem ou Mulher).</string>
+    <string name="cadastro_sexo_aviso">Usado nas caronas “só homens” ou “só mulheres”. Depois do cadastro, só o suporte altera.</string>
+    <string name="editar_sexo_formato">Sexo: %1$s (para alterar, fale com o suporte)</string>
+    <string name="completar_cadastro_titulo">Complete seu cadastro</string>
+    <string name="completar_cadastro_mensagem">Agora motoristas podem escolher se aceitam passageiros homens, mulheres ou ambos, e passageiros podem escolher o motorista. Para continuar usando o app, informe seu sexo. Depois, só o suporte altera.</string>
+    <string name="completar_cadastro_erro">Não foi possível salvar: %1$s</string>
+    <string name="oferecer_aceita_passageiros">Aceitar passageiros</string>
+    <string name="procurar_filtro_motorista">Motorista</string>
+    <string name="carona_somente_homens">👨 Somente homens</string>
+    <string name="carona_somente_mulheres">👩 Somente mulheres</string>
+    <string name="admin_detalhes_sexo">Sexo</string>
+    <string name="admin_detalhes_sexo_erro">Escolha o sexo (Homem ou Mulher).</string>
 </resources>

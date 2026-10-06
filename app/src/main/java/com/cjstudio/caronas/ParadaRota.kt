@@ -12,8 +12,15 @@ data class ParadaRota(
     var cidade: String? = null,
     var cidadeBusca: String? = null,
     var endereco: String? = null,
-    var ordem: Int = 0
+    var ordem: Int = 0,
+    // Só em carona COM paradas: valor por vaga do trecho que CHEGA neste
+    // ponto, vindo do ponto anterior (ex.: Lajeado -> Canoas fica na parada
+    // Canoas; Canoas -> Porto Alegre fica no destino). Definido pelo
+    // motorista (ValoresPorTrechoUtil); quem passa por vários trechos paga
+    // a soma. Nulo = calcula pela distância (TelaCaronasActivity.
+    // resolverTrecho). A viagem inteira usa sempre Carona.valorPorVaga.
+    var valorTrechoAnterior: Double? = null
 ) : java.io.Serializable {
     // Construtor vazio necessário para o Firestore.
-    constructor() : this(null, null, null, 0)
+    constructor() : this(null, null, null, 0, null)
 }

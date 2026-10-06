@@ -26,6 +26,10 @@ class CaronaRepository @Inject constructor(
             carona.motoristaNome = perfil.getString("nomeCompleto")
             carona.motoristaFotoUrl = perfil.getString("fotoUrl")
             carona.veiculo = perfil.toObject(Usuario::class.java)?.veiculo
+            // Cópia do sexo do perfil (firestore.rules confere) — base do
+            // filtro "Motorista: Homem/Mulher" da busca.
+            carona.motoristaSexo = perfil.getString("sexo")
+            if (carona.aceitaPassageiros == null) carona.aceitaPassageiros = SexoUtil.AMBOS
             carona.cidadeOrigemBusca = carona.cidadeOrigem?.let { TextoUtil.normalizar(it) }
             carona.cidadeDestinoBusca = carona.cidadeDestino?.let { TextoUtil.normalizar(it) }
             // cidadeBusca de cada parada (incluindo origem/destino, sempre
@@ -113,7 +117,7 @@ class CaronaRepository @Inject constructor(
         }
     }
 
-    override suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double, distanciaKm: Double?): Result<Unit> {
+    override suspend fun atualizarOferta(caronaId: String, rota: List<ParadaRota>, dataHoraPartida: Long, vagas: Int, valorPorVaga: Double, distanciaKm: Double?, aceitaPassageiros: String): Result<Unit> {
         return try {
             val rotaComBusca = rota.mapIndexed { indice, parada ->
                 parada.copy(ordem = indice, cidadeBusca = parada.cidade?.let { TextoUtil.normalizar(it) })
@@ -129,6 +133,7 @@ class CaronaRepository @Inject constructor(
                     "dataHoraPartida" to dataHoraPartida,
                     "vagas" to vagas,
                     "valorPorVaga" to valorPorVaga,
+                    "aceitaPassageiros" to aceitaPassageiros,
                     // A rota pode ter mudado: a distância gravada (base do
                     // tempo aproximado) é sempre a da rota nova. Sem valor
                     // (geocodificação falhou), apaga o campo em vez de deixar

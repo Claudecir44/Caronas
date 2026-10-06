@@ -1533,9 +1533,15 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     const telefone = (dados.telefone || '').trim();
     const veiculo = dados.veiculo;
     const senhaAutorizacao = dados.senhaAutorizacao || '';
+    // Sexo ("homem"/"mulher"): só o admin altera depois do cadastro
+    // (firestore.rules trava o próprio usuário). Ausente = não mexe.
+    const sexo = dados.sexo === undefined || dados.sexo === null ? null : String(dados.sexo);
 
     if (!uid || !nomeCompleto || !telefone) {
         throw new functions.https.HttpsError('invalid-argument', 'Preencha nome completo e telefone.');
+    }
+    if (sexo !== null && !['homem', 'mulher'].includes(sexo)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Sexo inválido.');
     }
     const autorizadoPor = await autorizarComSenhaMasterOuPropria(request, senhaAutorizacao, 'usuarios');
 
@@ -1556,6 +1562,7 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     }
 
     const atualizacao = { nomeCompleto, telefone };
+    if (sexo !== null) atualizacao.sexo = sexo;
     if (veiculo && typeof veiculo === 'object') {
         atualizacao.veiculo = {
             marca: (veiculo.marca || '').trim(),
@@ -1566,6 +1573,14 @@ exports.admAtualizarUsuario = functions.https.onCall(async (request) => {
     }
 
     await ref.update(atualizacao);
+    // Sexo corrigido: as ofertas do motorista levam uma cópia
+    // (caronas.motoristaSexo, base do filtro da busca) — acompanha.
+    if (sexo !== null && doc.get('sexo') !== sexo) {
+        const caronas = await admin.firestore().collection('caronas').where('motoristaId', '==', uid).get();
+        for (const carona of caronas.docs) {
+            await carona.ref.update({ motoristaSexo: sexo });
+        }
+    }
     if (request.auth && request.auth.uid) {
         await registrarLogAdministracao(request.auth.uid, 'usuario_editado', nomeCompleto, uid, autorizadoPor);
     }

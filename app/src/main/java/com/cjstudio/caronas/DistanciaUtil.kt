@@ -3,6 +3,7 @@ package com.cjstudio.caronas
 import android.content.Context
 import android.location.Geocoder
 import java.util.Calendar
+import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -47,10 +48,27 @@ object DistanciaUtil {
     // chamada; numa rota A→B→C→D isso repetiria B e C duas vezes cada.
     // Bloqueante (API síncrona do Geocoder, disponível desde a minSdk 24 do
     // projeto) — sempre chamar de dentro de Dispatchers.IO.
+    // Só no Brasil: sem isso, "Montenegro" (RS) virava o PAÍS Montenegro, na
+    // Europa (~14.000 km). Procura com ", Brasil" no texto e dentro do
+    // retângulo do mapa do Brasil, e só aceita resultado com país BR — se não
+    // achar aqui, devolve null (o app avisa "não encontramos essas cidades")
+    // em vez de calcular com um lugar errado.
+    private const val BRASIL_SUL = -34.0
+    private const val BRASIL_OESTE = -74.0
+    private const val BRASIL_NORTE = 5.5
+    private const val BRASIL_LESTE = -34.0
+
     fun geocodificar(context: Context, local: String): LatLngPonto? {
-        val geocoder = Geocoder(context)
+        val geocoder = Geocoder(context, Locale("pt", "BR"))
+        val consulta = if (local.contains("brasil", ignoreCase = true)) local else "$local, Brasil"
         @Suppress("DEPRECATION")
-        val endereco = geocoder.getFromLocationName(local, 1)?.firstOrNull() ?: return null
+        val resultados = runCatching {
+            geocoder.getFromLocationName(consulta, 5, BRASIL_SUL, BRASIL_OESTE, BRASIL_NORTE, BRASIL_LESTE)
+        }.getOrNull().orEmpty().ifEmpty {
+            @Suppress("DEPRECATION")
+            runCatching { geocoder.getFromLocationName(consulta, 5) }.getOrNull().orEmpty()
+        }
+        val endereco = resultados.firstOrNull { it.countryCode.equals("BR", ignoreCase = true) } ?: return null
         return LatLngPonto(endereco.latitude, endereco.longitude)
     }
 
@@ -120,6 +138,20 @@ object DistanciaUtil {
     // paradas existem antes dele, só da distância direta origem->ponto).
     // Retorna 1 Sugestao por ponto em pontos.drop(1), na mesma ordem.
     // Retorna null se pontos.size < 2 ou algum ponto não for geocodificado.
+    // Sugestão de cada trecho consecutivo (pontos[0]->pontos[1],
+    // pontos[1]->pontos[2], ...) — base dos campos "Valor de cada trecho"
+    // do Oferecer Carona. Geocodifica cada ponto uma vez só. null se algum
+    // ponto não for encontrado.
+    suspend fun calcularSugestoesPorTrecho(context: Context, pontos: List<String>, dataViagem: Calendar): List<Sugestao>? {
+        if (pontos.size < 2) return null
+        val coordenadas = pontos.map { geocodificar(context, it) ?: return null }
+        val fimDeSemanaOuFeriado = ehFimDeSemanaOuFeriado(dataViagem)
+        return coordenadas.zipWithNext { a, b ->
+            val distancia = distanciaKm(a, b)
+            Sugestao(distancia, valorParaDistancia(distancia, dataViagem), fimDeSemanaOuFeriado)
+        }
+    }
+
     suspend fun calcularSugestoesAPartirDaOrigem(context: Context, pontos: List<String>, dataViagem: Calendar): List<Sugestao>? {
         if (pontos.size < 2) return null
         val coordenadas = pontos.map { geocodificar(context, it) ?: return null }

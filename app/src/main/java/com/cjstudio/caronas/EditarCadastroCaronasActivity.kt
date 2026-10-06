@@ -35,6 +35,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
     private lateinit var etNomeCompleto: EditText
     private lateinit var etEmail: EditText
     private lateinit var etTelefone: EditText
+    private lateinit var tvSexo: TextView
     private lateinit var cbSouMotorista: CheckBox
     // true quando a tela foi aberta pelo login (escolheu entrar como motorista mas
     // o cadastro não tinha veículo) — ver LoginCaronasActivity.
@@ -74,6 +75,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         etNomeCompleto = findViewById(R.id.etNomeCompleto)
         etEmail = findViewById(R.id.etEmail)
         etTelefone = findViewById(R.id.etTelefone)
+        tvSexo = findViewById(R.id.tvSexoEditar)
         vemDoLoginComoMotorista = intent.getBooleanExtra(EXTRA_VEM_DO_LOGIN_COMO_MOTORISTA, false)
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
@@ -131,6 +133,7 @@ class EditarCadastroCaronasActivity : AppCompatActivity() {
         etNomeCompleto.setText(usuario.nomeCompleto)
         etEmail.setText(usuario.email)
         etTelefone.setText(usuario.telefone)
+        tvSexo.text = getString(R.string.editar_sexo_formato, SexoUtil.rotuloSexo(this, usuario.sexo))
 
         // "usuario.motorista" é o papel do ÚLTIMO login (Motorista ou
         // Passageiro — ver LoginCaronasActivity.atualizarPapelMotorista),

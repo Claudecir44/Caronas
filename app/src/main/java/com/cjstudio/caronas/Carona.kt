@@ -49,12 +49,22 @@ data class Carona(
     var valorSugerido: Double? = null,
     var status: String = "ativa",
 
+    // Sexo do motorista (cópia de Usuario.sexo no momento de publicar —
+    // firestore.rules confere que bate com o perfil), usado pelo filtro
+    // "Motorista: Homem/Mulher" da busca do passageiro.
+    var motoristaSexo: String? = null,
+
+    // Quais passageiros o motorista aceita: "homem"/"mulher"/"ambos"
+    // (SexoUtil). Carona antiga, sem o campo = ambos. firestore.rules
+    // (solicitacoes) recusa pedido de vaga de quem não está incluído.
+    var aceitaPassageiros: String? = null,
+
     @ServerTimestamp
     var criadoEm: Date? = null
 ) {
     // Construtor vazio necessário para o Firestore (mesmo padrão de Usuario.kt).
     constructor() : this(
         null, null, null, null, null, null, null, null, null,
-        emptyList(), emptyList(), null, null, 1, null, null, "ativa", null
+        emptyList(), emptyList(), null, null, 1, null, null, "ativa", null, null, null
     )
 }

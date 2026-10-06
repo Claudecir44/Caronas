@@ -78,7 +78,10 @@ class MinhaOfertaAdapter(
         holder.tvDataHora.text = oferta.dataHoraPartida?.let { formatoDataHora.format(it) } ?: ""
         TempoViagemUtil.preencher(holder.tvTempoViagem, oferta.distanciaKm)
         val vagas = oferta.id?.let { vagasDisponiveisPorOferta[it] } ?: oferta.vagas
-        holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, vagas)
+        holder.tvVagas.text = listOfNotNull(
+            context.getString(R.string.procurar_vagas_formato, vagas),
+            SexoUtil.rotuloRestricao(context, oferta.aceitaPassageiros)
+        ).joinToString("  ·  ")
         holder.tvValor.text = context.getString(
             R.string.procurar_valor_formato,
             String.format(Locale("pt", "BR"), "%.2f", oferta.valorPorVaga ?: 0.0)

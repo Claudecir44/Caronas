@@ -74,6 +74,47 @@
             android:inputType="phone"
             android:layout_marginBottom="10dp" />
 
+        <!-- Sexo (obrigatório) — base das caronas "só homens/só mulheres" (SexoUtil). -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sexo_rotulo"
+            android:textColor="#8899AA"
+            android:layout_marginTop="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgSexoCadastro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbSexoHomemCadastro"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_homem"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#1E90FF" />
+
+            <RadioButton
+                android:id="@+id/rbSexoMulherCadastro"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_mulher"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#1E90FF" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/cadastro_sexo_aviso"
+            android:textColor="#8899AA"
+            android:textSize="11sp"
+            android:layout_marginBottom="10dp" />
+
         <EditText
             android:id="@+id/etSenha"
             android:layout_width="match_parent"

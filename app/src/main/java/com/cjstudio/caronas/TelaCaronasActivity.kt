@@ -13,6 +13,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +21,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.catch
@@ -234,7 +236,45 @@ class TelaCaronasActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.tela_oferecer_precisa_ser_motorista, Toast.LENGTH_LONG).show()
             return
         }
+        if (exigirSexoSeFaltar(usuario)) return
         startActivity(Intent(this, OferecerCaronaActivity::class.java))
+    }
+
+    // Conta antiga (de antes do campo sexo existir) completa o cadastro aqui,
+    // no primeiro login depois da atualização: diálogo que não fecha sem
+    // escolher. Grava uma vez só — depois, só o admin altera (ver
+    // firestore.rules). Devolve true se o cadastro estava incompleto.
+    private var dialogSexoAberto = false
+
+    private fun exigirSexoSeFaltar(usuario: Usuario): Boolean {
+        if (usuario.sexo != null) return false
+        if (dialogSexoAberto) return true
+        dialogSexoAberto = true
+        val opcoes = arrayOf(getString(R.string.sexo_homem), getString(R.string.sexo_mulher))
+        val valores = arrayOf(SexoUtil.HOMEM, SexoUtil.MULHER)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.completar_cadastro_titulo)
+            .setMessage(R.string.completar_cadastro_mensagem)
+            .setCancelable(false)
+            .setNegativeButton(opcoes[0]) { _, _ -> salvarSexo(usuario, valores[0]) }
+            .setPositiveButton(opcoes[1]) { _, _ -> salvarSexo(usuario, valores[1]) }
+            .show()
+        return true
+    }
+
+    private fun salvarSexo(usuario: Usuario, sexo: String) {
+        lifecycleScope.launch {
+            usuarioRepository.definirSexo(sexo)
+                .onSuccess {
+                    usuario.sexo = sexo
+                    dialogSexoAberto = false
+                }
+                .onFailure { erro ->
+                    dialogSexoAberto = false
+                    Toast.makeText(this@TelaCaronasActivity, getString(R.string.completar_cadastro_erro, erro.message), Toast.LENGTH_LONG).show()
+                    exigirSexoSeFaltar(usuario)
+                }
+        }
     }
 
     // Diálogo com layout próprio (dialog_buscar_carona.xml, campos com
@@ -242,7 +282,10 @@ class TelaCaronasActivity : AppCompatActivity() {
     // destino e data. Ao confirmar, dispara a busca e os resultados
     // aparecem na lista abaixo do quadro azul, nesta mesma tela.
     private fun abrirDialogBuscarCarona() {
+        val usuarioLogado = usuarioAtual
+        if (usuarioLogado != null && exigirSexoSeFaltar(usuarioLogado)) return
         val view = layoutInflater.inflate(R.layout.dialog_buscar_carona, null)
+        val rgMotorista = view.findViewById<RadioGroup>(R.id.rgMotoristaBusca)
         val etOrigem = view.findViewById<EditText>(R.id.etOrigemBusca)
         val etDestino = view.findViewById<EditText>(R.id.etDestinoBusca)
         val etData = view.findViewById<EditText>(R.id.etDataBusca)
@@ -285,14 +328,19 @@ class TelaCaronasActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.procurar_erro_data, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            val filtroMotorista = when (rgMotorista.checkedRadioButtonId) {
+                R.id.rbMotoristaHomemBusca -> SexoUtil.HOMEM
+                R.id.rbMotoristaMulherBusca -> SexoUtil.MULHER
+                else -> SexoUtil.AMBOS
+            }
             dialog.dismiss()
-            buscarCaronas(origem, destino, dataSelecionada)
+            buscarCaronas(origem, destino, dataSelecionada, filtroMotorista)
         }
 
         dialog.show()
     }
 
-    private fun buscarCaronas(origem: String, destino: String, data: Calendar) {
+    private fun buscarCaronas(origem: String, destino: String, data: Calendar, filtroMotorista: String) {
         mostrandoMinhasViagens = false
         mostrandoAvaliacoes = false
         layoutResumoAvaliacoes.visibility = View.GONE
@@ -309,7 +357,16 @@ class TelaCaronasActivity : AppCompatActivity() {
                     // não impede a busca; a regra de solicitacoes barra a
                     // solicitação de qualquer jeito.
                     val bloqueados = bloqueioRepository.idsComBloqueio().getOrDefault(emptySet())
-                    val caronas = todasCaronas.filter { it.motoristaId !in bloqueados }
+                    // Filtro "Motorista: Homem/Mulher/Ambos" escolhido na
+                    // busca, e só caronas que aceitam o sexo deste
+                    // passageiro (SexoUtil — firestore.rules recusa o pedido
+                    // de vaga de qualquer forma).
+                    val sexoPassageiro = usuarioAtual?.sexo
+                    val caronas = todasCaronas.filter {
+                        it.motoristaId !in bloqueados
+                            && SexoUtil.caronaAceita(it, sexoPassageiro)
+                            && SexoUtil.motoristaCombina(it, filtroMotorista)
+                    }
                     // Resolve o TRECHO buscado (índices + preço só daquele
                     // pedaço) de cada resultado — ver resolverTrecho. Preço
                     // e rota mostrados ao passageiro nunca são os da viagem
@@ -386,8 +443,26 @@ class TelaCaronasActivity : AppCompatActivity() {
         // pro preço logo abaixo.
         var distanciaTrechoKm: Double? = if (trechoInteiro) carona.distanciaKm else null
 
+        // Trecho parcial com todos os trechos do caminho com valor definido
+        // pelo motorista (ParadaRota.valorTrechoAnterior): paga a soma deles
+        // (ex.: Lajeado -> Canoas + Canoas -> Porto Alegre). Faltando algum,
+        // a conta proporcional abaixo.
+        val valoresDoCaminho = if (!trechoInteiro && indiceDestino > indiceOrigem) {
+            (indiceOrigem + 1..indiceDestino).map { carona.paradas.getOrNull(it)?.valorTrechoAnterior }
+        } else emptyList()
+        val valorDefinidoNaParada = if (valoresDoCaminho.isNotEmpty() && valoresDoCaminho.all { it != null }) {
+            valoresDoCaminho.sumOf { it ?: 0.0 }
+        } else null
+
         val valorTrecho = if (trechoInteiro) {
             carona.valorPorVaga ?: 0.0
+        } else if (valorDefinidoNaParada != null && paradaOrigem != null && paradaDestino != null) {
+            // Distância só pro tempo aproximado do card (o preço já está definido).
+            distanciaTrechoKm = distanciaCacheada(
+                DistanciaUtil.pontoParaGeocoding(paradaOrigem),
+                DistanciaUtil.pontoParaGeocoding(paradaDestino)
+            )
+            valorDefinidoNaParada
         } else {
             val calendario = Calendar.getInstance().apply { timeInMillis = carona.dataHoraPartida ?: System.currentTimeMillis() }
             val sugestao = if (paradaOrigem?.cidade != null && paradaDestino?.cidade != null) {
@@ -936,6 +1011,18 @@ class TelaCaronasActivity : AppCompatActivity() {
         val etVagas = view.findViewById<EditText>(R.id.etVagasEditar)
         val etValor = view.findViewById<EditText>(R.id.etValorEditar)
         val btnSalvar = view.findViewById<Button>(R.id.btnSalvarOferta)
+        val blocoValoresTrechos = view.findViewById<View>(R.id.blocoValoresTrechosEditar)
+        val containerValoresTrechos = view.findViewById<LinearLayout>(R.id.containerValoresTrechosEditar)
+        // Campos "Valor de cada trecho" acompanham as cidades digitadas
+        // (origem, paradas, destino) — ver ValoresPorTrechoUtil.
+        val atualizarTrechos = {
+            val cidades = mutableListOf(etCidadeOrigem.text.toString().trim())
+            for (i in 0 until containerParadas.childCount) {
+                cidades.add(containerParadas.getChildAt(i).findViewById<EditText>(R.id.etCidadeParada).text.toString().trim())
+            }
+            cidades.add(etCidadeDestino.text.toString().trim())
+            ValoresPorTrechoUtil.montar(blocoValoresTrechos, containerValoresTrechos, cidades)
+        }
 
         AutocompleteEnderecoUtil.ligar(this, etCidadeOrigem, autocompleteRepository, TipoAutocomplete.CIDADE)
         AutocompleteEnderecoUtil.ligar(this, etEnderecoOrigem, autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeOrigem)
@@ -952,10 +1039,21 @@ class TelaCaronasActivity : AppCompatActivity() {
         etEnderecoDestino.setText(paradasAtuais.lastOrNull()?.endereco)
         if (paradasAtuais.size > 2) {
             for (parada in paradasAtuais.subList(1, paradasAtuais.size - 1)) {
-                adicionarLinhaParadaEditar(containerParadas, parada.cidade, parada.endereco)
+                adicionarLinhaParadaEditar(containerParadas, parada.cidade, parada.endereco, atualizarTrechos)
             }
         }
-        btnAdicionarParada.setOnClickListener { adicionarLinhaParadaEditar(containerParadas, null, null) }
+        btnAdicionarParada.setOnClickListener {
+            adicionarLinhaParadaEditar(containerParadas, null, null, atualizarTrechos)
+            atualizarTrechos()
+        }
+        // Valores que a oferta já tem (valor do trecho fica no ponto onde ele termina).
+        ValoresPorTrechoUtil.montar(
+            blocoValoresTrechos, containerValoresTrechos,
+            paradasAtuais.map { it.cidade ?: "" },
+            paradasAtuais.drop(1).map { it.valorTrechoAnterior }
+        )
+        etCidadeOrigem.doAfterTextChanged { atualizarTrechos() }
+        etCidadeDestino.doAfterTextChanged { atualizarTrechos() }
 
         val calendario = Calendar.getInstance().apply {
             timeInMillis = oferta.dataHoraPartida ?: System.currentTimeMillis()
@@ -963,6 +1061,14 @@ class TelaCaronasActivity : AppCompatActivity() {
         etData.setText(formatoDataOferta.format(calendario.time))
         etHora.setText(formatoHoraOferta.format(calendario.time))
         etVagas.setText(oferta.vagas.toString())
+        val rgAceita = view.findViewById<RadioGroup>(R.id.rgAceitaPassageirosEditar)
+        rgAceita.check(
+            when (oferta.aceitaPassageiros) {
+                SexoUtil.HOMEM -> R.id.rbAceitaHomemEditar
+                SexoUtil.MULHER -> R.id.rbAceitaMulherEditar
+                else -> R.id.rbAceitaAmbosEditar
+            }
+        )
         etValor.setText(String.format(Locale("pt", "BR"), "%.2f", oferta.valorPorVaga ?: 0.0))
 
         etData.setOnClickListener {
@@ -1031,9 +1137,11 @@ class TelaCaronasActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val rota = mutableListOf(ParadaRota(cidade = origem, endereco = etEnderecoOrigem.text.toString().trim().ifEmpty { null }))
-            rota.addAll(paradasIntermediarias)
-            rota.add(ParadaRota(cidade = destino, endereco = etEnderecoDestino.text.toString().trim().ifEmpty { null }))
+            val valoresTrechos = ValoresPorTrechoUtil.ler(containerValoresTrechos) ?: return@setOnClickListener
+            val rotaDigitada = mutableListOf(ParadaRota(cidade = origem, endereco = etEnderecoOrigem.text.toString().trim().ifEmpty { null }))
+            rotaDigitada.addAll(paradasIntermediarias)
+            rotaDigitada.add(ParadaRota(cidade = destino, endereco = etEnderecoDestino.text.toString().trim().ifEmpty { null }))
+            val rota = ValoresPorTrechoUtil.aplicarNaRota(rotaDigitada, valoresTrechos)
 
             dialog.dismiss()
             lifecycleScope.launch {
@@ -1046,7 +1154,14 @@ class TelaCaronasActivity : AppCompatActivity() {
                         )
                     }.getOrNull()
                 }
-                caronaRepository.atualizarOferta(caronaId, rota, calendario.timeInMillis, vagas, valor, distanciaKm)
+                caronaRepository.atualizarOferta(
+                    caronaId, rota, calendario.timeInMillis, vagas, valor, distanciaKm,
+                    when (rgAceita.checkedRadioButtonId) {
+                        R.id.rbAceitaHomemEditar -> SexoUtil.HOMEM
+                        R.id.rbAceitaMulherEditar -> SexoUtil.MULHER
+                        else -> SexoUtil.AMBOS
+                    }
+                )
                     .onSuccess {
                         Toast.makeText(this@TelaCaronasActivity, R.string.minhas_ofertas_salva_sucesso, Toast.LENGTH_SHORT).show()
                         carregarOfertas()
@@ -1064,14 +1179,16 @@ class TelaCaronasActivity : AppCompatActivity() {
     // ao container dinâmico de OferecerCaronaActivity — pré-preenchida
     // quando vem de uma parada já existente, vazia quando é "+ Adicionar
     // parada".
-    private fun adicionarLinhaParadaEditar(container: LinearLayout, cidade: String?, endereco: String?) {
+    private fun adicionarLinhaParadaEditar(container: LinearLayout, cidade: String?, endereco: String?, aoMudarRota: () -> Unit) {
         val linha = layoutInflater.inflate(R.layout.item_parada_rota_input, container, false)
-        linha.findViewById<EditText>(R.id.etCidadeParada).setText(cidade)
+        val etCidadeParada = linha.findViewById<EditText>(R.id.etCidadeParada)
+        etCidadeParada.setText(cidade)
         linha.findViewById<EditText>(R.id.etEnderecoParada).setText(endereco)
+        etCidadeParada.doAfterTextChanged { aoMudarRota() }
         linha.findViewById<TextView>(R.id.btnRemoverParada).setOnClickListener {
             container.removeView(linha)
+            aoMudarRota()
         }
-        val etCidadeParada = linha.findViewById<EditText>(R.id.etCidadeParada)
         AutocompleteEnderecoUtil.ligar(this, etCidadeParada, autocompleteRepository, TipoAutocomplete.CIDADE)
         AutocompleteEnderecoUtil.ligar(this, linha.findViewById(R.id.etEnderecoParada), autocompleteRepository, TipoAutocomplete.ENDERECO, etCidadeParada)
         container.addView(linha)
@@ -1316,6 +1433,7 @@ class TelaCaronasActivity : AppCompatActivity() {
         lifecycleScope.launch {
             usuarioRepository.buscarUsuarioLogado().onSuccess { usuario ->
                 usuarioAtual = usuario
+                exigirSexoSeFaltar(usuario)
                 falhasRepository.definirUsuario(usuario.id)
                 notificacaoRepository.atualizarTokenUsuario(usuario.id)
                 if (!badgeMinhasOfertasIniciado) {

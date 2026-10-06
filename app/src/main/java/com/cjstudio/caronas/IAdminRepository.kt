@@ -174,7 +174,8 @@ interface IAdminRepository {
     // firestore.rules), mesma trava de senha do administrador master das
     // outras ações do painel. "veiculo" nulo quando é edição de um
     // passageiro (sem veículo pra editar).
-    suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, senhaAutorizacao: String): Result<Unit>
+    // "sexo" nulo = não altera (conta antiga que ainda não informou).
+    suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, sexo: String?, senhaAutorizacao: String): Result<Unit>
 
     // Badge do botão "Sugestões" no dashboard (ver
     // AdministracaoCaronasActivity) — total de manifestações ainda não

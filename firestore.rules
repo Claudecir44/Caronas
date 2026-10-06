@@ -59,7 +59,8 @@ service cloud.firestore {
         && request.resource.data.get('caronasRealizadas', 0) == 0
         && request.resource.data.get('caronasRealizadasHerdadas', 0) == 0
         && request.resource.data.get('caronasLiberadas', 0) == 0
-        && request.resource.data.get('acessoMotoristaExpiraEm', null) == null;
+        && request.resource.data.get('acessoMotoristaExpiraEm', null) == null
+        && request.resource.data.get('sexo', null) in [null, 'homem', 'mulher'];
 
       // Só o dono edita o próprio perfil, mas com duas travas pro modelo
       // de "10 caronas grátis, depois R$15,99/30 dias" (ver Usuario.kt,
@@ -91,6 +92,10 @@ service cloud.firestore {
         && request.resource.data.get('caronasRealizadas', 0) == resource.data.get('caronasRealizadas', 0)
         && request.resource.data.get('caronasRealizadasHerdadas', 0) == resource.data.get('caronasRealizadasHerdadas', 0)
         && request.resource.data.get('caronasLiberadas', 0) == resource.data.get('caronasLiberadas', 0)
+        // Sexo: a conta antiga (sem o campo) informa uma vez só; depois de
+        // gravado, só o admin muda (admAtualizarUsuario, Admin SDK).
+        && (request.resource.data.get('sexo', null) == resource.data.get('sexo', null)
+            || (resource.data.get('sexo', null) == null && request.resource.data.get('sexo', null) in ['homem', 'mulher']))
         && (request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0)
             || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1)
         && (!possuiVinculoMotorista(usuarioId) || (
@@ -181,6 +186,15 @@ service cloud.firestore {
         == get(/databases/$(database)/documents/usuarios/$(uid)).data.get('caronasOferecidas', 0) + 1;
     }
 
+    // Preferência "Aceitar passageiros" e cópia do sexo do motorista na
+    // carona (ver SexoUtil.kt). Carona sem os campos (app antigo) continua
+    // valendo, como "ambos"; motoristaSexo só pode ser o do próprio perfil.
+    function sexoDaCaronaValido(dados, uid) {
+      return dados.get('aceitaPassageiros', 'ambos') in ['homem', 'mulher', 'ambos']
+        && (dados.get('motoristaSexo', null) == null
+            || dados.motoristaSexo == get(/databases/$(database)/documents/usuarios/$(uid)).data.get('sexo', null));
+    }
+
     // Caronas oferecidas por um motorista. Leitura liberada pra qualquer
     // autenticado (necessário pra tela "Procurar" futura); escrita só pelo
     // próprio motorista dono do documento.
@@ -188,7 +202,8 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid
         && permiteOferecerCarona(request.auth.uid)
-        && somaOfertaNoMesmoLote(request.auth.uid);
+        && somaOfertaNoMesmoLote(request.auth.uid)
+        && sexoDaCaronaValido(request.resource.data, request.auth.uid);
       // "resource == null" cobre um "excluir" repetido/atrasado (ex.: dois
       // toques rápidos, ou uma tela desatualizada tentando apagar uma
       // oferta que outra sessão já apagou) — sem essa guarda, o Firestore
@@ -198,7 +213,10 @@ service cloud.firestore {
       // Editar: só o dono e só enquanto a viagem não foi concluída. Excluir
       // continua liberado ao dono mesmo depois de concluída.
       allow update: if request.auth != null &&
-        (resource == null || (resource.data.motoristaId == request.auth.uid && !viagemJaConcluida(resource.data)));
+        (resource == null || (resource.data.motoristaId == request.auth.uid && !viagemJaConcluida(resource.data)
+          && request.resource.data.get('aceitaPassageiros', 'ambos') in ['homem', 'mulher', 'ambos']
+          && (request.resource.data.get('motoristaSexo', null) == resource.data.get('motoristaSexo', null)
+              || sexoDaCaronaValido(request.resource.data, request.auth.uid))));
       allow delete: if request.auth != null &&
         (resource == null || resource.data.motoristaId == request.auth.uid);
 
@@ -270,6 +288,14 @@ service cloud.firestore {
         (resource == null || resource.data.bloqueadorId == request.auth.uid);
     }
 
+    // A carona aceita o sexo desse passageiro? ("Aceitar passageiros" do
+    // motorista, ver SexoUtil.kt.) Carona antiga, sem o campo = ambos.
+    function caronaAceitaPassageiro(caronaId, uid) {
+      let aceita = get(/databases/$(database)/documents/caronas/$(caronaId)).data.get('aceitaPassageiros', 'ambos');
+      return aceita == 'ambos'
+        || aceita == get(/databases/$(database)/documents/usuarios/$(uid)).data.get('sexo', '');
+    }
+
     match /solicitacoes/{solicitacaoId} {
       // "resource == null" cobre um get()/update()/delete() numa
       // solicitação que já não existe mais (ex.: o motorista excluiu essa
@@ -302,6 +328,8 @@ service cloud.firestore {
       // Sem bloqueio entre passageiro e motorista (ver temBloqueio).
       allow create: if request.auth != null && request.resource.data.passageiroId == request.auth.uid
         && request.resource.data.motoristaId is string
+        && request.resource.data.caronaId is string
+        && caronaAceitaPassageiro(request.resource.data.caronaId, request.auth.uid)
         && !temBloqueio(request.auth.uid, request.resource.data.motoristaId)
         && (request.resource.data.get('chegadaPrevistaEm', null) == null
             || (request.resource.data.chegadaPrevistaEm is number

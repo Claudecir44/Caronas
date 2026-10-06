@@ -96,11 +96,49 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Filtro pelo sexo do motorista (SexoUtil.motoristaCombina). -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/procurar_filtro_motorista"
+            android:textColor="@color/azul_neon"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgMotoristaBusca"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checkedButton="@+id/rbMotoristaAmbosBusca"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbMotoristaHomemBusca"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_homem" />
+
+            <RadioButton
+                android:id="@+id/rbMotoristaMulherBusca"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_mulher" />
+
+            <RadioButton
+                android:id="@+id/rbMotoristaAmbosBusca"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/sexo_ambos" />
+        </RadioGroup>
+
         <Button
             android:id="@+id/btnBuscarDialog"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:text="@string/procurar_botao_buscar"
             android:textColor="#FFFFFF"
             android:textStyle="bold"

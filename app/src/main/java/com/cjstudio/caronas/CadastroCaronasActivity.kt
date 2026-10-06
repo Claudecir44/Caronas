@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.RadioGroup
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -33,6 +34,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
     private lateinit var etSenha: EditText
     private lateinit var etConfirmarSenha: EditText
     private lateinit var cbSouMotorista: CheckBox
+    private lateinit var rgSexo: RadioGroup
     private lateinit var cbAceitarTermos: CheckBox
     private lateinit var layoutVeiculo: LinearLayout
     private lateinit var etCpf: EditText
@@ -67,6 +69,7 @@ class CadastroCaronasActivity : AppCompatActivity() {
         etConfirmarSenha = findViewById(R.id.etConfirmarSenha)
         etConfirmarSenha.habilitarToggleSenha()
         cbSouMotorista = findViewById(R.id.cbSouMotorista)
+        rgSexo = findViewById(R.id.rgSexoCadastro)
         cbAceitarTermos = findViewById(R.id.cbAceitarTermos)
         layoutVeiculo = findViewById(R.id.layoutVeiculo)
         etCpf = findViewById(R.id.etCpf)
@@ -129,6 +132,15 @@ class CadastroCaronasActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.cadastro_erro_telefone_obrigatorio, Toast.LENGTH_SHORT).show()
             return
         }
+        val sexo = when (rgSexo.checkedRadioButtonId) {
+            R.id.rbSexoHomemCadastro -> SexoUtil.HOMEM
+            R.id.rbSexoMulherCadastro -> SexoUtil.MULHER
+            else -> null
+        }
+        if (sexo == null) {
+            Toast.makeText(this, R.string.cadastro_erro_sexo, Toast.LENGTH_SHORT).show()
+            return
+        }
         if (senha.length < 6 || senha.length > 10) {
             Toast.makeText(this, R.string.cadastro_erro_senha_tamanho, Toast.LENGTH_SHORT).show()
             return
@@ -171,7 +183,8 @@ class CadastroCaronasActivity : AppCompatActivity() {
             email = email,
             telefone = telefone,
             motorista = souMotorista,
-            veiculo = veiculo
+            veiculo = veiculo,
+            sexo = sexo
         )
 
         progressBar.visibility = View.VISIBLE

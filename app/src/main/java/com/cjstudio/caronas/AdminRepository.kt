@@ -353,7 +353,7 @@ class AdminRepository @Inject constructor(
         }
     }
 
-    override suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, senhaAutorizacao: String): Result<Unit> {
+    override suspend fun atualizarUsuario(uid: String, nomeCompleto: String, telefone: String, veiculo: Veiculo?, sexo: String?, senhaAutorizacao: String): Result<Unit> {
         return try {
             val dados = mutableMapOf<String, Any?>(
                 "uid" to uid,
@@ -361,6 +361,7 @@ class AdminRepository @Inject constructor(
                 "telefone" to telefone,
                 "senhaAutorizacao" to senhaAutorizacao
             )
+            if (sexo != null) dados["sexo"] = sexo
             if (veiculo != null) {
                 dados["veiculo"] = mapOf(
                     "marca" to (veiculo.marca ?: ""),

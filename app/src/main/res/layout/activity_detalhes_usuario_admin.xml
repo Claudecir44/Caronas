@@ -80,6 +80,39 @@
             android:enabled="false"
             android:layout_marginBottom="14dp" />
 
+        <!-- Sexo: só o admin altera depois do cadastro (admAtualizarUsuario). -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/admin_detalhes_sexo"
+            android:textColor="#999999"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgDetalhesSexo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="14dp">
+
+            <RadioButton
+                android:id="@+id/rbDetalhesSexoHomem"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="@string/sexo_homem" />
+
+            <RadioButton
+                android:id="@+id/rbDetalhesSexoMulher"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="@string/sexo_mulher" />
+        </RadioGroup>
+
         <!-- CPF só existe pra motorista (vínculo de identidade, ver
              VinculoMotorista) — escondido pra conta só de passageiro. -->
         <TextView

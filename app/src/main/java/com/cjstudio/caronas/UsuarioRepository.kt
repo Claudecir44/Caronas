@@ -175,6 +175,16 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
+    override suspend fun definirSexo(sexo: String): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw IllegalStateException("Não há sessão ativa.")
+            colecaoUsuarios().document(uid).update("sexo", sexo).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun atualizarPapelMotorista(uid: String, motorista: Boolean): Result<Unit> {
         return try {
             colecaoUsuarios().document(uid).update("motorista", motorista).await()

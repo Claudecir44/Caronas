@@ -6,6 +6,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -45,6 +47,9 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
     private lateinit var etNome: EditText
     private lateinit var tvEmail: TextView
     private lateinit var etTelefone: EditText
+    private lateinit var rgSexo: RadioGroup
+    private lateinit var rbSexoHomem: RadioButton
+    private lateinit var rbSexoMulher: RadioButton
     private lateinit var tvCriadoEm: TextView
     private lateinit var tvCpfRotulo: TextView
     private lateinit var tvCpf: TextView
@@ -68,6 +73,9 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
         etNome = findViewById(R.id.etDetalhesNome)
         tvEmail = findViewById(R.id.tvDetalhesEmail)
         etTelefone = findViewById(R.id.etDetalhesTelefone)
+        rgSexo = findViewById(R.id.rgDetalhesSexo)
+        rbSexoHomem = findViewById(R.id.rbDetalhesSexoHomem)
+        rbSexoMulher = findViewById(R.id.rbDetalhesSexoMulher)
         tvCpfRotulo = findViewById(R.id.tvDetalhesCpfRotulo)
         tvCpf = findViewById(R.id.tvDetalhesCpf)
         tvCriadoEm = findViewById(R.id.tvDetalhesCriadoEm)
@@ -122,6 +130,11 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
         etNome.setText(usuario.nomeCompleto ?: "")
         tvEmail.text = usuario.email ?: ""
         etTelefone.setText(usuario.telefone ?: "")
+        when (usuario.sexo) {
+            SexoUtil.HOMEM -> rgSexo.check(R.id.rbDetalhesSexoHomem)
+            SexoUtil.MULHER -> rgSexo.check(R.id.rbDetalhesSexoMulher)
+            else -> rgSexo.clearCheck()
+        }
         tvCriadoEm.text = usuario.criadoEm?.let { formatoData.format(it) } ?: ""
 
         if (!usuario.fotoUrl.isNullOrEmpty()) {
@@ -147,13 +160,13 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
     private fun entrarEmEdicao() {
         emEdicao = true
         btnEditarSalvar.text = getString(R.string.salvar)
-        listOf(etNome, etTelefone, etVeiculoMarca, etVeiculoModelo, etVeiculoCor, etVeiculoPlaca).forEach { it.isEnabled = true }
+        listOf(etNome, etTelefone, etVeiculoMarca, etVeiculoModelo, etVeiculoCor, etVeiculoPlaca, rbSexoHomem, rbSexoMulher).forEach { it.isEnabled = true }
     }
 
     private fun sairDeEdicao() {
         emEdicao = false
         btnEditarSalvar.text = getString(R.string.editar)
-        listOf(etNome, etTelefone, etVeiculoMarca, etVeiculoModelo, etVeiculoCor, etVeiculoPlaca).forEach { it.isEnabled = false }
+        listOf(etNome, etTelefone, etVeiculoMarca, etVeiculoModelo, etVeiculoCor, etVeiculoPlaca, rbSexoHomem, rbSexoMulher).forEach { it.isEnabled = false }
     }
 
     private fun confirmarSalvar() {
@@ -164,6 +177,11 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
         if (nome.isEmpty() || telefone.isEmpty()) {
             Toast.makeText(this, R.string.admin_detalhes_erro_campos, Toast.LENGTH_SHORT).show()
             return
+        }
+        val sexo = when (rgSexo.checkedRadioButtonId) {
+            R.id.rbDetalhesSexoHomem -> SexoUtil.HOMEM
+            R.id.rbDetalhesSexoMulher -> SexoUtil.MULHER
+            else -> null
         }
         val veiculo = if (containerVeiculo.visibility == View.VISIBLE) {
             Veiculo(
@@ -187,7 +205,7 @@ class DetalhesUsuarioAdminActivity : AppCompatActivity() {
             progressBar.visibility = View.VISIBLE
             btnEditarSalvar.isEnabled = false
             lifecycleScope.launch {
-                adminRepository.atualizarUsuario(uid, nome, telefone, veiculo, senhaMaster)
+                adminRepository.atualizarUsuario(uid, nome, telefone, veiculo, sexo, senhaMaster)
                     .onSuccess {
                         progressBar.visibility = View.GONE
                         btnEditarSalvar.isEnabled = true

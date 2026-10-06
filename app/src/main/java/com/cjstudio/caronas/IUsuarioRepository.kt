@@ -45,6 +45,11 @@ interface IUsuarioRepository {
     // papel na tela de login — não precisa do Usuario inteiro carregado.
     suspend fun atualizarPapelMotorista(uid: String, motorista: Boolean): Result<Unit>
 
+    // Completa o cadastro antigo que ainda não tem sexo (SexoUtil.HOMEM/
+    // MULHER) — só funciona uma vez: depois de gravado, firestore.rules não
+    // deixa o próprio usuário mudar (só o admin).
+    suspend fun definirSexo(sexo: String): Result<Unit>
+
     // Reautentica com a senha atual e então chama a Cloud Function
     // "excluirContaPropria", que faz a limpeza completa (perfil, viagens,
     // conversas, avaliações, fotos, vínculo de motorista e a conta de

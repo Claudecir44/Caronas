@@ -73,6 +73,15 @@
             android:textColor="#FFFFFF"
             android:textColorHint="#8899AA"
             android:inputType="phone"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Sexo: só leitura (depois do cadastro, só o admin altera). -->
+        <TextView
+            android:id="@+id/tvSexoEditar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#8899AA"
+            android:textSize="14sp"
             android:layout_marginBottom="16dp" />
 
         <CheckBox

@@ -20,6 +20,11 @@ data class Usuario(
     var motorista: Boolean = false,
     var veiculo: Veiculo? = null,
 
+    // "homem"/"mulher" (SexoUtil). Escolhido no cadastro; contas antigas
+    // completam no próximo login. Depois de gravado, só o admin altera
+    // (firestore.rules + admAtualizarUsuario).
+    var sexo: String? = null,
+
     // Quantas caronas esse usuário já ofereceu como motorista (contador
     // simples, incrementado a cada "oferecer carona" bem-sucedido — ver
     // CaronaRepository.publicarCarona). Vagas grátis em uso =
@@ -56,5 +61,5 @@ data class Usuario(
     var criadoEm: Date? = null
 ) {
     // Construtor vazio necessário para o Firestore.
-    constructor() : this(null, null, null, null, null, false, null, 0, 0, 0, 0, null, null)
+    constructor() : this(null, null, null, null, null, false, null, null, 0, 0, 0, 0, null, null)
 }

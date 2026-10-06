@@ -91,7 +91,10 @@ class CaronaResultadoAdapter(
             ""
         }
 
-        holder.tvVagas.text = context.getString(R.string.procurar_vagas_formato, resultado.vagasDisponiveis)
+        holder.tvVagas.text = listOfNotNull(
+            context.getString(R.string.procurar_vagas_formato, resultado.vagasDisponiveis),
+            SexoUtil.rotuloRestricao(context, resultado.carona.aceitaPassageiros)
+        ).joinToString("  ·  ")
         // Valor SÓ do trecho buscado — nunca o valor da rota inteira do
         // motorista (ver ResultadoBuscaCarona/TelaCaronasActivity.buscarCaronas).
         holder.tvValor.text = context.getString(
