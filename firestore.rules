@@ -58,6 +58,7 @@ service cloud.firestore {
         && request.resource.data.get('caronasOferecidas', 0) == 0
         && request.resource.data.get('caronasRealizadas', 0) == 0
         && request.resource.data.get('caronasRealizadasHerdadas', 0) == 0
+        && request.resource.data.get('caronasLiberadas', 0) == 0
         && request.resource.data.get('acessoMotoristaExpiraEm', null) == null;
 
       // Só o dono edita o próprio perfil, mas com duas travas pro modelo
@@ -81,14 +82,15 @@ service cloud.firestore {
       // Sem isso, dava pra editar o perfil direto e repetir o telefone/nome
       // de outro motorista, burlando a regra de "nenhum campo repetido".
       //
-      // caronasRealizadas/caronasRealizadasHerdadas (o contador que vale
-      // pras 10 grátis — só viagens com passageiro confirmado, ver
+      // caronasRealizadas/caronasRealizadasHerdadas/caronasLiberadas (o que vale
+      // pras 10 grátis: viagens com passageiro confirmado + ofertas em aberto, ver
       // recontarViagensRealizadas em functions/index.js) são só do
       // servidor: o cliente nunca muda.
       allow update: if request.auth != null && request.auth.uid == usuarioId
         && request.resource.data.get('acessoMotoristaExpiraEm', null) == resource.data.get('acessoMotoristaExpiraEm', null)
         && request.resource.data.get('caronasRealizadas', 0) == resource.data.get('caronasRealizadas', 0)
         && request.resource.data.get('caronasRealizadasHerdadas', 0) == resource.data.get('caronasRealizadasHerdadas', 0)
+        && request.resource.data.get('caronasLiberadas', 0) == resource.data.get('caronasLiberadas', 0)
         && (request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0)
             || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1)
         && (!possuiVinculoMotorista(usuarioId) || (
@@ -153,18 +155,30 @@ service cloud.firestore {
     // Trava de "10 viagens grátis, depois acesso pago" pro motorista (ver
     // Usuario.kt, AcessoMotoristaUtil) — mesmo cálculo que o app faz antes
     // de mostrar a tela de Oferecer Carona, reforçado aqui pra ninguém
-    // burlar escrevendo direto no Firestore. Só conta viagem que teve
-    // passageiro confirmado (caronasRealizadas, mantido pelo servidor) —
-    // oferta sem passageiro não gasta viagem grátis.
+    // burlar escrevendo direto no Firestore. Vagas grátis em uso =
+    // caronasOferecidas - caronasLiberadas = viagens realizadas (com
+    // passageiro confirmado) + ofertas ainda em aberto; oferta que termina
+    // sem passageiro devolve a vaga (caronasLiberadas, mantido pelo
+    // servidor — ver recontarViagensRealizadas em functions/index.js).
+    // Assim nunca dá pra ter mais de 10 publicadas de graça, nem deixando
+    // várias abertas ao mesmo tempo.
     function permiteOferecerCarona(uid) {
       let usuario = get(/databases/$(database)/documents/usuarios/$(uid)).data;
-      let realizadas = usuario.get('caronasRealizadas', 0);
+      let emUso = usuario.get('caronasOferecidas', 0) - usuario.get('caronasLiberadas', 0);
       let expiraEm = usuario.get('acessoMotoristaExpiraEm', null);
       // Motorista precisa ter o CPF vinculado (registrarMotorista) —
       // é o que impede reabrir conta com outro e-mail pra ganhar outras 10
       // caronas grátis.
       return possuiVinculoMotorista(uid)
-        && (realizadas < 10 || (expiraEm != null && expiraEm > request.time));
+        && (emUso < 10 || (expiraEm != null && expiraEm > request.time));
+    }
+
+    // A carona tem que ser criada no MESMO lote que soma 1 em
+    // caronasOferecidas (CaronaRepository.publicarCarona) — senão dava pra
+    // publicar sem gastar vaga grátis.
+    function somaOfertaNoMesmoLote(uid) {
+      return getAfter(/databases/$(database)/documents/usuarios/$(uid)).data.get('caronasOferecidas', 0)
+        == get(/databases/$(database)/documents/usuarios/$(uid)).data.get('caronasOferecidas', 0) + 1;
     }
 
     // Caronas oferecidas por um motorista. Leitura liberada pra qualquer
@@ -173,7 +187,8 @@ service cloud.firestore {
     match /caronas/{caronaId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.motoristaId == request.auth.uid
-        && permiteOferecerCarona(request.auth.uid);
+        && permiteOferecerCarona(request.auth.uid)
+        && somaOfertaNoMesmoLote(request.auth.uid);
       // "resource == null" cobre um "excluir" repetido/atrasado (ex.: dois
       // toques rápidos, ou uma tela desatualizada tentando apagar uma
       // oferta que outra sessão já apagou) — sem essa guarda, o Firestore

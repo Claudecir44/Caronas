@@ -2136,19 +2136,41 @@ async function avaliarViagemContabilizada(db, caronaId, motoristaId, partidaRese
     });
 }
 
+// Também mantém caronasLiberadas: quantas das caronasOferecidas (somado
+// pelo próprio app, no mesmo lote que cria a carona) já DEVOLVERAM a vaga
+// grátis — terminaram sem passageiro (partida passou vazia, ou excluída
+// antes de sair). Vagas grátis em uso = oferecidas - liberadas =
+// realizadas + ofertas ainda em aberto, e é isso que
+// firestore.rules:permiteOferecerCarona limita a 10 — então nunca dá pra
+// ter mais de 10 publicadas de graça, nem deixando várias abertas ao mesmo
+// tempo. Em transação com a lista de caronas e o perfil: se o app publicar
+// uma carona no meio da conta, a transação refaz com os dois atualizados.
 async function recontarViagensRealizadas(db, motoristaId) {
     const usuarioRef = db.collection('usuarios').doc(motoristaId);
-    const [usuario, marcadores] = await Promise.all([
-        usuarioRef.get(),
-        db.collection('viagensContabilizadas').where('motoristaId', '==', motoristaId).count().get(),
-    ]);
-    // Conta já excluída (excluirUsuarioCompleto apaga as solicitações
-    // depois do perfil) — nada a atualizar.
-    if (!usuario.exists) return;
-    const total = (usuario.get('caronasRealizadasHerdadas') || 0) + marcadores.data().count;
-    if (usuario.get('caronasRealizadas') !== total) {
-        await usuarioRef.update({ caronasRealizadas: total });
-    }
+    await db.runTransaction(async (t) => {
+        const [usuario, marcadores, caronas] = await Promise.all([
+            t.get(usuarioRef),
+            t.get(db.collection('viagensContabilizadas').where('motoristaId', '==', motoristaId)),
+            t.get(db.collection('caronas').where('motoristaId', '==', motoristaId)),
+        ]);
+        // Conta já excluída (excluirUsuarioCompleto apaga as solicitações
+        // depois do perfil) — nada a atualizar.
+        if (!usuario.exists) return;
+
+        const contadas = new Set(marcadores.docs.map((doc) => doc.id));
+        const realizadas = (usuario.get('caronasRealizadasHerdadas') || 0) + contadas.size;
+        const agora = Date.now();
+        const emAberto = caronas.docs.filter((carona) => {
+            if (contadas.has(carona.id)) return false;
+            const partida = carona.get('dataHoraPartida');
+            return !(typeof partida === 'number' && agora > partida + FOLGA_PARTIDA_MS);
+        }).length;
+        const liberadas = (usuario.get('caronasOferecidas') || 0) - realizadas - emAberto;
+
+        if (usuario.get('caronasRealizadas') !== realizadas || usuario.get('caronasLiberadas') !== liberadas) {
+            t.update(usuarioRef, { caronasRealizadas: realizadas, caronasLiberadas: liberadas });
+        }
+    });
 }
 
 // Passageiro confirmado/cancelado/excluído -> reavalia a carona dele.
@@ -2177,7 +2199,8 @@ exports.contabilizarViagemExcluida = onDocumentDeleted('caronas/{caronaId}', asy
 // Reavalia TODAS as ofertas do próprio motorista — chamado pelo app ao
 // abrir a tela principal. É o que ajusta quem já tinha viagens de antes
 // dessa regra existir (o contador antigo, caronasOferecidas, contava toda
-// oferta publicada, com ou sem passageiro).
+// oferta publicada, com ou sem passageiro) — e devolve a vaga grátis das
+// ofertas que passaram da partida sem passageiro (caronasLiberadas).
 exports.sincronizarViagensRealizadas = functions.https.onCall(async (request) => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -2190,7 +2213,11 @@ exports.sincronizarViagensRealizadas = functions.https.onCall(async (request) =>
     }
     await recontarViagensRealizadas(db, uid);
     const usuario = await db.collection('usuarios').doc(uid).get();
-    return { caronasRealizadas: usuario.get('caronasRealizadas') || 0 };
+    return {
+        caronasRealizadas: usuario.get('caronasRealizadas') || 0,
+        caronasOferecidas: usuario.get('caronasOferecidas') || 0,
+        caronasLiberadas: usuario.get('caronasLiberadas') || 0,
+    };
 });
 
 // Nova mensagem no chat de uma carona -> avisa quem recebeu. Dispara ao

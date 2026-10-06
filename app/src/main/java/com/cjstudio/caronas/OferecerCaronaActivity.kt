@@ -332,6 +332,9 @@ class OferecerCaronaActivity : AppCompatActivity() {
             // verdade é firestore.rules:permiteOferecerCarona (ver
             // AcessoMotoristaUtil), isso aqui só evita um erro genérico de
             // permissão negada quando dá pra avisar com clareza antes.
+            // Reconta antes: oferta que passou da partida sem passageiro só
+            // devolve a vaga grátis quando o servidor reconta.
+            usuarioRepository.sincronizarViagensRealizadas()
             val usuario = usuarioRepository.buscarUsuarioLogado().getOrNull()
             if (usuario != null && !AcessoMotoristaUtil.permiteOferecerCarona(usuario)) {
                 progressBar.visibility = View.GONE

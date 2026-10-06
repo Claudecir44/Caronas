@@ -1271,9 +1271,10 @@ class TelaCaronasActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 // Servidor reconta (ajusta também quem tinha viagens de
                 // antes dessa regra) — mostra o valor já salvo enquanto isso.
-                usuarioRepository.sincronizarViagensRealizadas().onSuccess { total ->
-                    usuario.caronasRealizadas = total
-                    tvContadorViagensGratis.text = AcessoMotoristaUtil.textoStatus(this@TelaCaronasActivity, usuario)
+                if (usuarioRepository.sincronizarViagensRealizadas().isSuccess) {
+                    usuarioRepository.buscarUsuarioLogado().onSuccess { atualizado ->
+                        tvContadorViagensGratis.text = AcessoMotoristaUtil.textoStatus(this@TelaCaronasActivity, atualizado)
+                    }
                 }
             }
 

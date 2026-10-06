@@ -16,8 +16,13 @@ object AcessoMotoristaUtil {
     const val JANELA_RENOVACAO_DIAS = 2
     private const val DIA_MS = 24L * 60 * 60 * 1000
 
+    // Viagens realizadas (com passageiro confirmado) + ofertas ainda em
+    // aberto — oferta que termina sem passageiro devolve a vaga (ver
+    // Usuario.caronasLiberadas).
+    fun vagasGratisEmUso(usuario: Usuario): Int = usuario.caronasOferecidas - usuario.caronasLiberadas
+
     fun permiteOferecerCarona(usuario: Usuario): Boolean {
-        if (usuario.caronasRealizadas < CARONAS_GRATUITAS) return true
+        if (vagasGratisEmUso(usuario) < CARONAS_GRATUITAS) return true
         return temAcessoPagoValido(usuario)
     }
 
@@ -48,7 +53,7 @@ object AcessoMotoristaUtil {
             val formato = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
             return context.getString(R.string.tela_contador_viagens_gratis_pago_formato, formato.format(expiraEm))
         }
-        val usadas = minOf(usuario.caronasRealizadas, CARONAS_GRATUITAS)
+        val usadas = minOf(vagasGratisEmUso(usuario), CARONAS_GRATUITAS).coerceAtLeast(0)
         return context.getString(
             R.string.tela_contador_viagens_gratis_formato,
             CARONAS_GRATUITAS - usadas,

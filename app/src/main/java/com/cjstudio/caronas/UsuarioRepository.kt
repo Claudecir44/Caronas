@@ -354,14 +354,10 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
-    override suspend fun sincronizarViagensRealizadas(): Result<Int> {
+    override suspend fun sincronizarViagensRealizadas(): Result<Unit> {
         return try {
-            val resultado = functions.getHttpsCallable("sincronizarViagensRealizadas").call().await()
-            @Suppress("UNCHECKED_CAST")
-            val dados = resultado.data as? Map<String, Any?>
-            val total = (dados?.get("caronasRealizadas") as? Number)?.toInt()
-                ?: throw IllegalStateException("Resposta inválida do servidor.")
-            Result.success(total)
+            functions.getHttpsCallable("sincronizarViagensRealizadas").call().await()
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

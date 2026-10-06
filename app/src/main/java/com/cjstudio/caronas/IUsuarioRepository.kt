@@ -102,10 +102,12 @@ interface IUsuarioRepository {
     // pro mais antigo — alimenta a lista "Meus pagamentos" da tela de acesso pago.
     suspend fun buscarMeusPagamentosMotorista(): Result<List<PagamentoMotorista>>
 
-    // Pede pro servidor recontar as viagens do motorista logado que valem
-    // pras 10 grátis (só as com passageiro confirmado —
-    // functions/index.js:sincronizarViagensRealizadas) e devolve o total.
-    suspend fun sincronizarViagensRealizadas(): Result<Int>
+    // Pede pro servidor recontar as vagas grátis do motorista logado
+    // (viagens com passageiro confirmado + ofertas em aberto; oferta que
+    // terminou sem passageiro devolve a vaga —
+    // functions/index.js:sincronizarViagensRealizadas). Os contadores
+    // atualizados ficam no próprio perfil (buscarUsuarioLogado).
+    suspend fun sincronizarViagensRealizadas(): Result<Unit>
 
     // Sessão atual (Firebase Auth) — as telas nunca falam com o FirebaseAuth
     // direto, sempre por aqui.
