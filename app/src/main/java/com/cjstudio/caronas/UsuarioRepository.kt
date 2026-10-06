@@ -354,6 +354,19 @@ class UsuarioRepository @Inject constructor(
         }
     }
 
+    override suspend fun sincronizarViagensRealizadas(): Result<Int> {
+        return try {
+            val resultado = functions.getHttpsCallable("sincronizarViagensRealizadas").call().await()
+            @Suppress("UNCHECKED_CAST")
+            val dados = resultado.data as? Map<String, Any?>
+            val total = (dados?.get("caronasRealizadas") as? Number)?.toInt()
+                ?: throw IllegalStateException("Resposta inválida do servidor.")
+            Result.success(total)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun uidLogado(): String? = auth.currentUser?.uid
 
     override fun estaLogado(): Boolean = auth.currentUser != null

@@ -17,7 +17,7 @@ object AcessoMotoristaUtil {
     private const val DIA_MS = 24L * 60 * 60 * 1000
 
     fun permiteOferecerCarona(usuario: Usuario): Boolean {
-        if (usuario.caronasOferecidas < CARONAS_GRATUITAS) return true
+        if (usuario.caronasRealizadas < CARONAS_GRATUITAS) return true
         return temAcessoPagoValido(usuario)
     }
 
@@ -48,7 +48,7 @@ object AcessoMotoristaUtil {
             val formato = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
             return context.getString(R.string.tela_contador_viagens_gratis_pago_formato, formato.format(expiraEm))
         }
-        val usadas = minOf(usuario.caronasOferecidas, CARONAS_GRATUITAS)
+        val usadas = minOf(usuario.caronasRealizadas, CARONAS_GRATUITAS)
         return context.getString(
             R.string.tela_contador_viagens_gratis_formato,
             CARONAS_GRATUITAS - usadas,

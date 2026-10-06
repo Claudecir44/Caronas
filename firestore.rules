@@ -56,6 +56,8 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == usuarioId
         && request.resource.data.get('caronasOferecidas', 0) == 0
+        && request.resource.data.get('caronasRealizadas', 0) == 0
+        && request.resource.data.get('caronasRealizadasHerdadas', 0) == 0
         && request.resource.data.get('acessoMotoristaExpiraEm', null) == null;
 
       // Só o dono edita o próprio perfil, mas com duas travas pro modelo
@@ -78,8 +80,15 @@ service cloud.firestore {
       // (que confere a unicidade entre motoristas ANTES de gravar o vínculo).
       // Sem isso, dava pra editar o perfil direto e repetir o telefone/nome
       // de outro motorista, burlando a regra de "nenhum campo repetido".
+      //
+      // caronasRealizadas/caronasRealizadasHerdadas (o contador que vale
+      // pras 10 grátis — só viagens com passageiro confirmado, ver
+      // recontarViagensRealizadas em functions/index.js) são só do
+      // servidor: o cliente nunca muda.
       allow update: if request.auth != null && request.auth.uid == usuarioId
         && request.resource.data.get('acessoMotoristaExpiraEm', null) == resource.data.get('acessoMotoristaExpiraEm', null)
+        && request.resource.data.get('caronasRealizadas', 0) == resource.data.get('caronasRealizadas', 0)
+        && request.resource.data.get('caronasRealizadasHerdadas', 0) == resource.data.get('caronasRealizadasHerdadas', 0)
         && (request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0)
             || request.resource.data.get('caronasOferecidas', 0) == resource.data.get('caronasOferecidas', 0) + 1)
         && (!possuiVinculoMotorista(usuarioId) || (
@@ -117,6 +126,12 @@ service cloud.firestore {
     // pago) preservado por CPF através de uma exclusão de conta — só
     // Admin SDK lê/escreve (ver preservarCreditoMotoristaPorCpf/
     // restaurarCreditoMotoristaPorCpf em functions/index.js).
+    // Caronas que já contaram como viagem realizada (ver
+    // avaliarViagemContabilizada em functions/index.js) — só Admin SDK.
+    match /viagensContabilizadas/{caronaId} {
+      allow read, write: if false;
+    }
+
     match /motoristasGratisPorCpf/{cpf} {
       allow read, write: if false;
     }
@@ -135,19 +150,21 @@ service cloud.firestore {
         && request.time.toMillis() <= sol.get('chegadaPrevistaEm', sol.get('dataHoraPartida', 0)) + 21600000;
     }
 
-    // Trava de "10 caronas grátis, depois R$15,99/30 dias" pro motorista
-    // (ver Usuario.kt, CaronaRepository.publicarCarona) — mesmo cálculo
-    // que o app faz antes de mostrar a tela de Oferecer Carona, reforçado
-    // aqui pra ninguém burlar escrevendo direto no Firestore.
+    // Trava de "10 viagens grátis, depois acesso pago" pro motorista (ver
+    // Usuario.kt, AcessoMotoristaUtil) — mesmo cálculo que o app faz antes
+    // de mostrar a tela de Oferecer Carona, reforçado aqui pra ninguém
+    // burlar escrevendo direto no Firestore. Só conta viagem que teve
+    // passageiro confirmado (caronasRealizadas, mantido pelo servidor) —
+    // oferta sem passageiro não gasta viagem grátis.
     function permiteOferecerCarona(uid) {
       let usuario = get(/databases/$(database)/documents/usuarios/$(uid)).data;
-      let ofertas = usuario.get('caronasOferecidas', 0);
+      let realizadas = usuario.get('caronasRealizadas', 0);
       let expiraEm = usuario.get('acessoMotoristaExpiraEm', null);
       // Motorista precisa ter o CPF vinculado (registrarMotorista) —
       // é o que impede reabrir conta com outro e-mail pra ganhar outras 10
       // caronas grátis.
       return possuiVinculoMotorista(uid)
-        && (ofertas < 10 || (expiraEm != null && expiraEm > request.time));
+        && (realizadas < 10 || (expiraEm != null && expiraEm > request.time));
     }
 
     // Caronas oferecidas por um motorista. Leitura liberada pra qualquer

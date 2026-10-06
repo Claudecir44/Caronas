@@ -1258,24 +1258,36 @@ class TelaCaronasActivity : AppCompatActivity() {
         }
     }
 
-    // Dois contadorezinhos acima do "Sair", só pro motorista (ver
-    // AcessoMotoristaUtil/Usuario.caronasOferecidas): quantas das 10
-    // gratuitas já usou (ou, se já pagou, até quando vale o acesso) e
-    // quantas caronas já de fato aconteceram (data já passada — reusa
-    // buscarMinhasOfertas, que "Minhas Ofertas" já carrega de qualquer
-    // forma, em vez de outra consulta nova só pra isso).
+    // Dois contadorezinhos acima do "Sair" (ver AcessoMotoristaUtil/
+    // Usuario.caronasRealizadas): pro motorista, quantas das 10 gratuitas
+    // ainda restam (ou, se já pagou, até quando vale o acesso) e quantas
+    // viagens já de fato aconteceram — em ambos, só conta viagem que teve
+    // pelo menos 1 passageiro confirmado; oferta sem passageiro não conta.
     private fun atualizarContadoresMotorista(usuario: Usuario) {
         if (usuario.motorista) {
-            // "Grátis: X/10" (ou "Acesso pago até..." depois de pagar) só
-            // existe pro motorista — é quem tem o limite de 10 caronas
-            // gratuitas (ver AcessoMotoristaUtil).
             tvContadorViagensGratis.visibility = View.VISIBLE
             tvContadorViagensGratis.text = AcessoMotoristaUtil.textoStatus(this, usuario)
 
             lifecycleScope.launch {
-                caronaRepository.buscarMinhasOfertas().onSuccess { ofertas ->
+                // Servidor reconta (ajusta também quem tinha viagens de
+                // antes dessa regra) — mostra o valor já salvo enquanto isso.
+                usuarioRepository.sincronizarViagensRealizadas().onSuccess { total ->
+                    usuario.caronasRealizadas = total
+                    tvContadorViagensGratis.text = AcessoMotoristaUtil.textoStatus(this@TelaCaronasActivity, usuario)
+                }
+            }
+
+            lifecycleScope.launch {
+                // Caronas distintas com solicitação confirmada e partida já
+                // passada (mesmo critério de "concluída" de
+                // SolicitacaoRecebidaAdapter).
+                solicitacaoRepository.buscarSolicitacoesRecebidas().onSuccess { solicitacoes ->
                     val agora = System.currentTimeMillis()
-                    val realizadas = ofertas.count { (it.dataHoraPartida ?: Long.MAX_VALUE) < agora }
+                    val realizadas = solicitacoes
+                        .filter { it.status == "confirmada" && (it.dataHoraPartida ?: Long.MAX_VALUE) < agora }
+                        .mapNotNull { it.caronaId }
+                        .distinct()
+                        .size
                     tvContadorViagensRealizadas.visibility = View.VISIBLE
                     tvContadorViagensRealizadas.text = getString(R.string.tela_contador_viagens_realizadas_formato, realizadas)
                 }

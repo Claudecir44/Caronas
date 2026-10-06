@@ -22,10 +22,21 @@ data class Usuario(
 
     // Quantas caronas esse usuário já ofereceu como motorista (contador
     // simples, incrementado a cada "oferecer carona" bem-sucedido — ver
-    // CaronaRepository.publicarCarona). As 10 primeiras são grátis; da 11ª
-    // em diante precisa de acessoMotoristaExpiraEm válido (ver
-    // AcessoMotoristaUtil/firestore.rules: permiteOferecerCarona()).
+    // CaronaRepository.publicarCarona). Só estatística: NÃO é mais o que
+    // conta pras 10 grátis (ver caronasRealizadas).
     var caronasOferecidas: Int = 0,
+
+    // Viagens que contam pras 10 grátis: só as que tiveram pelo menos 1
+    // passageiro confirmado. Mantido só pelo servidor
+    // (functions/index.js:recontarViagensRealizadas) — o cliente nunca
+    // grava valor diferente (firestore.rules recusa). Da 11ª em diante
+    // precisa de acessoMotoristaExpiraEm válido (ver AcessoMotoristaUtil/
+    // firestore.rules: permiteOferecerCarona()).
+    var caronasRealizadas: Int = 0,
+
+    // Parte de caronasRealizadas que veio de uma conta excluída do mesmo
+    // CPF (restaurarCreditoMotoristaPorCpf). Também só do servidor.
+    var caronasRealizadasHerdadas: Int = 0,
 
     // Preenchido quando o motorista paga o acesso avulso (R$15,99 = 30
     // dias, sem renovação automática — mesmo modelo "pagamento único" já
@@ -41,5 +52,5 @@ data class Usuario(
     var criadoEm: Date? = null
 ) {
     // Construtor vazio necessário para o Firestore.
-    constructor() : this(null, null, null, null, null, false, null, 0, null, null)
+    constructor() : this(null, null, null, null, null, false, null, 0, 0, 0, null, null)
 }

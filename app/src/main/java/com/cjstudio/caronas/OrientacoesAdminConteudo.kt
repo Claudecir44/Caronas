@@ -98,7 +98,7 @@ Boas práticas:
         """.trimIndent(),
 
         "💰 Financeiro e acesso pago do motorista" to """
-Modelo: o motorista tem 10 caronas oferecidas grátis. A partir da 11ª, precisa de um plano de acesso pago pelo Mercado Pago (pagamento único, sem renovação automática):
+Modelo: o motorista tem 10 viagens grátis — só conta a carona que teve pelo menos 1 passageiro confirmado (oferta sem passageiro, ou em que todos cancelaram antes da partida, não conta). A partir da 11ª, precisa de um plano de acesso pago pelo Mercado Pago (pagamento único, sem renovação automática):
 • Mensal: R${'$'} 17,99 por 30 dias.
 • Trimestral: R${'$'} 44,99 por 90 dias.
 Só dá para pagar de novo faltando no máximo 2 dias para o acesso atual vencer (evita empilhar períodos). Passageiro nunca paga nada.

@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 const functions = require('firebase-functions');
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten, onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -53,7 +53,8 @@ if (SUPPORT_EMAIL_USER && SUPPORT_EMAIL_PASSWORD) {
 
 // ============================================================
 // Mercado Pago — acesso pago do motorista. Modelo: as 10 primeiras
-// caronas oferecidas são grátis (ver Usuario.caronasOferecidas,
+// viagens realizadas (com pelo menos 1 passageiro confirmado) são grátis
+// (ver Usuario.caronasRealizadas, recontarViagensRealizadas,
 // firestore.rules:permiteOferecerCarona); da 11ª em diante, precisa pagar
 // R$15,99 pra liberar 30 dias de acesso — pagamento AVULSO, sem
 // renovação automática (mesmo modelo "pagamento único" já usado no
@@ -1653,6 +1654,7 @@ async function preservarCreditoMotoristaPorCpf(db, uid) {
 
     await db.collection('motoristasGratisPorCpf').doc(cpf).set({
         caronasOferecidas: perfil.caronasOferecidas || 0,
+        caronasRealizadas: perfil.caronasRealizadas || 0,
         acessoMotoristaExpiraEm: perfil.acessoMotoristaExpiraEm || null,
         atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
         ultimoUsuarioId: uid,
@@ -1672,6 +1674,16 @@ async function restaurarCreditoMotoristaPorCpf(db, uid, cpf) {
     const atualizacao = {};
     if (typeof historico.caronasOferecidas === 'number' && historico.caronasOferecidas > 0) {
         atualizacao.caronasOferecidas = historico.caronasOferecidas;
+    }
+    // Viagens grátis já gastas (ver recontarViagensRealizadas). Crédito
+    // preservado antes dessa regra existir só tem caronasOferecidas — aí
+    // usa ele mesmo (é o que valia na época).
+    const realizadas = typeof historico.caronasRealizadas === 'number'
+        ? historico.caronasRealizadas
+        : historico.caronasOferecidas;
+    if (typeof realizadas === 'number' && realizadas > 0) {
+        atualizacao.caronasRealizadasHerdadas = realizadas;
+        atualizacao.caronasRealizadas = realizadas;
     }
     if (typeof historico.acessoMotoristaExpiraEm === 'number' && historico.acessoMotoristaExpiraEm > Date.now()) {
         atualizacao.acessoMotoristaExpiraEm = historico.acessoMotoristaExpiraEm;
@@ -2069,6 +2081,116 @@ exports.notificarViagemCancelada = onDocumentUpdated('solicitacoes/{solicitacaoI
         id: event.params.solicitacaoId,
         solicitacaoId: event.params.solicitacaoId,
     });
+});
+
+// ============================================================
+// Viagens realizadas do motorista — é ESSE o contador das 10 caronas
+// grátis (usuarios/{uid}.caronasRealizadas, lido por
+// firestore.rules:permiteOferecerCarona). Uma carona só conta se teve pelo
+// menos 1 passageiro CONFIRMADO: oferta sem passageiro (ninguém pediu, ou
+// ninguém foi confirmado) não gasta viagem grátis.
+//
+// Cada carona que conta ganha um marcador em viagensContabilizadas/
+// {caronaId} (só Admin SDK escreve). Até 10 min depois da partida (mesma
+// folga de viagemJaConcluida em firestore.rules) o marcador acompanha a
+// realidade — se todos os passageiros cancelarem, ou o motorista excluir a
+// oferta, ela deixa de contar. Depois disso fica travado: excluir uma
+// viagem que já aconteceu NÃO devolve a viagem grátis.
+//
+// caronasRealizadas = caronasRealizadasHerdadas (crédito restaurado por CPF
+// de uma conta excluída, ver restaurarCreditoMotoristaPorCpf) + marcadores
+// do motorista. Sempre recontado do zero, nunca incrementado — assim
+// qualquer reprocessamento é idempotente.
+// ============================================================
+const FOLGA_PARTIDA_MS = 10 * 60 * 1000;
+const { FieldValue } = require('firebase-admin/firestore');
+
+async function avaliarViagemContabilizada(db, caronaId, motoristaId, partidaReserva) {
+    const marcadorRef = db.collection('viagensContabilizadas').doc(caronaId);
+    const caronaRef = db.collection('caronas').doc(caronaId);
+    await db.runTransaction(async (t) => {
+        const [marcador, carona, confirmadas] = await Promise.all([
+            t.get(marcadorRef),
+            t.get(caronaRef),
+            t.get(db.collection('solicitacoes')
+                .where('caronaId', '==', caronaId)
+                .where('status', '==', 'confirmada')
+                .limit(1)),
+        ]);
+        const partida = carona.exists ? carona.get('dataHoraPartida') : partidaReserva;
+        const partidaJaPassou = typeof partida === 'number' && Date.now() > partida + FOLGA_PARTIDA_MS;
+        if (marcador.exists && partidaJaPassou) return;
+
+        // Oferta excluída antes de acontecer não conta, mesmo que ainda
+        // existam solicitações confirmadas soltas apontando pra ela.
+        const conta = !confirmadas.empty && (carona.exists || partidaJaPassou);
+        if (conta && !marcador.exists) {
+            t.set(marcadorRef, {
+                motoristaId,
+                dataHoraPartida: typeof partida === 'number' ? partida : null,
+                contadaEm: FieldValue.serverTimestamp(),
+            });
+        } else if (!conta && marcador.exists) {
+            t.delete(marcadorRef);
+        }
+    });
+}
+
+async function recontarViagensRealizadas(db, motoristaId) {
+    const usuarioRef = db.collection('usuarios').doc(motoristaId);
+    const [usuario, marcadores] = await Promise.all([
+        usuarioRef.get(),
+        db.collection('viagensContabilizadas').where('motoristaId', '==', motoristaId).count().get(),
+    ]);
+    // Conta já excluída (excluirUsuarioCompleto apaga as solicitações
+    // depois do perfil) — nada a atualizar.
+    if (!usuario.exists) return;
+    const total = (usuario.get('caronasRealizadasHerdadas') || 0) + marcadores.data().count;
+    if (usuario.get('caronasRealizadas') !== total) {
+        await usuarioRef.update({ caronasRealizadas: total });
+    }
+}
+
+// Passageiro confirmado/cancelado/excluído -> reavalia a carona dele.
+exports.contabilizarViagemPorSolicitacao = onDocumentWritten('solicitacoes/{solicitacaoId}', async (event) => {
+    const antes = event.data?.before?.data();
+    const depois = event.data?.after?.data();
+    if ((antes?.status === 'confirmada') === (depois?.status === 'confirmada')) return;
+    const dados = depois || antes;
+    if (!dados?.caronaId || !dados?.motoristaId) return;
+
+    const db = admin.firestore();
+    await avaliarViagemContabilizada(db, dados.caronaId, dados.motoristaId, dados.dataHoraPartida);
+    await recontarViagensRealizadas(db, dados.motoristaId);
+});
+
+// Oferta excluída -> se ainda não aconteceu, deixa de contar.
+exports.contabilizarViagemExcluida = onDocumentDeleted('caronas/{caronaId}', async (event) => {
+    const dados = event.data?.data();
+    if (!dados?.motoristaId) return;
+
+    const db = admin.firestore();
+    await avaliarViagemContabilizada(db, event.params.caronaId, dados.motoristaId, dados.dataHoraPartida);
+    await recontarViagensRealizadas(db, dados.motoristaId);
+});
+
+// Reavalia TODAS as ofertas do próprio motorista — chamado pelo app ao
+// abrir a tela principal. É o que ajusta quem já tinha viagens de antes
+// dessa regra existir (o contador antigo, caronasOferecidas, contava toda
+// oferta publicada, com ou sem passageiro).
+exports.sincronizarViagensRealizadas = functions.https.onCall(async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'Faça login novamente.');
+    }
+    const db = admin.firestore();
+    const caronas = await db.collection('caronas').where('motoristaId', '==', uid).get();
+    for (const carona of caronas.docs) {
+        await avaliarViagemContabilizada(db, carona.id, uid, carona.get('dataHoraPartida'));
+    }
+    await recontarViagensRealizadas(db, uid);
+    const usuario = await db.collection('usuarios').doc(uid).get();
+    return { caronasRealizadas: usuario.get('caronasRealizadas') || 0 };
 });
 
 // Nova mensagem no chat de uma carona -> avisa quem recebeu. Dispara ao

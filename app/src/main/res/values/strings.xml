@@ -18,7 +18,7 @@
 
     <!-- Acesso pago do motorista (10 caronas grátis, depois plano Mensal R$17,99/30 dias ou Trimestral R$44,99/90 dias) -->
     <string name="assinatura_motorista_titulo">Acesso de motorista</string>
-    <string name="assinatura_motorista_explicacao">As 10 primeiras caronas como motorista são gratuitas. Depois delas, escolha um plano de acesso para continuar oferecendo caronas.</string>
+    <string name="assinatura_motorista_explicacao">As 10 primeiras viagens como motorista são gratuitas — só conta a viagem que teve pelo menos 1 passageiro confirmado. Depois delas, escolha um plano de acesso para continuar oferecendo caronas.</string>
     <string name="plano_motorista_mensal_titulo">Mensal</string>
     <string name="plano_motorista_mensal_prazo">30 dias, pagamento único</string>
     <string name="plano_motorista_mensal_preco">R$ 17,99</string>
@@ -40,7 +40,7 @@
     <string name="assinatura_motorista_pagamento_estornado">Estornado — acesso removido</string>
     <string name="assinatura_motorista_erro_carregar_pagamentos">Não foi possível carregar seus pagamentos.</string>
     <string name="oferecer_bloqueado_titulo">Limite de caronas gratuitas</string>
-    <string name="oferecer_bloqueado_mensagem">Você já ofereceu 10 caronas gratuitamente. Para continuar, escolha um plano de acesso: 30 dias por R$ 17,99 ou 90 dias por R$ 44,99.</string>
+    <string name="oferecer_bloqueado_mensagem">Você já fez 10 viagens gratuitas com passageiros. Para continuar, escolha um plano de acesso: 30 dias por R$ 17,99 ou 90 dias por R$ 44,99.</string>
     <string name="oferecer_bloqueado_botao_assinar">Liberar acesso</string>
     <string name="oferecer_cpf_titulo">CPF obrigatório</string>
     <string name="oferecer_cpf_mensagem">Para oferecer caronas você precisa ter o CPF vinculado ao seu cadastro de motorista. Complete seu cadastro.</string>
