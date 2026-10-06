@@ -24,13 +24,30 @@
     overflow: hidden;
   }
   .arte {
-    width: 172mm; height: 172mm;
+    width: 156mm; height: 156mm;
     margin: 0 auto;
     border-radius: 5mm;
     overflow: hidden;
     box-shadow: 0 1mm 3mm rgba(0, 0, 0, .25);
   }
   .arte img { width: 100%; height: 100%; display: block; }
+
+  .destaque {
+    display: flex; align-items: center; gap: 4mm;
+    background: linear-gradient(90deg, #ff4f9a, #8a3cff 55%, #1565e0);
+    color: #fff;
+    border-radius: 5mm;
+    padding: 3.5mm 6mm;
+  }
+  .destaque .icones { font-size: 26pt; line-height: 1; white-space: nowrap; }
+  .destaque .selo {
+    font-size: 8.5pt; font-weight: 900; letter-spacing: .5mm;
+    background: #ffe066; color: #0a2a8a;
+    border-radius: 2mm; padding: .6mm 2mm;
+    display: inline-block; margin-bottom: 1mm;
+  }
+  .destaque h2 { font-size: 15.5pt; font-weight: 900; line-height: 1.1; }
+  .destaque p { font-size: 10.5pt; font-weight: 600; line-height: 1.25; margin-top: 1mm; }
 
   .baixar {
     flex: 1;
@@ -90,13 +107,23 @@
 <div class="folha">
   <div class="arte"><img src="arte_base.webp" alt="Caronas: o app de viagens compartilhadas"></div>
 
+  <section class="destaque">
+    <div class="icones">👩🚗👨</div>
+    <div>
+      <span class="selo">NOVIDADE</span>
+      <h2>Você escolhe o sexo do seu motorista!</h2>
+      <p>Na busca, o passageiro escolhe: motorista <b>homem</b>, <b>mulher</b> ou <b>ambos</b>.
+        E o motorista escolhe se leva só homens, só mulheres ou todos. Mais conforto e segurança pra viajar.</p>
+    </div>
+  </section>
+
   <section class="baixar">
     <div>
       <h1>Baixe grátis em <span>1 minuto</span></h1>
       <ol class="passos">
         <li><span class="num">1</span><span>Abra a <b>câmera do celular</b> e aponte para o código ao lado.</span></li>
         <li><span class="num">2</span><span>Ou abra o <b>Google Play</b> e pesquise: <b>Caronas Viagens Compartilhadas</b></span></li>
-        <li><span class="num">3</span><span>Toque em <b>Instalar</b>, crie sua conta e escolha: <b>motorista</b> ou <b>passageiro</b>.</span></li>
+        <li><span class="num">3</span><span>Toque em <b>Instalar</b>, crie sua conta e escolha: <b>motorista</b> ou <b>passageiro</b>. Na busca, escolha o <b>sexo do motorista</b>.</span></li>
       </ol>
       <div class="gratis">
         Passageiro: <b>sempre grátis</b>. Motorista: <b>10 viagens grátis</b>.<br>
